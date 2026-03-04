@@ -53,5 +53,5 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           port: 22
           local_path: ./website-react/dist/
-          remote_path: ./
+          remote_path: ./shiftingsource.com/
           sftp_only: true
