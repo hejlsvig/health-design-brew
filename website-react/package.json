@@ -14,7 +14,7 @@
     "@radix-ui/react-separator": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.4",
-    "@supabase/supabase-js": "^2.49.1",
+    "@supabase/supabase-js": "^2.98.0",
     "@tiptap/extension-color": "^2.11.0",
     "@tiptap/extension-image": "^2.11.0",
     "@tiptap/extension-link": "^2.11.0",
