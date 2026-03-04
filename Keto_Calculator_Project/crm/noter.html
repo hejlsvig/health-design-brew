@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noter - CRM</title>
+    <link rel="stylesheet" href="crm-theme.css">
+    <style>
+        body {
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .page-header {
+            background: var(--color-card);
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            color: var(--color-text);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }
+
+        .notes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            border: none;
+            background: #f0f0f0;
+            color: var(--color-text-muted);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-tab.active {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        .btn-create {
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-create:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .note-card {
+            background: var(--color-card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .note-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .note-category {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: var(--radius);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .note-category.general {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .note-category.madplan {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .note-category.klient {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .note-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .note-content {
+            color: var(--color-text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            max-height: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .note-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .note-date {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-icon:hover {
+            background: #f0f0f0;
+            color: var(--brand-primary);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--color-card);
+            border-radius: var(--radius);
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            color: var(--color-text);
+            font-size: 22px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--color-text);
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .btn-cancel,
+        .btn-save {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel {
+            background: #f0f0f0;
+            color: var(--color-text-muted);
+        }
+
+        .btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-save {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #5568d3;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--color-card);
+            border-radius: var(--radius);
+        }
+
+        .empty-state h3 {
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <script src="nav-loader.js"></script>
+    <div id="nav-container"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Mine Noter</h1>
+            <p>Opret og administrer dine personlige noter</p>
+        </div>
+
+        <div class="notes-header">
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-category="all" onclick="filterNotes('all')">
+                    Alle
+                </button>
+                <button class="filter-tab" data-category="general" onclick="filterNotes('general')">
+                    Generel
+                </button>
+                <button class="filter-tab" data-category="madplan" onclick="filterNotes('madplan')">
+                    Madplan
+                </button>
+                <button class="filter-tab" data-category="klient" onclick="filterNotes('klient')">
+                    Klient
+                </button>
+            </div>
+            <button class="btn-create" onclick="showCreateNoteModal()">
+                + Opret Note
+            </button>
+        </div>
+
+        <div id="notes-grid" class="notes-grid">
+            <div class="empty-state">
+                <h3>Indlæser...</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Note Modal -->
+    <div id="note-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Opret Note</h2>
+            </div>
+
+            <form id="note-form">
+                <input type="hidden" id="note-id">
+
+                <div class="form-group">
+                    <label for="note-title">Titel *</label>
+                    <input type="text" id="note-title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="note-category">Kategori</label>
+                    <select id="note-category">
+                        <option value="general">Generel</option>
+                        <option value="madplan">Madplan</option>
+                        <option value="klient">Klient</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="note-content">Indhold</label>
+                    <textarea id="note-content"></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeNoteModal()">Annuller</button>
+                    <button type="submit" class="btn-save">Gem Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let allNotes = [];
+        let currentFilter = 'all';
+
+        loadNavComponent(() => {
+            checkAuthAndUpdateNav().then((user) => {
+                currentUser = user;
+                setActiveNav('noter');
+                loadNotes();
+                setTimeout(() => { if (window.initLucideIcons) window.initLucideIcons(); }, 200);
+            });
+        });
+
+        // Load all notes
+        async function loadNotes() {
+            try {
+                allNotes = await CRM.notes.getAll();
+                renderNotes();
+            } catch (error) {
+                console.error('Error loading notes:', error);
+                document.getElementById('notes-grid').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Kunne ikke indlæse noter</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                if (window.initLucideIcons) window.initLucideIcons();
+            }
+        }
+
+        // Render notes based on filter
+        function renderNotes() {
+            const container = document.getElementById('notes-grid');
+
+            let filteredNotes = currentFilter === 'all'
+                ? allNotes
+                : allNotes.filter(note => note.category === currentFilter);
+
+            if (filteredNotes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Ingen noter</h3>
+                        <p>Klik på "Opret Note" for at komme i gang</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredNotes.map(note => `
+                <div class="note-card" onclick="editNote(${note.id})">
+                    <span class="note-category ${note.category}">${note.category}</span>
+                    <h3 class="note-title">${escapeHtml(note.title)}</h3>
+                    <div class="note-content">${escapeHtml(note.content || '').substring(0, 150)}${note.content && note.content.length > 150 ? '...' : ''}</div>
+                    <div class="note-meta">
+                        <span class="note-date">${formatDate(note.updated_at)}</span>
+                        <div class="note-actions">
+                            <button class="btn-icon" onclick="event.stopPropagation(); editNote(${note.id})" title="Rediger">
+                                ${getIcon('edit')}
+                            </button>
+                            <button class="btn-icon" onclick="event.stopPropagation(); deleteNote(${note.id}, '${escapeHtml(note.title)}')" title="Slet">
+                                ${getIcon('delete')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            if (window.initLucideIcons) window.initLucideIcons();
+        }
+
+        // Filter notes by category
+        function filterNotes(category) {
+            currentFilter = category;
+
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+
+            renderNotes();
+        }
+
+        // Show create note modal
+        function showCreateNoteModal() {
+            document.getElementById('modal-title').textContent = 'Opret Note';
+            document.getElementById('note-id').value = '';
+            document.getElementById('note-title').value = '';
+            document.getElementById('note-category').value = 'general';
+            document.getElementById('note-content').value = '';
+            document.getElementById('note-modal').classList.add('show');
+        }
+
+        // Edit note
+        function editNote(noteId) {
+            const note = allNotes.find(n => n.id === noteId);
+            if (!note) return;
+
+            document.getElementById('modal-title').textContent = 'Rediger Note';
+            document.getElementById('note-id').value = note.id;
+            document.getElementById('note-title').value = note.title;
+            document.getElementById('note-category').value = note.category || 'general';
+            document.getElementById('note-content').value = note.content || '';
+            document.getElementById('note-modal').classList.add('show');
+        }
+
+        // Close modal
+        function closeNoteModal() {
+            document.getElementById('note-modal').classList.remove('show');
+        }
+
+        // Delete note
+        async function deleteNote(noteId, noteTitle) {
+            if (!confirm(`Er du sikker på at du vil slette noten "${noteTitle}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/notes/${noteId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete note');
+                }
+
+                await loadNotes();
+            } catch (error) {
+                console.error('Error deleting note:', error);
+                alert('Kunne ikke slette noten');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('note-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const noteId = document.getElementById('note-id').value;
+            const formData = {
+                title: document.getElementById('note-title').value.trim(),
+                category: document.getElementById('note-category').value,
+                content: document.getElementById('note-content').value.trim()
+            };
+
+            try {
+                if (noteId) {
+                    // Update existing note
+                    await CRM.notes.update(noteId, formData);
+                } else {
+                    // Create new note
+                    await CRM.notes.create(formData);
+                }
+
+                closeNoteModal();
+                await loadNotes();
+            } catch (error) {
+                console.error('Error saving note:', error);
+                alert('Kunne ikke gemme noten: ' + error.message);
+            }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('note-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'note-modal') {
+                closeNoteModal();
+            }
+        });
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Lige nu';
+            if (diffMins < 60) return `${diffMins} min. siden`;
+            if (diffHours < 24) return `${diffHours} time${diffHours > 1 ? 'r' : ''} siden`;
+            if (diffDays < 7) return `${diffDays} dag${diffDays > 1 ? 'e' : ''} siden`;
+
+            return date.toLocaleDateString('da-DK', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+    </script>
+</body>
+</html>

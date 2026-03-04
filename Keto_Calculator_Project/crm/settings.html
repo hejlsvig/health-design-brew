@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indstillinger - CRM</title>
+    <link rel="stylesheet" href="crm-theme.css">
+    <style>
+        /* meal-plan-settings page-specific styles — colors from crm-theme.css */
+        body {
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .settings-container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 32px 20px 60px;
+        }
+
+        /* ── Page Header ── */
+        .settings-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .settings-header h1 {
+            font-family: var(--font-heading);
+            color: var(--brand-primary);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .settings-header svg { color: var(--brand-primary); }
+
+        /* ── Status message ── */
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+        .status.success { background: var(--color-green-subtle); color: var(--brand-primary); border: 1px solid hsla(152, 40%, 22%, 0.2); }
+        .status.error { background: var(--color-red-subtle); color: var(--color-red); border: 1px solid hsla(0, 84%, 60%, 0.15); }
+        .status.warning { background: var(--color-orange-subtle); color: var(--brand-accent); border: 1px solid hsla(25, 65%, 50%, 0.15); }
+
+        /* ── Section Cards ── */
+        .settings-card {
+            background: var(--color-card);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .card-title h2 {
+            font-family: var(--font-heading);
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        .card-title svg,
+        .card-title i { color: var(--brand-accent); }
+
+        .card-description {
+            color: var(--color-text-light);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .card-description a {
+            color: var(--brand-accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .card-description a:hover { text-decoration: underline; }
+
+        /* ── Form Fields ── */
+        .field { margin-bottom: 18px; }
+
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 6px;
+        }
+
+        .field label svg,
+        .field label i {
+            display: inline;
+            width: 14px;
+            height: 14px;
+            margin-right: 4px;
+            vertical-align: -2px;
+            color: var(--color-text-light);
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: var(--font-body);
+            color: var(--color-text);
+            background: var(--color-card);
+            transition: border-color 0.2s ease;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px var(--color-green-subtle);
+        }
+
+        .field input[type="password"],
+        .field input.mono {
+            font-family: 'Courier New', monospace;
+        }
+
+        .field .hint {
+            font-size: 12px;
+            color: var(--color-text-light);
+            margin-top: 6px;
+        }
+
+        .field .hint a {
+            color: var(--brand-accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .field .hint a:hover { text-decoration: underline; }
+
+        /* ── Password wrapper with eye toggle ── */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 40px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-light);
+            padding: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-toggle:hover { color: var(--color-text); }
+
+        /* ── Two-column grid ── */
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* ── Model Selector Grid ── */
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .model-card {
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            cursor: pointer;
+            background: var(--color-card);
+            text-align: left;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .model-card:hover {
+            border-color: hsla(152, 40%, 22%, 0.4);
+            background: hsla(152, 40%, 22%, 0.02);
+        }
+
+        .model-card.active {
+            border-color: var(--brand-primary);
+            background: var(--color-green-subtle);
+        }
+
+        .model-card .model-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .model-card.active .model-name {
+            color: var(--brand-primary);
+        }
+
+        .model-card .model-desc {
+            font-size: 11px;
+            color: var(--color-text-light);
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+
+        /* ── Stats grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: var(--brand-surface);
+            padding: 16px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid hsla(152, 40%, 22%, 0.08);
+        }
+
+        .stat-label {
+            color: var(--color-text-light);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            color: var(--brand-primary);
+            font-size: 22px;
+            font-weight: 700;
+            font-family: var(--font-heading);
+        }
+
+        /* ── Email list ── */
+        .email-list-box {
+            background: var(--brand-surface);
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 16px;
+            border: 1px solid hsla(152, 40%, 22%, 0.08);
+        }
+
+        .email-list-box h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-bottom: 10px;
+        }
+
+        .email-list-box ul { list-style: none; padding: 0; }
+
+        .email-list-box li {
+            padding: 8px 0;
+            border-bottom: 1px solid hsla(152, 40%, 22%, 0.08);
+            color: var(--color-text-muted);
+            font-size: 13px;
+        }
+
+        .email-list-box li:last-child { border-bottom: none; }
+
+        .email-list-box a {
+            color: var(--brand-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* ── Save Button ── */
+        .save-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-save {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 40px;
+            padding: 0 24px;
+            background: var(--brand-primary);
+            color: var(--color-card);
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            font-family: var(--font-body);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-save:hover { background: var(--brand-primary-dark); }
+        .btn-save:disabled { opacity: 0.5; cursor: default; }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--brand-primary);
+            color: var(--color-card);
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            font-family: var(--font-body);
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s ease;
+        }
+
+        .btn-download:hover { background: var(--brand-primary-dark); }
+
+        .save-feedback {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--brand-primary);
+        }
+
+        /* ── Recent plans ── */
+        .plan-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: var(--color-card);
+        }
+
+        .plan-row .plan-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        .plan-row .plan-meta {
+            font-size: 12px;
+            color: var(--color-text-light);
+            margin-top: 2px;
+        }
+
+        @media (max-width: 640px) {
+            .model-grid { grid-template-columns: 1fr 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .field-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <script src="nav-loader.js"></script>
+    <div id="nav-container"></div>
+
+    <div class="settings-container">
+        <!-- Header -->
+        <div class="settings-header">
+            <i data-lucide="settings" style="width:24px;height:24px;"></i>
+            <h1>Indstillinger</h1>
+        </div>
+
+        <div id="status-message" class="status"></div>
+
+        <!-- ── AI / LLM Section ── -->
+        <div class="settings-card">
+            <div class="card-title">
+                <i data-lucide="bot" style="width:20px;height:20px;"></i>
+                <h2>AI Madplan Generering</h2>
+            </div>
+            <p class="card-description">
+                Konfigurer OpenAI til automatisk generering af madplaner.
+            </p>
+
+            <div class="field">
+                <label><i data-lucide="shield-check" style="width:14px;height:14px;"></i> OpenAI API Nøgle</label>
+                <div id="api-key-status" style="margin-top: 4px; padding: 12px 16px; border-radius: 8px; font-size: 13px; background: var(--color-green-subtle); color: var(--brand-primary); border: 1px solid hsla(152, 40%, 22%, 0.2);">
+                    <i data-lucide="lock" style="width:14px;height:14px;vertical-align:-2px;"></i>
+                    <strong>API-nøglen er sikret server-side.</strong> Den håndteres via Supabase Edge Function og sendes aldrig til browseren.
+                </div>
+                <p class="hint" style="margin-top:6px;">
+                    Nøglen administreres via <code>supabase secrets set OPENAI_API_KEY=sk-...</code> i terminalen.
+                </p>
+            </div>
+
+            <div class="field">
+                <label><i data-lucide="cpu" style="width:14px;height:14px;"></i> AI Model</label>
+                <div class="model-grid" id="model-grid">
+                    <button class="model-card" data-model="gpt-5.1" onclick="selectModel('gpt-5.1')">
+                        <span class="model-name">GPT-5.1</span>
+                        <span class="model-desc">Bedste kvalitet — ~$0.16/plan</span>
+                    </button>
+                    <button class="model-card active" data-model="gpt-5-mini" onclick="selectModel('gpt-5-mini')">
+                        <span class="model-name">GPT-5 mini</span>
+                        <span class="model-desc">Anbefalet — ~$0.03/plan</span>
+                    </button>
+                    <button class="model-card" data-model="gpt-5-nano" onclick="selectModel('gpt-5-nano')">
+                        <span class="model-name">GPT-5 nano</span>
+                        <span class="model-desc">Billigst — ~$0.006/plan</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="field" id="max-tokens-field">
+                <label>Max Output Tokens</label>
+                <input type="number" id="max-tokens" value="16000" min="4000" max="100000" step="1000">
+                <p class="hint">Minimum 16.000 for 7-dages madplaner. Højere = mere detaljeret, men dyrere.</p>
+            </div>
+
+            <div class="field" id="temperature-control" style="display: none;">
+                <label>Temperature (Kreativitet)</label>
+                <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1">
+                <p class="hint">Kun for GPT-5.1. Lavere = konsistent, højere = kreativ. Standard: 0.7</p>
+            </div>
+        </div>
+
+        <!-- ── Email Section ── -->
+        <div class="settings-card">
+            <div class="card-title">
+                <i data-lucide="mail" style="width:20px;height:20px;"></i>
+                <h2>Email Konfiguration</h2>
+            </div>
+            <p class="card-description">
+                Konfigurer email service til automatisk afsendelse af madplaner. Gmail brugere: brug en
+                <a href="https://myaccount.google.com/apppasswords" target="_blank">App Password</a> (ikke normal password).
+            </p>
+
+            <div class="field">
+                <label>Email Service</label>
+                <select id="email-service">
+                    <option value="gmail">Gmail</option>
+                    <option value="outlook">Outlook</option>
+                    <option value="one">One.com</option>
+                </select>
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label>Email Adresse</label>
+                    <input type="email" id="email-user" placeholder="your-email@gmail.com" autocomplete="email">
+                </div>
+                <div class="field">
+                    <label>Adgangskode</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="email-password" placeholder="App Password" autocomplete="new-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword('email-password', this)">
+                            <i data-lucide="eye" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Afsender Navn</label>
+                <input type="text" id="from-name" placeholder="Keto Calculator" value="Keto Calculator">
+            </div>
+
+            <div style="margin-top: 4px; font-size: 13px; color: var(--color-text-muted);">
+                <strong>Status:</strong> <span id="email-status">Ikke konfigureret</span>
+            </div>
+
+            <div class="email-list-box">
+                <h4>Tilkoblede Email Adresser</h4>
+                <ul id="connected-emails-list">
+                    <li>Indlæser...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ── Statistics Section ── -->
+        <div class="settings-card">
+            <div class="card-title">
+                <i data-lucide="bar-chart-3" style="width:20px;height:20px;"></i>
+                <h2>Madplan Statistik</h2>
+            </div>
+            <p class="card-description">Oversigt over genererede madplaner og omkostninger.</p>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Total Planer</div>
+                    <div class="stat-value" id="total-plans">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Kostpris</div>
+                    <div class="stat-value" id="total-cost">$0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Gennemsnit</div>
+                    <div class="stat-value" id="avg-cost">$0.00</div>
+                </div>
+            </div>
+
+            <div>
+                <h4 style="font-size: 13px; font-weight: 700; color: var(--color-text); margin-bottom: 10px;">Seneste Madplaner</h4>
+                <div id="recent-plans"></div>
+            </div>
+        </div>
+
+        <!-- ── Save Button ── -->
+        <div class="save-bar">
+            <button class="btn-save" id="save-all-btn" onclick="saveAll()">
+                <i data-lucide="save" style="width:16px;height:16px;"></i>
+                Gem Indstillinger
+            </button>
+            <span class="save-feedback" id="save-feedback"></span>
+        </div>
+    </div>
+
+    <script>
+        // Load navigation
+        loadNavComponent(() => {
+            checkAuthAndUpdateNav().then(() => {
+                setActiveNav('settings-general');
+            });
+        });
+
+        // ── Password toggle ──
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+
+        // ── Model selector ──
+        let selectedModel = 'gpt-5-mini';
+
+        function selectModel(modelId) {
+            selectedModel = modelId;
+            document.querySelectorAll('.model-card').forEach(card => {
+                card.classList.toggle('active', card.dataset.model === modelId);
+            });
+            updateTemperatureVisibility(modelId);
+        }
+
+        function updateTemperatureVisibility(model) {
+            const tempControl = document.getElementById('temperature-control');
+            tempControl.style.display = model === 'gpt-5.1' ? 'block' : 'none';
+        }
+
+        // ── Status messages ──
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            setTimeout(() => { statusDiv.style.display = 'none'; }, 5000);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('da-DK', {
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        // ── Wait for CRM API ──
+        function waitForCRM(fn, maxWait = 10000) {
+            if (window.CRM) return fn();
+            const start = Date.now();
+            const interval = setInterval(() => {
+                if (window.CRM) { clearInterval(interval); fn(); }
+                else if (Date.now() - start > maxWait) { clearInterval(interval); console.warn('waitForCRM: timed out, CRM not available'); }
+            }, 100);
+        }
+
+        // ── Save All (Supabase) ──
+        async function saveAll() {
+            const btn = document.getElementById('save-all-btn');
+            const feedback = document.getElementById('save-feedback');
+            btn.disabled = true;
+            feedback.textContent = '';
+
+            try {
+                const maxTokens = parseInt(document.getElementById('max-tokens').value);
+                const temperature = parseFloat(document.getElementById('temperature').value);
+
+                // API key is now managed server-side via Supabase secrets — not saved in database
+
+                if (maxTokens < 4000) {
+                    showStatus('Max tokens skal være mindst 4.000', 'warning');
+                    btn.disabled = false;
+                    return;
+                }
+
+                const configData = { model: selectedModel, maxTokens };
+                if (selectedModel === 'gpt-5.1') configData.temperature = temperature;
+                await CRM.settings.set('model_config', JSON.stringify(configData));
+
+                // Save email config (only if fields are filled)
+                const emailUser = document.getElementById('email-user').value.trim();
+                const emailPassword = document.getElementById('email-password').value;
+                if (emailUser && emailPassword) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(emailUser)) {
+                        showStatus('Ugyldig email adresse format', 'error');
+                        btn.disabled = false;
+                        return;
+                    }
+                    const emailService = document.getElementById('email-service').value;
+                    const fromName = document.getElementById('from-name').value.trim() || 'Keto Calculator';
+
+                    await CRM.settings.set('email_config', JSON.stringify({
+                        service: emailService,
+                        user: emailUser,
+                        password: emailPassword,
+                        fromName: fromName,
+                        fromEmail: emailUser,
+                        configured: true
+                    }));
+                    document.getElementById('email-password').value = '';
+                    loadEmailStatus();
+                }
+
+                // Success
+                document.getElementById('api-key').value = '';
+                feedback.textContent = 'Indstillinger gemt!';
+                setTimeout(() => { feedback.textContent = ''; }, 5000);
+
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showStatus('Kunne ikke gemme: ' + (error.message || 'Ukendt fejl'), 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ── Load data (Supabase) ──
+        async function loadModelConfig() {
+            try {
+                const raw = await CRM.settings.get('model_config');
+                if (raw) {
+                    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                    selectedModel = data.model || 'gpt-5-mini';
+                    selectModel(selectedModel);
+                    document.getElementById('max-tokens').value = data.maxTokens || 16000;
+                    document.getElementById('temperature').value = data.temperature || 0.7;
+                }
+            } catch (error) {
+                console.error('Error loading model config:', error);
+            }
+        }
+
+        async function loadEmailStatus() {
+            try {
+                const raw = await CRM.settings.get('email_config');
+                const statusEl = document.getElementById('email-status');
+                if (raw) {
+                    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                    if (data.configured) {
+                        statusEl.innerHTML = `<span style="color: var(--brand-primary);">Konfigureret</span> (<strong>${data.fromEmail}</strong> via ${data.service})`;
+                    } else {
+                        statusEl.innerHTML = '<span style="color: #b71c1c;">Ikke konfigureret</span>';
+                    }
+                } else {
+                    statusEl.innerHTML = '<span style="color: var(--color-text-light);">Ikke konfigureret</span>';
+                }
+            } catch (error) {
+                console.error('Error loading email status:', error);
+            }
+        }
+
+        async function loadStatistics() {
+            try {
+                const stats = await CRM.mealPlans.getStats();
+                document.getElementById('total-plans').textContent = stats.totalPlans;
+                document.getElementById('total-cost').textContent = '$' + stats.totalCost.toFixed(2);
+                document.getElementById('avg-cost').textContent = '$' + stats.averageCost.toFixed(3);
+
+                const plans = await CRM.mealPlans.getAll();
+                const recentPlans = document.getElementById('recent-plans');
+                if (plans.length === 0) {
+                    recentPlans.innerHTML = '<p style="color: var(--color-text-light); text-align: center; padding: 16px;">Ingen madplaner genereret endnu</p>';
+                } else {
+                    recentPlans.innerHTML = plans.slice(0, 5).map(plan => `
+                        <div class="plan-row">
+                            <div>
+                                <div class="plan-name">${plan.profile_id || 'Madplan'}</div>
+                                <div class="plan-meta">${formatDate(plan.created_at)} &bull; $${(plan.total_cost || 0).toFixed(3)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    if (window.lucide) lucide.createIcons();
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        async function loadConnectedEmails() {
+            try {
+                const usersData = await CRM.users.getAll();
+                const users = usersData.users || [];
+                const emailsList = document.getElementById('connected-emails-list');
+
+                if (users.length === 0) {
+                    emailsList.innerHTML = '<li style="color: var(--color-text-light);">Ingen brugere fundet</li>';
+                } else {
+                    const usersWithEmail = users.filter(user => user.work_email && user.active);
+                    emailsList.innerHTML = `
+                        <li><strong>${users.length}</strong> total brugere i systemet</li>
+                        <li><strong>${usersWithEmail.length}</strong> med arbejds-email konfigureret</li>
+                        ${usersWithEmail.map(user => `
+                            <li><strong>${user.name}</strong>: ${user.work_email}</li>
+                        `).join('')}
+                        <li style="padding-top: 8px;">
+                            <a href="users.html">Administrer brugere &rarr;</a>
+                        </li>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading connected emails:', error);
+                document.getElementById('connected-emails-list').innerHTML = '<li style="color: var(--color-text-light);">Fejl ved indlæsning</li>';
+            }
+        }
+
+        // ── Init (wait for CRM API) ──
+        waitForCRM(() => {
+            loadModelConfig();
+            loadStatistics();
+            loadEmailStatus();
+            loadConnectedEmails();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => { if (window.initLucideIcons) window.initLucideIcons(); }, 200);
+
+            // Wait for CRM API then load saved model config
+            waitForCRM(async () => {
+                try {
+                    // API key is managed server-side — no need to check database
+                    // Load saved model config
+                    const modelConfigRaw = await CRM.settings.get('model_config');
+                    if (modelConfigRaw) {
+                        try {
+                            const mc = JSON.parse(modelConfigRaw);
+                            if (mc.model) selectModel(mc.model);
+                            if (mc.maxTokens) document.getElementById('max-tokens').value = mc.maxTokens;
+                            if (mc.temperature) document.getElementById('temperature').value = mc.temperature;
+                        } catch {}
+                    }
+                } catch (e) {
+                    console.log('Could not load settings:', e);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

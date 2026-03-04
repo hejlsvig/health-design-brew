@@ -1,0 +1,214 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     Shifting Source — CRM Navigation Component
+     Loaded via #nav-placeholder on every CRM page.
+     Styled entirely by crm-theme.css — no inline styles.
+     ═══════════════════════════════════════════════════════════════ -->
+
+<style>
+    /* Lucide icon defaults (used throughout CRM) */
+    [data-lucide] {
+        width: 16px;
+        height: 16px;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 6px;
+        stroke-width: 1.75;
+    }
+    .crm-btn [data-lucide], .client-actions [data-lucide] {
+        width: 14px;
+        height: 14px;
+        margin-right: 4px;
+    }
+</style>
+
+<nav class="crm-nav">
+    <!-- Brand -->
+    <a href="admin.html" class="crm-nav-brand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Shifting Source
+    </a>
+
+    <!-- Links -->
+    <div class="crm-nav-links">
+        <a href="admin.html" id="nav-dashboard" class="crm-nav-link" data-i18n="nav.dashboard">Dashboard</a>
+
+        <div class="crm-nav-dropdown" id="settings-dropdown-wrapper">
+            <button onclick="toggleSettingsMenu(event)" id="nav-settings" class="crm-nav-link" style="background:none;border:none;cursor:pointer;font-family:inherit;">
+                <span data-i18n="nav.settings">Indstillinger</span> &#9662;
+            </button>
+            <div class="crm-nav-dropdown-menu" id="settings-dropdown">
+                <a href="settings.html" id="nav-settings-general" class="crm-nav-dropdown-item">
+                    <i data-lucide="settings"></i> <span data-i18n="nav.system_settings">System Indstillinger</span>
+                </a>
+                <a href="users.html" id="nav-users" class="crm-nav-dropdown-item">
+                    <i data-lucide="users"></i> <span data-i18n="nav.users">Brugere</span>
+                </a>
+                <a href="email-automation.html" id="nav-email-auto" class="crm-nav-dropdown-item">
+                    <i data-lucide="mail"></i> <span data-i18n="nav.email_automation">Email Automation</span>
+                </a>
+                <a href="emails-oversigt.html" id="nav-email-overview" class="crm-nav-dropdown-item">
+                    <i data-lucide="bar-chart-3"></i> <span data-i18n="nav.email_statistics">Email Statistik</span>
+                </a>
+                <a href="layout.html" id="nav-layout" class="crm-nav-dropdown-item">
+                    <i data-lucide="palette"></i> <span data-i18n="nav.layout_design">Layout & Design</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- User section -->
+    <div class="crm-nav-user">
+        <div class="crm-nav-user-info">
+            <div class="crm-nav-user-name" id="current-user-name">...</div>
+            <div class="crm-nav-user-role" id="current-user-role">...</div>
+        </div>
+        <div class="crm-nav-avatar" id="nav-avatar">?</div>
+        <button onclick="logout()" class="crm-nav-logout" data-i18n="nav.logout">Log ud</button>
+    </div>
+</nav>
+
+<script>
+    // ── Dropdown toggle ──
+    window.toggleSettingsMenu = function(event) {
+        event.stopPropagation();
+        const wrapper = document.getElementById('settings-dropdown-wrapper');
+        if (wrapper) wrapper.classList.toggle('open');
+    };
+
+    // Close dropdown on outside click
+    if (window.navClickHandler) {
+        document.removeEventListener('click', window.navClickHandler);
+    }
+    window.navClickHandler = function(e) {
+        const wrapper = document.getElementById('settings-dropdown-wrapper');
+        if (wrapper && !wrapper.contains(e.target)) {
+            wrapper.classList.remove('open');
+        }
+    };
+    document.addEventListener('click', window.navClickHandler);
+
+    // ── Active nav highlight ──
+    window.setActiveNav = function(page) {
+        // Reset all nav links
+        document.querySelectorAll('.crm-nav-link').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.crm-nav-dropdown-item').forEach(el => el.classList.remove('active'));
+
+        // Set active
+        const activeEl = document.getElementById(`nav-${page}`);
+        if (activeEl) activeEl.classList.add('active');
+
+        // If in settings dropdown, also highlight settings button
+        const settingsPages = ['settings-general', 'users', 'email-auto', 'email-overview', 'layout'];
+        if (settingsPages.includes(page)) {
+            const settingsBtn = document.getElementById('nav-settings');
+            if (settingsBtn) settingsBtn.classList.add('active');
+        }
+    };
+
+    // ── Logout ──
+    window.logout = async function() {
+        try {
+            if (window.CRM && window.CRM.auth) {
+                await window.CRM.auth.logout();
+            } else if (window.getSupabase) {
+                await window.getSupabase().auth.signOut();
+            }
+            localStorage.removeItem('crm-user');
+            window.location.href = 'login.html';
+        } catch (error) {
+            console.error('Logout failed:', error);
+            localStorage.removeItem('crm-user');
+            window.location.href = 'login.html';
+        }
+    };
+
+    // ── Lucide icons ──
+    window.initLucideIcons = function() {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+    setTimeout(() => window.initLucideIcons(), 50);
+
+    // ── Auth check + nav update ──
+    window.checkAuthAndUpdateNav = async function() {
+        try {
+            let retries = 0;
+            while (!window.getSupabase && retries < 20) {
+                await new Promise(r => setTimeout(r, 100));
+                retries++;
+            }
+
+            const sb = window.getSupabase();
+            if (!sb) {
+                console.error('[nav] Supabase not available');
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            const { data: { user }, error } = await sb.auth.getUser();
+            if (error || !user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            const { data: crmUser } = await sb
+                .from('crm_users')
+                .select('role, name')
+                .eq('profile_id', user.id)
+                .single();
+
+            if (!crmUser) {
+                console.warn('[nav] User has no CRM access');
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            const { data: profile } = await sb
+                .from('profiles')
+                .select('language, name')
+                .eq('id', user.id)
+                .single();
+
+            const userData = {
+                id: user.id,
+                email: user.email,
+                name: crmUser.name || profile?.name || user.email,
+                role: crmUser.role,
+                language: profile?.language || 'da',
+                isAdmin: crmUser.role === 'admin',
+            };
+
+            // Update nav elements
+            const nameEl = document.getElementById('current-user-name');
+            const roleEl = document.getElementById('current-user-role');
+            const avatarEl = document.getElementById('nav-avatar');
+
+            if (nameEl) nameEl.textContent = userData.name;
+            if (roleEl) roleEl.textContent = userData.role === 'admin' ? 'Administrator' : 'Coach';
+            if (avatarEl) {
+                const initials = userData.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                avatarEl.textContent = initials;
+            }
+
+            // i18n
+            if (window.i18n && userData.language) {
+                await window.i18n.setLanguage(userData.language);
+                if (window.updateI18nElements) window.updateI18nElements();
+            }
+
+            // Hide admin-only items
+            if (userData.role !== 'admin') {
+                ['nav-users', 'nav-settings-general', 'nav-email-auto'].forEach(id => {
+                    const item = document.getElementById(id);
+                    if (item) item.style.display = 'none';
+                });
+            }
+
+            localStorage.setItem('crm-user', JSON.stringify(userData));
+            return userData;
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            window.location.href = 'login.html';
+            return null;
+        }
+    };
+</script>

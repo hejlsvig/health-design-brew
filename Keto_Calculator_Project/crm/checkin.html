@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ugentlig Check-in</title>
+    <link rel="stylesheet" href="crm-theme.css">
+    <style>
+        body {
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--color-card);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--color-text);
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: var(--color-text-muted);
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .client-info {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-bottom: 30px;
+        }
+
+        .client-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .client-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .label {
+            color: var(--color-text-light);
+            font-weight: 500;
+        }
+
+        .value {
+            color: var(--color-text);
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--color-text-muted);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input[type="number"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .radio-option {
+            position: relative;
+        }
+
+        .radio-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .radio-option label {
+            display: block;
+            padding: 12px 16px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            color: var(--color-text-muted);
+        }
+
+        .radio-option input[type="radio"]:checked + label {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        .radio-option label:hover {
+            border-color: var(--brand-primary);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-option label {
+            cursor: pointer;
+            color: var(--color-text-muted);
+        }
+
+        .slider-group {
+            margin-bottom: 25px;
+        }
+
+        .slider-group label {
+            display: block;
+            color: var(--color-text-muted);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--brand-primary);
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--brand-primary);
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--brand-primary);
+            font-size: 18px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn {
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: var(--radius-sm);
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        .history {
+            margin-top: 30px;
+        }
+
+        .history h2 {
+            color: var(--color-text);
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .history-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            border-left: 4px solid var(--brand-primary);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .week-number {
+            font-weight: 600;
+            color: var(--brand-primary);
+        }
+
+        .weight-change {
+            font-weight: 600;
+        }
+
+        .weight-change.positive {
+            color: #48bb78;
+        }
+
+        .weight-change.negative {
+            color: #f56565;
+        }
+
+        .history-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            font-size: 14px;
+            color: var(--color-text-muted);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 640px) {
+            .card {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .radio-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div id="message" class="message"></div>
+            <div id="loading" class="loading">Indlæser...</div>
+            <div id="content" style="display: none;">
+                <h1 id="pageTitle">Ugentlig Check-in</h1>
+
+                <div class="client-info">
+                    <div class="client-info-row">
+                        <span class="label" id="labelName">Navn:</span>
+                        <span class="value" id="clientName">-</span>
+                    </div>
+                    <div class="client-info-row">
+                        <span class="label" id="labelStartWeight">Startvægt:</span>
+                        <span class="value" id="clientStartWeight">-</span>
+                    </div>
+                    <div class="client-info-row">
+                        <span class="label" id="labelGoalWeight">Målvægt:</span>
+                        <span class="value" id="clientGoalWeight">-</span>
+                    </div>
+                    <div class="client-info-row">
+                        <span class="label" id="labelWeeksOnProgram">Uger på programmet:</span>
+                        <span class="value" id="weeksOnProgram">-</span>
+                    </div>
+                </div>
+
+                <form id="checkinForm">
+                    <h2 id="sectionBasic">Vægt & Energi</h2>
+
+                    <div class="form-group">
+                        <label for="weight" id="labelCurrentWeight">Nuværende vægt (kg)</label>
+                        <input type="number" id="weight" step="0.1" required>
+                    </div>
+
+                    <div class="slider-group">
+                        <label id="labelEnergy">Hvordan har dit energiniveau været?</label>
+                        <div class="slider-container">
+                            <input type="range" id="energy" min="1" max="10" value="5">
+                            <span class="slider-value" id="energyValue">5</span>
+                        </div>
+                    </div>
+
+                    <div class="slider-group">
+                        <label id="labelMood">Hvordan har dit humør været denne uge?</label>
+                        <div class="slider-container">
+                            <input type="range" id="mood" min="1" max="10" value="5">
+                            <span class="slider-value" id="moodValue">5</span>
+                        </div>
+                    </div>
+
+                    <h2 id="sectionHunger">Sult & Cravings</h2>
+
+                    <div class="form-group">
+                        <label id="labelHunger">Hvordan har din sult været?</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="hunger-none" name="hunger" value="none" required>
+                                <label for="hunger-none" id="labelHungerNone">Ingen</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="hunger-light" name="hunger" value="light">
+                                <label for="hunger-light" id="labelHungerLight">Let</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="hunger-moderate" name="hunger" value="moderate">
+                                <label for="hunger-moderate" id="labelHungerModerate">Moderat</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="hunger-strong" name="hunger" value="strong">
+                                <label for="hunger-strong" id="labelHungerStrong">Kraftig</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label id="labelCravings">Har du haft sukker- eller kulhydratcravings?</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="cravings-no" name="cravings" value="no" required>
+                                <label for="cravings-no" id="labelCravingsNo">Nej</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="cravings-little" name="cravings" value="little">
+                                <label for="cravings-little" id="labelCravingsLittle">Lidt</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="cravings-much" name="cravings" value="much">
+                                <label for="cravings-much" id="labelCravingsMuch">Meget</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 id="sectionSleep">Søvn</h2>
+
+                    <div class="two-column">
+                        <div class="form-group">
+                            <label for="sleep-hours" id="labelSleepHours">Timer pr. nat (gennemsnit)</label>
+                            <input type="number" id="sleep-hours" step="0.5" min="0" max="24" placeholder="7.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="sleep-quality" id="labelSleepQuality">Søvnkvalitet (1-10)</label>
+                            <input type="number" id="sleep-quality" min="1" max="10" placeholder="7">
+                        </div>
+                    </div>
+
+                    <h2 id="sectionDigestion">Mave & Fordøjelse</h2>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="digestion-bloated" name="digestion" value="bloated">
+                                <label for="digestion-bloated" id="labelDigestionBloated">Oppustet</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="digestion-constipation" name="digestion" value="constipation">
+                                <label for="digestion-constipation" id="labelDigestionConstipation">Forstoppelse</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="digestion-normal" name="digestion" value="normal">
+                                <label for="digestion-normal" id="labelDigestionNormal">Normal fordøjelse</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 id="sectionActivity">Fysisk Aktivitet</h2>
+
+                    <div class="form-group">
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="activity-none" name="activity" value="none" required>
+                                <label for="activity-none" id="labelActivityNone">Ingen</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="activity-light" name="activity" value="light">
+                                <label for="activity-light" id="labelActivityLight">Let (gåture)</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="activity-moderate" name="activity" value="moderate">
+                                <label for="activity-moderate" id="labelActivityModerate">Moderat</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="activity-hard" name="activity" value="hard">
+                                <label for="activity-hard" id="labelActivityHard">Hård træning</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 id="sectionFasting">Faste</h2>
+
+                    <div class="two-column">
+                        <div class="form-group">
+                            <label for="fasting-hours" id="labelFastingHours">Timer i gennemsnit (valgfrit)</label>
+                            <input type="number" id="fasting-hours" step="1" min="0" max="72" placeholder="16">
+                        </div>
+                        <div class="form-group">
+                            <label id="labelFastingFeeling">Føltes det?</label>
+                            <div class="radio-group" style="grid-template-columns: 1fr 1fr 1fr;">
+                                <div class="radio-option">
+                                    <input type="radio" id="fasting-easy" name="fasting-feeling" value="easy">
+                                    <label for="fasting-easy" id="labelFastingEasy">Let</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="fasting-ok" name="fasting-feeling" value="ok">
+                                    <label for="fasting-ok" id="labelFastingOk">OK</label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="fasting-hard" name="fasting-feeling" value="hard">
+                                    <label for="fasting-hard" id="labelFastingHard">Svært</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 id="sectionStress">Stress & Livssituation</h2>
+
+                    <div class="form-group">
+                        <label id="labelStressFactors">Har noget påvirket dig ekstra denne uge?</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="stress-work" name="stress" value="work">
+                                <label for="stress-work" id="labelStressWork">Arbejde</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="stress-family" name="stress" value="family">
+                                <label for="stress-family" id="labelStressFamily">Familie</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="stress-travel" name="stress" value="travel">
+                                <label for="stress-travel" id="labelStressTravel">Rejse</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="stress-illness" name="stress" value="illness">
+                                <label for="stress-illness" id="labelStressIllness">Sygdom</label>
+                            </div>
+                            <div class="checkbox-option">
+                                <input type="checkbox" id="stress-none" name="stress" value="none">
+                                <label for="stress-none" id="labelStressNone">Intet særligt</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 id="sectionWin">Ugens Sejr</h2>
+
+                    <div class="form-group">
+                        <label for="weekly-win" id="labelWeeklyWin">Hvad gik godt i denne uge?</label>
+                        <textarea id="weekly-win" placeholder=""></textarea>
+                    </div>
+
+                    <h2 id="sectionNotes">Yderligere Bemærkninger</h2>
+
+                    <div class="form-group">
+                        <label for="deviations" id="labelDeviations">Afvigelser fra madplanen (valgfrit)</label>
+                        <textarea id="deviations" placeholder=""></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes" id="labelNotes">Andre noter (valgfrit)</label>
+                        <textarea id="notes" placeholder=""></textarea>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">Gem Check-in</button>
+                </form>
+
+                <div class="history" id="historySection" style="display: none;">
+                    <h2 id="historyTitle">Dine tidligere check-ins</h2>
+                    <div id="historyList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            da: {
+                pageTitle: 'Ugentlig Check-in',
+                labelName: 'Navn:',
+                labelStartWeight: 'Startvægt:',
+                labelGoalWeight: 'Målvægt:',
+                labelWeeksOnProgram: 'Uger på programmet:',
+                sectionBasic: 'Vægt & Energi',
+                labelCurrentWeight: 'Nuværende vægt (kg)',
+                labelEnergy: 'Hvordan har dit energiniveau været?',
+                labelMood: 'Hvordan har dit humør været denne uge?',
+                sectionHunger: 'Sult & Cravings',
+                labelHunger: 'Hvordan har din sult været?',
+                labelHungerNone: 'Ingen',
+                labelHungerLight: 'Let',
+                labelHungerModerate: 'Moderat',
+                labelHungerStrong: 'Kraftig',
+                labelCravings: 'Har du haft sukker- eller kulhydratcravings?',
+                labelCravingsNo: 'Nej',
+                labelCravingsLittle: 'Lidt',
+                labelCravingsMuch: 'Meget',
+                sectionSleep: 'Søvn',
+                labelSleepHours: 'Timer pr. nat (gennemsnit)',
+                labelSleepQuality: 'Søvnkvalitet (1-10)',
+                sectionDigestion: 'Mave & Fordøjelse',
+                labelDigestionBloated: 'Oppustet',
+                labelDigestionConstipation: 'Forstoppelse',
+                labelDigestionNormal: 'Normal fordøjelse',
+                sectionActivity: 'Fysisk Aktivitet',
+                labelActivityNone: 'Ingen',
+                labelActivityLight: 'Let (gåture)',
+                labelActivityModerate: 'Moderat',
+                labelActivityHard: 'Hård træning',
+                sectionFasting: 'Faste',
+                labelFastingHours: 'Timer i gennemsnit (valgfrit)',
+                labelFastingFeeling: 'Føltes det?',
+                labelFastingEasy: 'Let',
+                labelFastingOk: 'OK',
+                labelFastingHard: 'Svært',
+                sectionStress: 'Stress & Livssituation',
+                labelStressFactors: 'Har noget påvirket dig ekstra denne uge?',
+                labelStressWork: 'Arbejde',
+                labelStressFamily: 'Familie',
+                labelStressTravel: 'Rejse',
+                labelStressIllness: 'Sygdom',
+                labelStressNone: 'Intet særligt',
+                sectionWin: 'Ugens Sejr',
+                labelWeeklyWin: 'Hvad gik godt i denne uge?',
+                sectionNotes: 'Yderligere Bemærkninger',
+                labelDeviations: 'Afvigelser fra madplanen (valgfrit)',
+                labelNotes: 'Andre noter (valgfrit)',
+                submitBtn: 'Gem Check-in',
+                historyTitle: 'Dine tidligere check-ins',
+                loading: 'Indlæser...',
+                errorLoading: 'Kunne ikke indlæse data. Prøv igen.',
+                successSubmit: 'Check-in gemt! Godt gået! 🎉',
+                errorSubmit: 'Kunne ikke gemme check-in. Prøv igen.',
+                week: 'Uge',
+                weight: 'Vægt',
+                mood: 'Humør',
+                energy: 'Energi',
+                date: 'Dato'
+            },
+            en: {
+                pageTitle: 'Weekly Check-in',
+                labelName: 'Name:',
+                labelStartWeight: 'Starting Weight:',
+                labelGoalWeight: 'Goal Weight:',
+                labelWeeksOnProgram: 'Weeks on Program:',
+                sectionBasic: 'Weight & Energy',
+                labelCurrentWeight: 'Current Weight (kg)',
+                labelEnergy: 'How has your energy level been?',
+                labelMood: 'How has your mood been this week?',
+                sectionHunger: 'Hunger & Cravings',
+                labelHunger: 'How has your hunger been?',
+                labelHungerNone: 'None',
+                labelHungerLight: 'Light',
+                labelHungerModerate: 'Moderate',
+                labelHungerStrong: 'Strong',
+                labelCravings: 'Have you had sugar or carb cravings?',
+                labelCravingsNo: 'No',
+                labelCravingsLittle: 'A little',
+                labelCravingsMuch: 'A lot',
+                sectionSleep: 'Sleep',
+                labelSleepHours: 'Hours per night (average)',
+                labelSleepQuality: 'Sleep quality (1-10)',
+                sectionDigestion: 'Stomach & Digestion',
+                labelDigestionBloated: 'Bloated',
+                labelDigestionConstipation: 'Constipation',
+                labelDigestionNormal: 'Normal digestion',
+                sectionActivity: 'Physical Activity',
+                labelActivityNone: 'None',
+                labelActivityLight: 'Light (walks)',
+                labelActivityModerate: 'Moderate',
+                labelActivityHard: 'Hard training',
+                sectionFasting: 'Fasting',
+                labelFastingHours: 'Hours on average (optional)',
+                labelFastingFeeling: 'How did it feel?',
+                labelFastingEasy: 'Easy',
+                labelFastingOk: 'OK',
+                labelFastingHard: 'Hard',
+                sectionStress: 'Stress & Life Situation',
+                labelStressFactors: 'Has anything affected you extra this week?',
+                labelStressWork: 'Work',
+                labelStressFamily: 'Family',
+                labelStressTravel: 'Travel',
+                labelStressIllness: 'Illness',
+                labelStressNone: 'Nothing special',
+                sectionWin: 'Weekly Win',
+                labelWeeklyWin: 'What went well this week?',
+                sectionNotes: 'Additional Notes',
+                labelDeviations: 'Deviations from meal plan (optional)',
+                labelNotes: 'Other notes (optional)',
+                submitBtn: 'Save Check-in',
+                historyTitle: 'Your Previous Check-ins',
+                loading: 'Loading...',
+                errorLoading: 'Could not load data. Please try again.',
+                successSubmit: 'Check-in saved! Well done! 🎉',
+                errorSubmit: 'Could not save check-in. Please try again.',
+                week: 'Week',
+                weight: 'Weight',
+                mood: 'Mood',
+                energy: 'Energy',
+                date: 'Date'
+            },
+            se: {
+                pageTitle: 'Veckovis Incheckning',
+                labelName: 'Namn:',
+                labelStartWeight: 'Startvikt:',
+                labelGoalWeight: 'Målvikt:',
+                labelWeeksOnProgram: 'Veckor på programmet:',
+                sectionBasic: 'Vikt & Energi',
+                labelCurrentWeight: 'Nuvarande vikt (kg)',
+                labelEnergy: 'Hur har din energinivå varit?',
+                labelMood: 'Hur har ditt humör varit denna vecka?',
+                sectionHunger: 'Hunger & Cravings',
+                labelHunger: 'Hur har din hunger varit?',
+                labelHungerNone: 'Ingen',
+                labelHungerLight: 'Lätt',
+                labelHungerModerate: 'Måttlig',
+                labelHungerStrong: 'Stark',
+                labelCravings: 'Har du haft socker- eller kolhydratcravings?',
+                labelCravingsNo: 'Nej',
+                labelCravingsLittle: 'Lite',
+                labelCravingsMuch: 'Mycket',
+                sectionSleep: 'Sömn',
+                labelSleepHours: 'Timmar per natt (genomsnitt)',
+                labelSleepQuality: 'Sömnkvalitet (1-10)',
+                sectionDigestion: 'Mage & Matsmältning',
+                labelDigestionBloated: 'Uppsvälld',
+                labelDigestionConstipation: 'Förstoppning',
+                labelDigestionNormal: 'Normal matsmältning',
+                sectionActivity: 'Fysisk Aktivitet',
+                labelActivityNone: 'Ingen',
+                labelActivityLight: 'Lätt (promenader)',
+                labelActivityModerate: 'Måttlig',
+                labelActivityHard: 'Hård träning',
+                sectionFasting: 'Fasta',
+                labelFastingHours: 'Timmar i genomsnitt (valfritt)',
+                labelFastingFeeling: 'Hur kändes det?',
+                labelFastingEasy: 'Lätt',
+                labelFastingOk: 'OK',
+                labelFastingHard: 'Svårt',
+                sectionStress: 'Stress & Livssituation',
+                labelStressFactors: 'Har något påverkat dig extra denna vecka?',
+                labelStressWork: 'Arbete',
+                labelStressFamily: 'Familj',
+                labelStressTravel: 'Resa',
+                labelStressIllness: 'Sjukdom',
+                labelStressNone: 'Inget särskilt',
+                sectionWin: 'Veckans Vinst',
+                labelWeeklyWin: 'Vad gick bra denna vecka?',
+                sectionNotes: 'Ytterligare Kommentarer',
+                labelDeviations: 'Avvikelser från kostplanen (valfritt)',
+                labelNotes: 'Andra kommentarer (valfritt)',
+                submitBtn: 'Spara Incheckning',
+                historyTitle: 'Dina Tidigare Incheckningar',
+                loading: 'Laddar...',
+                errorLoading: 'Kunde inte ladda data. Försök igen.',
+                successSubmit: 'Incheckning sparad! Bra jobbat! 🎉',
+                errorSubmit: 'Kunde inte spara incheckning. Försök igen.',
+                week: 'Vecka',
+                weight: 'Vikt',
+                mood: 'Humör',
+                energy: 'Energi',
+                date: 'Datum'
+            }
+        };
+
+        let currentLang = 'da';
+        let leadData = null;
+        let checkinHistory = [];
+
+        // Get access token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('token');
+
+        if (!accessToken) {
+            console.error('No access token in URL');
+            showMessage('error', 'Intet adgangs token i linket. Brug venligst linket fra din coach.');
+            document.getElementById('loading').style.display = 'none';
+        } else {
+            console.log('Loading check-in with token:', accessToken.substring(0, 20) + '...');
+            loadData();
+        }
+
+        // Update slider values
+        document.getElementById('mood').addEventListener('input', (e) => {
+            document.getElementById('moodValue').textContent = e.target.value;
+        });
+
+        document.getElementById('energy').addEventListener('input', (e) => {
+            document.getElementById('energyValue').textContent = e.target.value;
+        });
+
+        // Form submission
+        document.getElementById('checkinForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await submitCheckin();
+        });
+
+        async function loadData() {
+            try {
+                // Get coaching client data using token (public endpoint - no auth required)
+                console.log('Fetching coaching client by token...');
+                const response = await fetch(`/api/coaching-client/by-token/${accessToken}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Coaching client loaded:', data);
+
+                if (!data.success) {
+                    showMessage('error', 'Invalid or expired access token');
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+
+                // Store client data
+                const client = {
+                    id: data.coachingClientId,
+                    lead_id: data.leadId,
+                    start_date: data.startDate
+                };
+
+                // Create leadData object
+                leadData = {
+                    name: data.name,
+                    email: data.email,
+                    weight: data.startWeight,
+                    weight_goal: data.goalWeight,
+                    language: data.language
+                };
+
+                // Set language
+                currentLang = leadData.language || 'da';
+                updateLanguage();
+
+                // Load check-in history (using token)
+                const historyResponse = await fetch(`/api/checkins/${accessToken}`);
+                const historyData = await historyResponse.json();
+                checkinHistory = historyData.checkins || [];
+
+                // Calculate weeks on program
+                const startDate = new Date(client.start_date);
+                const today = new Date();
+                const weeksOnProgram = Math.floor((today - startDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
+
+                // Update UI
+                document.getElementById('clientName').textContent = leadData.name || leadData.email;
+                document.getElementById('clientStartWeight').textContent = `${leadData.weight} kg`;
+                document.getElementById('clientGoalWeight').textContent = `${leadData.weight_goal} kg`;
+                document.getElementById('weeksOnProgram').textContent = weeksOnProgram;
+
+                // Show history if exists
+                if (checkinHistory.length > 0) {
+                    renderHistory();
+                    document.getElementById('historySection').style.display = 'block';
+                }
+
+                // Hide loading, show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                showMessage('error', `${translations[currentLang].errorLoading}\n\nError: ${error.message}`);
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function updateLanguage() {
+            const t = translations[currentLang];
+
+            // Update all text elements
+            Object.keys(t).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'BUTTON') {
+                        if (element.type === 'submit' || element.tagName === 'BUTTON') {
+                            element.textContent = t[key];
+                        } else {
+                            element.placeholder = t[key];
+                        }
+                    } else {
+                        element.textContent = t[key];
+                    }
+                }
+            });
+        }
+
+        async function submitCheckin() {
+            const weight = parseFloat(document.getElementById('weight').value);
+            const mood = parseInt(document.getElementById('mood').value);
+            const energy = parseInt(document.getElementById('energy').value);
+
+            // Get radio values
+            const hunger = document.querySelector('input[name="hunger"]:checked')?.value || '';
+            const cravings = document.querySelector('input[name="cravings"]:checked')?.value || '';
+            const activity = document.querySelector('input[name="activity"]:checked')?.value || '';
+            const fastingFeeling = document.querySelector('input[name="fasting-feeling"]:checked')?.value || '';
+
+            // Get checkbox values
+            const digestion = Array.from(document.querySelectorAll('input[name="digestion"]:checked')).map(cb => cb.value).join(', ');
+            const stressFactors = Array.from(document.querySelectorAll('input[name="stress"]:checked')).map(cb => cb.value).join(', ');
+
+            // Get other values
+            const sleepHours = parseFloat(document.getElementById('sleep-hours').value) || null;
+            const sleepQuality = parseInt(document.getElementById('sleep-quality').value) || null;
+            const fastingHours = parseInt(document.getElementById('fasting-hours').value) || null;
+            const weeklyWin = document.getElementById('weekly-win').value;
+            const deviations = document.getElementById('deviations').value;
+            const notes = document.getElementById('notes').value;
+
+            const weekNumber = checkinHistory.length + 1;
+
+            const data = {
+                weight,
+                weekNumber,
+                mood,
+                energy,
+                hunger,
+                cravings,
+                sleepHours,
+                sleepQuality,
+                digestion,
+                activity,
+                fastingHours,
+                fastingFeeling,
+                stressFactors,
+                weeklyWin,
+                deviations,
+                notes
+            };
+
+            try {
+                console.log('Submitting check-in data:', data);
+                const response = await fetch(`/api/checkin/${accessToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                console.log('Check-in response status:', response.status);
+                const result = await response.json();
+                console.log('Check-in result:', result);
+
+                if (result.success) {
+                    showMessage('success', translations[currentLang].successSubmit);
+
+                    // Reload after 2 seconds
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    console.error('Check-in failed:', result);
+                    showMessage('error', `${translations[currentLang].errorSubmit}\n\n${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Error submitting check-in:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                showMessage('error', `${translations[currentLang].errorSubmit}\n\nError: ${error.message}`);
+            }
+        }
+
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            const t = translations[currentLang];
+
+            checkinHistory.forEach((checkin, index) => {
+                const previousWeight = index < checkinHistory.length - 1 ? checkinHistory[index + 1].weight : leadData.weight;
+                const weightChange = checkin.weight - previousWeight;
+                const weightChangeClass = weightChange < 0 ? 'positive' : (weightChange > 0 ? 'negative' : '');
+                const weightChangeText = weightChange !== 0 ? `(${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} kg)` : '';
+
+                const date = new Date(checkin.created_at);
+                const dateStr = date.toLocaleDateString(currentLang === 'da' ? 'da-DK' : currentLang === 'se' ? 'sv-SE' : 'en-US');
+
+                const html = `
+                    <div class="history-item">
+                        <div class="history-header">
+                            <span class="week-number">${t.week} ${checkin.week_number}</span>
+                            <span class="weight-change ${weightChangeClass}">${checkin.weight} kg ${weightChangeText}</span>
+                        </div>
+                        <div class="history-details">
+                            <div>${t.date}: ${dateStr}</div>
+                            <div>${t.mood}: ${checkin.mood}/10</div>
+                            <div>${t.energy}: ${checkin.energy}/10</div>
+                        </div>
+                    </div>
+                `;
+
+                historyList.innerHTML += html;
+            });
+        }
+
+        function showMessage(type, text) {
+            const messageEl = document.getElementById('message');
+            messageEl.className = `message ${type}`;
+            messageEl.textContent = text;
+            messageEl.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>

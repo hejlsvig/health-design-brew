@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Shifting Source CRM</title>
+    <link rel="stylesheet" href="crm-theme.css">
+    <style>
+        /* Login-specific overrides (body background handled by .crm-login-page) */
+        body { background: var(--brand-primary-dark); }
+
+        .crm-login-toggle {
+            text-align: center;
+            margin-top: 1.25rem;
+        }
+        .crm-login-toggle a {
+            color: var(--brand-accent);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .crm-login-toggle a:hover { text-decoration: underline; }
+
+        .crm-login-waiting {
+            text-align: center;
+            padding: 1.5rem 0;
+        }
+        .crm-login-waiting svg { color: var(--brand-accent); margin-bottom: 0.75rem; }
+        .crm-login-waiting h3 { font-size: 1rem; margin-bottom: 0.35rem; }
+        .crm-login-waiting p { font-size: 0.82rem; color: var(--color-text-muted); line-height: 1.6; }
+
+        /* Loading spinner */
+        .crm-spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 3px solid hsla(152, 40%, 22%, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--brand-primary);
+            animation: crm-spin 0.7s linear infinite;
+            margin-right: 0.5rem;
+        }
+        .crm-spinner-white {
+            border-color: hsla(0,0%,100%,0.3);
+            border-top-color: white;
+        }
+        @keyframes crm-spin { to { transform: rotate(360deg); } }
+
+        .crm-btn .crm-spinner { display: none; }
+        .crm-btn.loading .crm-spinner { display: inline-block; }
+
+        .crm-hidden { display: none !important; }
+
+        @keyframes crm-fade-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .crm-login-card { animation: crm-fade-in 0.4s ease-out; }
+    </style>
+</head>
+<body class="crm-login-page">
+    <div class="crm-login-card">
+        <!-- Brand -->
+        <div class="crm-login-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <h2>Shifting Source</h2>
+            <p>Customer Relationship Management</p>
+        </div>
+
+        <!-- Messages -->
+        <div class="crm-alert crm-alert-error crm-hidden" id="error-message"></div>
+        <div class="crm-alert crm-alert-success crm-hidden" id="success-message"></div>
+
+        <!-- Password login (primary) -->
+        <div id="password-section">
+            <form id="password-form">
+                <div class="crm-form-group">
+                    <label class="crm-form-label" for="email">Email</label>
+                    <input class="crm-form-input" type="email" id="email" name="email" required autocomplete="email" placeholder="din@email.dk">
+                </div>
+                <div class="crm-form-group">
+                    <label class="crm-form-label" for="password">Password</label>
+                    <input class="crm-form-input" type="password" id="password" name="password" required autocomplete="current-password" placeholder="Dit password">
+                </div>
+                <button type="submit" class="crm-btn crm-btn-primary crm-btn-block" id="password-btn">
+                    <span class="crm-spinner crm-spinner-white"></span>
+                    <span>Log ind</span>
+                </button>
+            </form>
+            <div class="crm-login-toggle">
+                <a onclick="showMagicLinkSection()">Brug login-link i stedet &rarr;</a>
+            </div>
+        </div>
+
+        <!-- Magic link login -->
+        <div id="magiclink-section" class="crm-hidden">
+            <form id="magiclink-form">
+                <div class="crm-form-group">
+                    <label class="crm-form-label" for="ml-email">Email</label>
+                    <input class="crm-form-input" type="email" id="ml-email" name="email" required autocomplete="email" placeholder="din@email.dk">
+                </div>
+                <button type="submit" class="crm-btn crm-btn-accent crm-btn-block" id="magiclink-btn">
+                    <span class="crm-spinner crm-spinner-white"></span>
+                    <span>Send login-link</span>
+                </button>
+            </form>
+            <div class="crm-login-toggle">
+                <a onclick="showPasswordSection()">&larr; Log ind med password</a>
+            </div>
+        </div>
+
+        <!-- Waiting for magic link -->
+        <div id="waiting-section" class="crm-hidden">
+            <div class="crm-login-waiting">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                <h3>Tjek din email</h3>
+                <p>Vi har sendt et login-link til <strong id="sent-to-email"></strong>.<br>Klik p&aring; linket i emailen for at logge ind.</p>
+                <p class="crm-text-xs crm-mt-sm" style="color:var(--color-text-light)">Tjek ogs&aring; din spam-mappe.</p>
+            </div>
+            <div class="crm-text-center">
+                <a class="crm-login-toggle" onclick="showPasswordSection()" style="cursor:pointer;color:var(--brand-accent);font-size:0.82rem;">&#8592; Tilbage til login</a>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading-section" class="crm-hidden">
+            <div class="crm-login-waiting">
+                <div class="crm-spinner" style="display:inline-block;width:32px;height:32px;border-width:4px;margin-bottom:0.75rem;"></div>
+                <h3>Logger ind...</h3>
+            </div>
+        </div>
+
+        <div class="crm-login-footer">&copy; 2026 Hejlsvig Consulting</div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        // ── UI helpers ──
+        function showError(msg) {
+            const el = document.getElementById('error-message');
+            el.textContent = msg;
+            el.classList.remove('crm-hidden');
+            document.getElementById('success-message').classList.add('crm-hidden');
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('success-message');
+            el.textContent = msg;
+            el.classList.remove('crm-hidden');
+            document.getElementById('error-message').classList.add('crm-hidden');
+        }
+
+        function hideMessages() {
+            document.getElementById('error-message').classList.add('crm-hidden');
+            document.getElementById('success-message').classList.add('crm-hidden');
+        }
+
+        function hideAll() {
+            ['password-section', 'magiclink-section', 'waiting-section', 'loading-section'].forEach(id => {
+                document.getElementById(id).classList.add('crm-hidden');
+            });
+        }
+
+        function showPasswordSection() {
+            hideAll(); hideMessages();
+            document.getElementById('password-section').classList.remove('crm-hidden');
+        }
+
+        function showMagicLinkSection() {
+            hideAll(); hideMessages();
+            document.getElementById('magiclink-section').classList.remove('crm-hidden');
+            const e = document.getElementById('email').value;
+            if (e) document.getElementById('ml-email').value = e;
+        }
+
+        function showWaiting(email) {
+            hideAll();
+            document.getElementById('waiting-section').classList.remove('crm-hidden');
+            document.getElementById('sent-to-email').textContent = email;
+        }
+
+        function showLoading() {
+            hideAll();
+            document.getElementById('loading-section').classList.remove('crm-hidden');
+        }
+
+        // ── After auth succeeds ──
+        async function handleAuthSuccess(sb, user) {
+            showLoading();
+            try {
+                const { data: crmUser } = await sb
+                    .from('crm_users')
+                    .select('role, name')
+                    .eq('profile_id', user.id)
+                    .single();
+
+                if (!crmUser) {
+                    showError('Denne konto har ikke CRM-adgang. Kontakt en administrator.');
+                    await sb.auth.signOut();
+                    showPasswordSection();
+                    return;
+                }
+
+                localStorage.setItem('crm-user', JSON.stringify({
+                    id: user.id,
+                    email: user.email,
+                    name: crmUser.name || user.email,
+                    role: crmUser.role,
+                }));
+
+                window.location.href = 'admin.html';
+            } catch (err) {
+                console.error('CRM access check failed:', err);
+                showError('Fejl ved login. Prøv igen.');
+                showPasswordSection();
+            }
+        }
+
+        // ── Password login ──
+        document.getElementById('password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('password-btn');
+
+            btn.disabled = true;
+            btn.classList.add('loading');
+
+            try {
+                const sb = window.getSupabase();
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+                if (error) {
+                    showError(error.message.includes('Invalid login') ? 'Forkert email eller password.' : error.message);
+                    return;
+                }
+
+                if (data.user) await handleAuthSuccess(sb, data.user);
+            } catch (err) {
+                console.error('Password login error:', err);
+                showError('Kunne ikke forbinde til serveren.');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        });
+
+        // ── Magic link login ──
+        document.getElementById('magiclink-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const email = document.getElementById('ml-email').value.trim();
+            const btn = document.getElementById('magiclink-btn');
+
+            btn.disabled = true;
+            btn.classList.add('loading');
+
+            try {
+                const sb = window.getSupabase();
+                // Use current page URL so redirects work in any deployment path
+                const redirectUrl = window.location.origin + window.location.pathname;
+
+                const { error } = await sb.auth.signInWithOtp({
+                    email,
+                    options: {
+                        shouldCreateUser: false,
+                        emailRedirectTo: redirectUrl,
+                    }
+                });
+
+                if (error) {
+                    if (error.status === 429) {
+                        showError('For mange forsøg. Vent et par minutter og prøv igen.');
+                    } else if (error.message.includes('not allowed') || error.message.includes('Signups')) {
+                        showError('Denne email har ikke adgang.');
+                    } else {
+                        showError(error.message || 'Kunne ikke sende login-link.');
+                    }
+                    return;
+                }
+
+                showSuccess('Login-link sendt til ' + email);
+                showWaiting(email);
+            } catch (err) {
+                console.error('Magic link error:', err);
+                showError('Kunne ikke forbinde til serveren.');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        });
+
+        // ── On page load ──
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const sb = window.getSupabase();
+                if (!sb) return;
+
+                const hash = window.location.hash.substring(1);
+                const search = window.location.search.substring(1);
+                const hashParams = new URLSearchParams(hash);
+                const searchParams = new URLSearchParams(search);
+
+                // Handle error from magic link redirect
+                const err = hashParams.get('error') || searchParams.get('error');
+                const errDesc = hashParams.get('error_description') || searchParams.get('error_description');
+
+                if (err) {
+                    history.replaceState(null, '', window.location.pathname);
+                    const desc = errDesc ? decodeURIComponent(errDesc.replace(/\+/g, ' ')) : '';
+                    showError(desc.includes('expired') || desc.includes('invalid')
+                        ? 'Login-linket er udløbet. Prøv igen.'
+                        : 'Login fejlede: ' + (desc || err));
+                    return;
+                }
+
+                // PKCE flow: ?code= parameter
+                const code = searchParams.get('code');
+                if (code) {
+                    showLoading();
+                    const { data, error } = await sb.auth.exchangeCodeForSession(code);
+                    history.replaceState(null, '', window.location.pathname);
+                    if (!error && data.user) {
+                        await handleAuthSuccess(sb, data.user);
+                        return;
+                    }
+                    showError('Login fejlede. Prøv igen.');
+                    showPasswordSection();
+                    return;
+                }
+
+                // Implicit flow: #access_token=
+                const accessToken = hashParams.get('access_token');
+                const refreshToken = hashParams.get('refresh_token');
+                if (accessToken && refreshToken) {
+                    showLoading();
+                    const { data, error } = await sb.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                    });
+                    history.replaceState(null, '', window.location.pathname);
+                    if (!error && data.user) {
+                        await handleAuthSuccess(sb, data.user);
+                        return;
+                    }
+                    showError('Login-link udløbet. Prøv igen.');
+                    showPasswordSection();
+                    return;
+                }
+
+                // Listen for auth state changes
+                sb.auth.onAuthStateChange(async (event, session) => {
+                    if (event === 'SIGNED_IN' && session?.user) {
+                        await handleAuthSuccess(sb, session.user);
+                    }
+                });
+
+                // Check if already logged in
+                const { data: { user } } = await sb.auth.getUser();
+                if (user) await handleAuthSuccess(sb, user);
+            } catch (err) {
+                console.error('[login] Init error:', err);
+            }
+        });
+    </script>
+</body>
+</html>

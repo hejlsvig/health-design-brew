@@ -1,0 +1,78 @@
+# ============================================
+# Shifting Source — Security & Performance Headers
+# Apache (.htaccess) for one.com hosting
+# ============================================
+
+# ─── Force HTTPS ───
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# ─── Security Headers ───
+<IfModule mod_headers.c>
+    # Content Security Policy — forhindrer XSS og uautoriseret script-loading
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://api.openai.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+    # Strict Transport Security — tving HTTPS i 1 år
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+    # Forhindrer MIME-type sniffing
+    Header set X-Content-Type-Options "nosniff"
+
+    # Clickjacking-beskyttelse
+    Header set X-Frame-Options "SAMEORIGIN"
+
+    # XSS-filter (legacy browsere)
+    Header set X-XSS-Protection "1; mode=block"
+
+    # Referrer Policy — begræns hvad der sendes
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Permissions Policy — begræns browser-features
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+
+    # Fjern server-info
+    Header unset X-Powered-By
+    Header unset Server
+</IfModule>
+
+# ─── Caching for static assets ───
+<IfModule mod_expires.c>
+    ExpiresActive On
+
+    # Billeder: 1 år (Vite tilføjer content-hash)
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+
+    # CSS og JS: 1 år (Vite content-hash håndterer cache-busting)
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+
+    # Fonts: 1 år
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+
+    # HTML: ingen cache (altid frisk)
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# ─── Compression ───
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+# ─── SPA fallback — send alle routes til index.html ───
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Undgå omskrivning af filer og mapper der eksisterer
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Send alt til index.html (React Router håndterer routing)
+    RewriteRule ^ index.html [QSA,L]
+</IfModule>

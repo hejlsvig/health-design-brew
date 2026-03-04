@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in Oversigt - Admin</title>
+    <link rel="stylesheet" href="crm-theme.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--color-text);
+            margin-bottom: 30px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--brand-primary);
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .client-info {
+            background: var(--color-card);
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .checkin-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .checkin-card {
+            background: var(--color-card);
+            border-radius: var(--radius);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .checkin-header {
+            padding: 20px;
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto auto;
+            gap: 20px;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .checkin-header:hover {
+            background: #f7fafc;
+        }
+
+        .week-badge {
+            background: var(--brand-primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .weight-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .weight-main {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        .weight-change {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: var(--radius);
+        }
+
+        .weight-change.positive {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .weight-change.negative {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .quick-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--color-text-light);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .date-display {
+            color: var(--color-text-light);
+            font-size: 14px;
+        }
+
+        .expand-icon {
+            color: var(--color-text-light);
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .checkin-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .checkin-details.expanded {
+            max-height: 1000px;
+        }
+
+        .details-content {
+            padding: 0 20px 20px 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .detail-section {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: var(--radius-sm);
+        }
+
+        .detail-section h3 {
+            color: #4a5568;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            color: var(--color-text-light);
+        }
+
+        .detail-value {
+            color: var(--color-text);
+            font-weight: 500;
+        }
+
+        .full-width-section {
+            grid-column: 1 / -1;
+        }
+
+        .text-content {
+            background: var(--color-card);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--brand-primary);
+            color: var(--color-text);
+            font-style: italic;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-text-light);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--color-text-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="admin.html" class="back-link">← Tilbage til Dashboard</a>
+
+        <h1>Check-in Oversigt</h1>
+
+        <div id="loading" class="loading">Indlæser check-ins...</div>
+
+        <div id="content" style="display: none;">
+            <div class="client-info">
+                <h2 id="clientName">-</h2>
+                <p id="clientDetails">-</p>
+            </div>
+
+            <div id="checkinList" class="checkin-list"></div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <p>Ingen check-ins endnu.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const coachingClientId = urlParams.get('id');
+
+        function waitForCRM(fn, maxWait = 5000) {
+            if (window.CRM) return fn();
+            const start = Date.now();
+            const interval = setInterval(() => {
+                if (window.CRM) { clearInterval(interval); fn(); }
+                else if (Date.now() - start > maxWait) { clearInterval(interval); fn(); }
+            }, 100);
+        }
+
+        if (!coachingClientId) {
+            document.getElementById('loading').innerHTML = 'Ingen coaching client ID angivet.';
+        } else {
+            waitForCRM(() => loadData());
+        }
+
+        async function loadData() {
+            try {
+                console.log('Loading coaching client ID:', coachingClientId);
+
+                // Get coaching client data
+                const clientsData = await CRM.coaching.getAll();
+                console.log('Clients loaded:', clientsData.clients.length);
+
+                const client = clientsData.clients.find(c => c.id == coachingClientId);
+
+                if (!client) {
+                    document.getElementById('loading').innerHTML = `Kunne ikke finde klient med ID: ${coachingClientId}`;
+                    return;
+                }
+
+                console.log('Client found:', client);
+
+                // Get lead data
+                const leadResponse = await fetch(`/api/admin/leads/${client.lead_id}`);
+                if (!leadResponse.ok) {
+                    throw new Error(`HTTP error! status: ${leadResponse.status}`);
+                }
+                const lead = await leadResponse.json();
+                console.log('Lead loaded:', lead);
+
+                // Get check-ins
+                const checkinsResponse = await fetch(`/api/checkins/${coachingClientId}`);
+                if (!checkinsResponse.ok) {
+                    throw new Error(`HTTP error! status: ${checkinsResponse.status}`);
+                }
+                const checkinsData = await checkinsResponse.json();
+                const checkins = checkinsData.checkins || [];
+                console.log('Check-ins loaded:', checkins.length);
+
+                // Update UI
+                document.getElementById('clientName').textContent = lead.name || lead.email;
+                document.getElementById('clientDetails').textContent =
+                    `Startvægt: ${lead.weight} kg | Målvægt: ${lead.weight_goal} kg | ${checkins.length} check-ins`;
+
+                if (checkins.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                } else {
+                    renderCheckins(checkins, lead.weight);
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').innerHTML = `Fejl ved indlæsning af data: ${error.message}<br><br>Tjek browser konsollen for detaljer.`;
+            }
+        }
+
+        function renderCheckins(checkins, startWeight) {
+            const listEl = document.getElementById('checkinList');
+            listEl.innerHTML = '';
+
+            checkins.forEach((checkin, index) => {
+                const previousWeight = index < checkins.length - 1 ? checkins[index + 1].weight : startWeight;
+                const weightChange = checkin.weight - previousWeight;
+                const weightChangeClass = weightChange < 0 ? 'positive' : (weightChange > 0 ? 'negative' : '');
+                const weightChangeText = weightChange !== 0 ? `${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} kg` : '';
+
+                const date = new Date(checkin.created_at);
+                const dateStr = date.toLocaleDateString('da-DK', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+
+                const card = document.createElement('div');
+                card.className = 'checkin-card';
+                card.innerHTML = `
+                    <div class="checkin-header" onclick="toggleDetails(${checkin.id})">
+                        <div class="week-badge">Uge ${checkin.week_number}</div>
+
+                        <div class="weight-display">
+                            <span class="weight-main">${checkin.weight} kg</span>
+                            ${weightChangeText ? `<span class="weight-change ${weightChangeClass}">${weightChangeText}</span>` : ''}
+                        </div>
+
+                        <div class="quick-stats">
+                            <div class="stat">
+                                <div class="stat-label">Humør</div>
+                                <div class="stat-value">${checkin.mood}/10</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-label">Energi</div>
+                                <div class="stat-value">${checkin.energy}/10</div>
+                            </div>
+                        </div>
+
+                        <div class="date-display">${dateStr}</div>
+
+                        <div class="expand-icon" id="icon-${checkin.id}">▼</div>
+                    </div>
+
+                    <div class="checkin-details" id="details-${checkin.id}">
+                        <div class="details-content">
+                            ${renderDetails(checkin)}
+                        </div>
+                    </div>
+                `;
+
+                listEl.appendChild(card);
+            });
+        }
+
+        function renderDetails(checkin) {
+            let html = '<div class="details-grid">';
+
+            // Sult & Cravings
+            if (checkin.hunger || checkin.cravings) {
+                html += `
+                    <div class="detail-section">
+                        <h3>Sult & Cravings</h3>
+                        ${checkin.hunger ? `<div class="detail-item"><span class="detail-label">Sult:</span><span class="detail-value">${formatHunger(checkin.hunger)}</span></div>` : ''}
+                        ${checkin.cravings ? `<div class="detail-item"><span class="detail-label">Cravings:</span><span class="detail-value">${formatCravings(checkin.cravings)}</span></div>` : ''}
+                    </div>
+                `;
+            }
+
+            // Søvn
+            if (checkin.sleep_hours || checkin.sleep_quality) {
+                html += `
+                    <div class="detail-section">
+                        <h3>Søvn</h3>
+                        ${checkin.sleep_hours ? `<div class="detail-item"><span class="detail-label">Timer:</span><span class="detail-value">${checkin.sleep_hours} timer</span></div>` : ''}
+                        ${checkin.sleep_quality ? `<div class="detail-item"><span class="detail-label">Kvalitet:</span><span class="detail-value">${checkin.sleep_quality}/10</span></div>` : ''}
+                    </div>
+                `;
+            }
+
+            // Fordøjelse
+            if (checkin.digestion) {
+                html += `
+                    <div class="detail-section">
+                        <h3>Fordøjelse</h3>
+                        <div class="detail-item"><span class="detail-value">${checkin.digestion}</span></div>
+                    </div>
+                `;
+            }
+
+            // Aktivitet
+            if (checkin.activity) {
+                html += `
+                    <div class="detail-section">
+                        <h3>Fysisk Aktivitet</h3>
+                        <div class="detail-item"><span class="detail-value">${formatActivity(checkin.activity)}</span></div>
+                    </div>
+                `;
+            }
+
+            // Faste
+            if (checkin.fasting_hours || checkin.fasting_feeling) {
+                html += `
+                    <div class="detail-section">
+                        <h3>Faste</h3>
+                        ${checkin.fasting_hours ? `<div class="detail-item"><span class="detail-label">Timer:</span><span class="detail-value">${checkin.fasting_hours}t</span></div>` : ''}
+                        ${checkin.fasting_feeling ? `<div class="detail-item"><span class="detail-label">Føltes:</span><span class="detail-value">${formatFasting(checkin.fasting_feeling)}</span></div>` : ''}
+                    </div>
+                `;
+            }
+
+            // Stress
+            if (checkin.stress_factors) {
+                html += `
+                    <div class="detail-section">
+                        <h3>Stress Faktorer</h3>
+                        <div class="detail-item"><span class="detail-value">${checkin.stress_factors}</span></div>
+                    </div>
+                `;
+            }
+
+            // Ugens sejr
+            if (checkin.weekly_win) {
+                html += `
+                    <div class="detail-section full-width-section">
+                        <h3>Ugens Sejr</h3>
+                        <div class="text-content">${checkin.weekly_win}</div>
+                    </div>
+                `;
+            }
+
+            // Afvigelser
+            if (checkin.deviations) {
+                html += `
+                    <div class="detail-section full-width-section">
+                        <h3>Afvigelser</h3>
+                        <div class="text-content">${checkin.deviations}</div>
+                    </div>
+                `;
+            }
+
+            // Noter
+            if (checkin.notes) {
+                html += `
+                    <div class="detail-section full-width-section">
+                        <h3>Noter</h3>
+                        <div class="text-content">${checkin.notes}</div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function toggleDetails(checkinId) {
+            const details = document.getElementById(`details-${checkinId}`);
+            const icon = document.getElementById(`icon-${checkinId}`);
+
+            details.classList.toggle('expanded');
+            icon.classList.toggle('expanded');
+        }
+
+        function formatHunger(value) {
+            const map = {
+                'none': 'Ingen',
+                'light': 'Let',
+                'moderate': 'Moderat',
+                'strong': 'Kraftig'
+            };
+            return map[value] || value;
+        }
+
+        function formatCravings(value) {
+            const map = {
+                'no': 'Nej',
+                'little': 'Lidt',
+                'much': 'Meget'
+            };
+            return map[value] || value;
+        }
+
+        function formatActivity(value) {
+            const map = {
+                'none': 'Ingen',
+                'light': 'Let (gåture)',
+                'moderate': 'Moderat',
+                'hard': 'Hård træning'
+            };
+            return map[value] || value;
+        }
+
+        function formatFasting(value) {
+            const map = {
+                'easy': 'Let',
+                'ok': 'OK',
+                'hard': 'Svært'
+            };
+            return map[value] || value;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Automation - CRM</title>
+    <link rel="stylesheet" href="crm-theme.css">
+    <script src="icon-config.js"></script>
+    <style>
+        /* ── Flow Accordion ── */
+        .flow-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .flow-item {
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius);
+            background: var(--color-card);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+        .flow-item:hover {
+            box-shadow: var(--shadow-sm);
+        }
+
+        .flow-header {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            user-select: none;
+            gap: 1rem;
+        }
+
+        .flow-header:hover {
+            background: var(--color-card-hover);
+        }
+
+        .flow-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .flow-icon svg, .flow-icon i {
+            width: 18px;
+            height: 18px;
+        }
+
+        .flow-icon.checkin { background: var(--color-green-subtle); color: var(--brand-primary); }
+        .flow-icon.welcome { background: #EFF6FF; color: #3B82F6; }
+        .flow-icon.mealplan { background: #FFF7ED; color: #F59E0B; }
+        .flow-icon.custom { background: #F5F3FF; color: #8B5CF6; }
+
+        .flow-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .flow-name {
+            font-family: var(--font-body);
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+        }
+
+        .flow-desc {
+            font-size: 0.78rem;
+            color: var(--color-text-muted);
+            margin: 0.15rem 0 0;
+        }
+
+        .flow-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+
+        .flow-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.78rem;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+        }
+
+        .flow-stat i, .flow-stat svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .flow-status-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .flow-status-badge.active {
+            background: var(--color-green-subtle);
+            color: var(--brand-primary);
+        }
+
+        .flow-status-badge.inactive {
+            background: var(--color-card-hover);
+            color: var(--color-text-muted);
+        }
+
+        .flow-toggle-wrap {
+            flex-shrink: 0;
+        }
+
+        /* Stop click propagation on toggle */
+        .flow-toggle-wrap label {
+            cursor: pointer;
+        }
+
+        .flow-chevron {
+            flex-shrink: 0;
+            transition: transform 0.25s ease;
+            color: var(--color-text-muted);
+        }
+
+        .flow-chevron svg, .flow-chevron i {
+            width: 18px;
+            height: 18px;
+        }
+
+        .flow-item.open .flow-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Collapsible body */
+        .flow-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease;
+        }
+
+        .flow-item.open .flow-body {
+            max-height: 2000px;
+        }
+
+        .flow-body-inner {
+            padding: 0 1.25rem 1.25rem;
+            border-top: 1px solid var(--color-border-light);
+        }
+
+        /* Settings inside flow body */
+        .flow-settings {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-end;
+            padding: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .flow-setting-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--color-text-muted);
+        }
+
+        .flow-setting-group input {
+            width: 80px;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-family: var(--font-body);
+            color: var(--color-text);
+            background: var(--color-input-bg);
+            text-align: center;
+        }
+
+        .flow-setting-group input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        .flow-actions-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+        }
+
+        .flow-last-run {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: var(--color-text-muted);
+            margin-left: auto;
+        }
+
+        .flow-last-run i, .flow-last-run svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Client table inside flow */
+        .flow-clients-section {
+            margin-top: 0.5rem;
+        }
+
+        .flow-clients-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .flow-clients-header h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+        }
+
+        .flow-clients-count {
+            font-size: 0.78rem;
+            color: var(--color-text-muted);
+        }
+
+        /* Inline frequency input */
+        .freq-input {
+            width: 55px;
+            padding: 0.3rem 0.4rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-family: var(--font-body);
+            color: var(--color-text);
+            background: var(--color-input-bg);
+            text-align: center;
+        }
+
+        .freq-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        .client-actions {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        /* ── Flow Pipeline Visualization ── */
+        .flow-pipeline {
+            display: flex;
+            gap: 0;
+            padding: 1.25rem 0 0.75rem;
+            position: relative;
+        }
+
+        .flow-pipeline-step {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .flow-pipeline-step .step-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid;
+            background: var(--color-card);
+            position: relative;
+            z-index: 2;
+        }
+
+        .flow-pipeline-step .step-dot i,
+        .flow-pipeline-step .step-dot svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .flow-pipeline-step.step-check .step-dot {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .flow-pipeline-step.step-remind .step-dot {
+            border-color: #F59E0B;
+            color: #F59E0B;
+        }
+
+        .flow-pipeline-step.step-flag .step-dot {
+            border-color: #EF4444;
+            color: #EF4444;
+        }
+
+        .flow-pipeline-step .step-label {
+            margin-top: 0.6rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--color-text);
+            text-align: center;
+        }
+
+        .flow-pipeline-step .step-desc {
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            text-align: center;
+            margin-top: 0.2rem;
+            line-height: 1.4;
+            max-width: 160px;
+        }
+
+        /* Connector lines between steps */
+        .flow-pipeline-connector {
+            position: absolute;
+            top: calc(1.25rem + 20px);
+            left: calc(50% / 3 + 20px);
+            right: calc(50% / 3 + 20px);
+            height: 2px;
+            background: var(--color-border);
+            z-index: 0;
+        }
+
+        .flow-pipeline-connector::before,
+        .flow-pipeline-connector::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid var(--color-text-muted);
+            border-bottom: 2px solid var(--color-text-muted);
+            transform: rotate(-45deg);
+        }
+
+        .flow-pipeline-connector::before {
+            left: calc(50% - 20px);
+        }
+
+        .flow-pipeline-connector::after {
+            right: 0;
+        }
+
+        .flow-pipeline-note {
+            font-size: 0.72rem;
+            color: var(--color-text-muted);
+            text-align: center;
+            padding: 0.25rem 0 0.5rem;
+            font-style: italic;
+        }
+
+        /* Reminder status badges */
+        .reminder-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.15rem 0.55rem;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+
+        .reminder-badge i, .reminder-badge svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .reminder-badge.badge-ok {
+            background: var(--color-green-subtle);
+            color: var(--brand-primary);
+        }
+
+        .reminder-badge.badge-reminded {
+            background: #FEF3C7;
+            color: #D97706;
+        }
+
+        .reminder-badge.badge-flagged {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+
+        .reminder-badge.badge-paused {
+            background: var(--color-card-hover);
+            color: var(--color-text-muted);
+        }
+
+        /* Flagged row highlight */
+        tr.row-flagged {
+            background: #FEF2F2;
+        }
+
+        tr.row-reminded {
+            background: #FFFBEB;
+        }
+
+        /* Settings row */
+        .flow-settings-row {
+            display: flex;
+            gap: 1.25rem;
+            align-items: flex-end;
+            padding: 0.75rem 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-setting-inline {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.82rem;
+            color: var(--color-text);
+        }
+
+        .flow-setting-inline label {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+        }
+
+        .flow-setting-inline input[type="number"] {
+            width: 55px;
+            padding: 0.3rem 0.4rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            text-align: center;
+            background: var(--color-input-bg);
+            color: var(--color-text);
+        }
+
+        .flow-setting-inline input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        /* Auto-pause toggle inline */
+        .auto-pause-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.82rem;
+            color: var(--color-text);
+        }
+
+        .auto-pause-toggle .crm-toggle {
+            transform: scale(0.85);
+        }
+
+        /* Page header tweak */
+        .page-summary {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--color-card);
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius);
+            flex: 1;
+        }
+
+        .summary-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            background: var(--color-green-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--brand-primary);
+        }
+
+        .summary-card-icon svg, .summary-card-icon i {
+            width: 18px;
+            height: 18px;
+        }
+
+        .summary-card-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-text);
+            line-height: 1.2;
+        }
+
+        .summary-card-label {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+
+        /* Empty flow state */
+        .add-flow-hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            border: 2px dashed var(--color-border-light);
+            border-radius: var(--radius);
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            cursor: default;
+        }
+
+        .add-flow-hint i, .add-flow-hint svg {
+            width: 16px;
+            height: 16px;
+        }
+    </style>
+</head>
+<body>
+    <script src="nav-loader.js"></script>
+    <div id="nav-container"></div>
+
+    <div class="crm-page">
+        <div class="crm-page-header">
+            <h1>Email Automation</h1>
+            <p>Automatiske email flows til klienter og leads</p>
+        </div>
+
+        <!-- Status message -->
+        <div id="status-message" class="crm-alert" style="display: none;"></div>
+
+        <!-- Summary cards -->
+        <div class="page-summary" id="page-summary">
+            <div class="summary-card">
+                <div class="summary-card-icon">
+                    <i data-lucide="workflow"></i>
+                </div>
+                <div>
+                    <div class="summary-card-value" id="summary-total-flows">1</div>
+                    <div class="summary-card-label">Aktive flows</div>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-icon">
+                    <i data-lucide="users"></i>
+                </div>
+                <div>
+                    <div class="summary-card-value" id="summary-total-clients">—</div>
+                    <div class="summary-card-label">Klienter tilmeldt</div>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-icon">
+                    <i data-lucide="send"></i>
+                </div>
+                <div>
+                    <div class="summary-card-value" id="summary-total-sent">—</div>
+                    <div class="summary-card-label">Emails sendt i alt</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow list (accordion) -->
+        <div class="crm-card">
+            <div class="crm-card-header">
+                <h2>Email Flows</h2>
+            </div>
+
+            <div class="flow-list" id="flow-list">
+
+                <!-- Flow 1: Ugentlig Check-in -->
+                <div class="flow-item" id="flow-checkin">
+                    <div class="flow-header" onclick="toggleFlow('checkin')">
+                        <div class="flow-icon checkin">
+                            <i data-lucide="calendar-check"></i>
+                        </div>
+                        <div class="flow-info">
+                            <p class="flow-name">Ugentlig Check-in Reminder</p>
+                            <p class="flow-desc">Automatisk påmindelse til aktive coaching klienter om at udfylde check-in</p>
+                        </div>
+                        <div class="flow-meta">
+                            <span class="flow-stat" id="checkin-client-count">
+                                <i data-lucide="users"></i>
+                                <span>—</span>
+                            </span>
+                            <span class="flow-stat" id="checkin-frequency-display">
+                                <i data-lucide="repeat"></i>
+                                <span>Hver 7. dag</span>
+                            </span>
+                            <span class="flow-status-badge inactive" id="checkin-status-badge">Inaktiv</span>
+                        </div>
+                        <div class="flow-toggle-wrap" onclick="event.stopPropagation()">
+                            <label class="crm-toggle">
+                                <input type="checkbox" id="global-checkin-enabled" onchange="updateGlobalSettings()">
+                                <span class="crm-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flow-chevron">
+                            <i data-lucide="chevron-down"></i>
+                        </div>
+                    </div>
+
+                    <div class="flow-body">
+                        <div class="flow-body-inner">
+
+                            <!-- ── Flow Pipeline Visualization ── -->
+                            <div class="flow-pipeline">
+                                <div class="flow-pipeline-connector"></div>
+                                <div class="flow-pipeline-step step-check">
+                                    <div class="step-dot">
+                                        <i data-lucide="clipboard-check"></i>
+                                    </div>
+                                    <div class="step-label">Tjek Check-in</div>
+                                    <div class="step-desc">Er ugentlig check-in indsendt inden deadline?</div>
+                                </div>
+                                <div class="flow-pipeline-step step-remind">
+                                    <div class="step-dot">
+                                        <i data-lucide="mail"></i>
+                                    </div>
+                                    <div class="step-label">Send Reminder</div>
+                                    <div class="step-desc">Vent <strong id="grace-days-display">2</strong> dage, send derefter email-påmindelse</div>
+                                </div>
+                                <div class="flow-pipeline-step step-flag">
+                                    <div class="step-dot">
+                                        <i data-lucide="flag-triangle-right"></i>
+                                    </div>
+                                    <div class="step-label">Pause & Flag</div>
+                                    <div class="step-desc">Ingen reaktion? Klient pauseres og flagges automatisk</div>
+                                </div>
+                            </div>
+                            <div class="flow-pipeline-note">Flowet kører automatisk for alle aktive klienter når det er slået til</div>
+
+                            <!-- ── Settings Row ── -->
+                            <div class="flow-settings-row">
+                                <div class="flow-setting-inline">
+                                    <label>Check-in frekvens:</label>
+                                    <input type="number" id="global-frequency" min="1" max="30" value="7" onchange="updateGlobalSettings()">
+                                    <span style="font-size:0.78rem;color:var(--color-text-muted)">dage</span>
+                                </div>
+                                <div class="flow-setting-inline">
+                                    <label>Grace period:</label>
+                                    <input type="number" id="global-grace-days" min="1" max="14" value="2" onchange="updateGlobalSettings()">
+                                    <span style="font-size:0.78rem;color:var(--color-text-muted)">dage</span>
+                                </div>
+                                <div class="auto-pause-toggle" onclick="event.stopPropagation()">
+                                    <label>Auto-pause:</label>
+                                    <label class="crm-toggle">
+                                        <input type="checkbox" id="global-auto-pause" checked onchange="updateGlobalSettings()">
+                                        <span class="crm-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- ── Sender & Provider Row ── -->
+                            <div class="flow-settings-row" style="margin-top:0.5rem;">
+                                <div class="flow-setting-inline">
+                                    <label>Afsender:</label>
+                                    <select id="global-sender-mode" onchange="toggleCustomSender(); updateGlobalSettings()">
+                                        <option value="coach">Min email (personlig)</option>
+                                        <option value="noreply">Noreply (system)</option>
+                                        <option value="custom">Brugerdefineret</option>
+                                    </select>
+                                </div>
+                                <div class="flow-setting-inline" id="custom-sender-wrap" style="display:none;">
+                                    <label>Navn:</label>
+                                    <input type="text" id="global-custom-from-name" placeholder="Shifting Source" onchange="updateGlobalSettings()" style="width:140px;">
+                                    <label style="margin-left:0.5rem;">Email:</label>
+                                    <input type="email" id="global-custom-from-email" placeholder="info@example.com" onchange="updateGlobalSettings()" style="width:180px;">
+                                </div>
+                                <div class="flow-setting-inline">
+                                    <label>Email-udbyder:</label>
+                                    <select id="global-email-provider" onchange="updateGlobalSettings()">
+                                        <option value="resend">Resend</option>
+                                        <option value="klaviyo" disabled>Klaviyo (kommer snart)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- ── Actions Bar ── -->
+                            <div class="flow-actions-bar">
+                                <button class="crm-btn crm-btn-primary crm-btn-sm" onclick="runAutomationNow()">
+                                    <i data-lucide="play" style="width:14px;height:14px;"></i>
+                                    Kør Nu
+                                </button>
+                                <div class="flow-last-run">
+                                    <i data-lucide="clock"></i>
+                                    <span>Sidst kørt: <strong id="last-run-time">Aldrig</strong></span>
+                                </div>
+                            </div>
+
+                            <!-- ── Per-client table ── -->
+                            <div class="flow-clients-section">
+                                <div class="flow-clients-header">
+                                    <h4>Klienter</h4>
+                                    <span class="flow-clients-count" id="clients-count-label"></span>
+                                </div>
+
+                                <div id="loading" class="crm-empty" style="padding: 1rem 0;">
+                                    <p>Indlæser klienter...</p>
+                                </div>
+
+                                <div class="crm-table-container" id="clients-table-wrap" style="display: none;">
+                                    <table class="crm-table" id="clients-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Klient</th>
+                                                <th>Sidste Check-in</th>
+                                                <th>Reminder Status</th>
+                                                <th>Sidste Reminder</th>
+                                                <th>Frekvens</th>
+                                                <th>Handlinger</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="clients-tbody"></tbody>
+                                    </table>
+                                </div>
+
+                                <div id="empty-state" class="crm-empty" style="display: none; padding: 1rem 0;">
+                                    <p>Ingen aktive coaching klienter.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder for future flows -->
+                <div class="add-flow-hint">
+                    <i data-lucide="plus-circle"></i>
+                    Flere flows kommer snart — f.eks. Velkomst-email, Madplan-opfølgning, osv.
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load navigation
+        loadNavComponent(() => {
+            checkAuthAndUpdateNav().then((user) => {
+                setActiveNav('email-auto');
+
+                if (window.i18n && user && user.language) {
+                    window.i18n.setLanguage(user.language).then(() => {
+                        window.updateI18nElements();
+                    });
+                }
+
+                setTimeout(() => { if (window.initLucideIcons) window.initLucideIcons(); }, 200);
+            });
+        });
+
+        let clients = [];
+        let globalSettings = null;
+
+        // ── Accordion toggle ──
+        function toggleFlow(flowId) {
+            const el = document.getElementById('flow-' + flowId);
+            if (el) el.classList.toggle('open');
+        }
+
+        // ── Load all data ──
+        async function loadData() {
+            await loadGlobalSettings();
+            await loadClients();
+            await loadEmailStats();
+            if (window.initLucideIcons) window.initLucideIcons();
+        }
+
+        // ── Global settings ──
+        async function loadGlobalSettings() {
+            try {
+                const data = await CRM.emailAutomation.getSettings();
+                if (data) {
+                    globalSettings = data;
+                    document.getElementById('global-checkin-enabled').checked = globalSettings.enabled;
+                    document.getElementById('global-frequency').value = globalSettings.frequency_days || 7;
+                    document.getElementById('global-grace-days').value = globalSettings.grace_days || 2;
+                    document.getElementById('global-auto-pause').checked = globalSettings.auto_pause_enabled !== false;
+
+                    // Sender & provider settings
+                    document.getElementById('global-sender-mode').value = globalSettings.sender_mode || 'coach';
+                    document.getElementById('global-email-provider').value = globalSettings.email_provider || 'resend';
+                    document.getElementById('global-custom-from-name').value = globalSettings.custom_from_name || '';
+                    document.getElementById('global-custom-from-email').value = globalSettings.custom_from_email || '';
+                    toggleCustomSender();
+
+                    // Update grace days in pipeline visualization
+                    document.getElementById('grace-days-display').textContent = globalSettings.grace_days || 2;
+
+                    // Update header badge
+                    const badge = document.getElementById('checkin-status-badge');
+                    if (globalSettings.enabled) {
+                        badge.textContent = 'Aktiv';
+                        badge.className = 'flow-status-badge active';
+                        document.getElementById('summary-total-flows').textContent = '1';
+                    } else {
+                        badge.textContent = 'Inaktiv';
+                        badge.className = 'flow-status-badge inactive';
+                        document.getElementById('summary-total-flows').textContent = '0';
+                    }
+
+                    // Update frequency display in header
+                    const freq = globalSettings.frequency_days || 7;
+                    document.getElementById('checkin-frequency-display').querySelector('span:last-child').textContent = `Hver ${freq}. dag`;
+
+                    if (globalSettings.last_run) {
+                        const date = new Date(globalSettings.last_run);
+                        document.getElementById('last-run-time').textContent = date.toLocaleString('da-DK');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading global settings:', error);
+            }
+        }
+
+        function toggleCustomSender() {
+            const mode = document.getElementById('global-sender-mode').value;
+            document.getElementById('custom-sender-wrap').style.display = mode === 'custom' ? '' : 'none';
+        }
+
+        async function updateGlobalSettings() {
+            const enabled = document.getElementById('global-checkin-enabled').checked;
+            const frequency = parseInt(document.getElementById('global-frequency').value);
+            const graceDays = parseInt(document.getElementById('global-grace-days').value);
+            const autoPause = document.getElementById('global-auto-pause').checked;
+            const senderMode = document.getElementById('global-sender-mode').value;
+            const emailProvider = document.getElementById('global-email-provider').value;
+            const customFromName = document.getElementById('global-custom-from-name').value.trim();
+            const customFromEmail = document.getElementById('global-custom-from-email').value.trim();
+
+            try {
+                await CRM.emailAutomation.saveSettings({
+                    automationType: 'checkin_reminder',
+                    enabled,
+                    frequency_days: frequency,
+                    grace_days: graceDays,
+                    auto_pause_enabled: autoPause,
+                    sender_mode: senderMode,
+                    custom_from_name: customFromName || null,
+                    custom_from_email: customFromEmail || null,
+                    email_provider: emailProvider,
+                    last_run: globalSettings?.last_run || null
+                });
+
+                // Update pipeline visualization
+                document.getElementById('grace-days-display').textContent = graceDays;
+
+                // Update UI immediately
+                const badge = document.getElementById('checkin-status-badge');
+                if (enabled) {
+                    badge.textContent = 'Aktiv';
+                    badge.className = 'flow-status-badge active';
+                    document.getElementById('summary-total-flows').textContent = '1';
+                } else {
+                    badge.textContent = 'Inaktiv';
+                    badge.className = 'flow-status-badge inactive';
+                    document.getElementById('summary-total-flows').textContent = '0';
+                }
+
+                document.getElementById('checkin-frequency-display').querySelector('span:last-child').textContent = `Hver ${frequency}. dag`;
+
+                showStatus('Indstillinger opdateret', 'success');
+            } catch (error) {
+                console.error('Error updating settings:', error);
+                showStatus('Fejl ved opdatering af indstillinger', 'error');
+            }
+        }
+
+        // ── Email stats ──
+        async function loadEmailStats() {
+            try {
+                const sb = window.getSupabase();
+                const { count, error } = await sb
+                    .from('crm_email_log')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'sent');
+                if (!error && count !== null) {
+                    document.getElementById('summary-total-sent').textContent = count;
+                } else {
+                    document.getElementById('summary-total-sent').textContent = '0';
+                }
+            } catch (e) {
+                document.getElementById('summary-total-sent').textContent = '0';
+            }
+        }
+
+        // ── Load clients ──
+        async function loadClients() {
+            try {
+                const data = await CRM.emailAutomation.getClients();
+                clients = data.clients || [];
+
+                document.getElementById('loading').style.display = 'none';
+
+                // Update summary
+                const activeCount = clients.filter(c => (c._raw || {}).checkin_reminders_enabled !== false).length;
+                document.getElementById('summary-total-clients').textContent = clients.length;
+                document.getElementById('checkin-client-count').querySelector('span:last-child').textContent = `${activeCount} klienter`;
+                document.getElementById('clients-count-label').textContent = `${clients.length} klienter i alt`;
+
+                if (clients.length === 0) {
+                    document.getElementById('clients-table-wrap').style.display = 'none';
+                    document.getElementById('empty-state').style.display = 'block';
+                } else {
+                    document.getElementById('clients-table-wrap').style.display = 'block';
+                    document.getElementById('empty-state').style.display = 'none';
+                    renderClients();
+                }
+            } catch (error) {
+                console.error('Error loading clients:', error);
+                document.getElementById('loading').innerHTML = '<p style="color:var(--color-red);">Fejl ved indlæsning af klienter</p>';
+            }
+        }
+
+        function getReminderBadge(raw) {
+            const status = raw.reminder_status || 'none';
+            const isEnabled = raw.checkin_reminders_enabled !== false;
+
+            if (status === 'flagged') {
+                return '<span class="reminder-badge badge-flagged"><i data-lucide="flag-triangle-right"></i> Flagget</span>';
+            }
+            if (status === 'reminded') {
+                return '<span class="reminder-badge badge-reminded"><i data-lucide="mail"></i> Reminded</span>';
+            }
+            if (!isEnabled) {
+                return '<span class="reminder-badge badge-paused"><i data-lucide="pause"></i> Paused</span>';
+            }
+            return '<span class="reminder-badge badge-ok"><i data-lucide="check-circle"></i> OK</span>';
+        }
+
+        function getRowClass(raw) {
+            if (raw.reminder_status === 'flagged') return 'row-flagged';
+            if (raw.reminder_status === 'reminded') return 'row-reminded';
+            return '';
+        }
+
+        function formatDateShort(dateStr) {
+            if (!dateStr) return '—';
+            const d = new Date(dateStr);
+            const now = new Date();
+            const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+            const dateFormatted = d.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
+            if (diffDays === 0) return 'I dag';
+            if (diffDays === 1) return 'I går';
+            if (diffDays < 7) return `${diffDays}d siden`;
+            return dateFormatted;
+        }
+
+        function renderClients() {
+            const tbody = document.getElementById('clients-tbody');
+            tbody.innerHTML = '';
+
+            // Sort: flagged first, then reminded, then normal
+            const sortOrder = { flagged: 0, reminded: 1, none: 2 };
+            const sorted = [...clients].sort((a, b) => {
+                const aStatus = (a._raw || {}).reminder_status || 'none';
+                const bStatus = (b._raw || {}).reminder_status || 'none';
+                return (sortOrder[aStatus] ?? 2) - (sortOrder[bStatus] ?? 2);
+            });
+
+            sorted.forEach(client => {
+                const raw = client._raw || {};
+                const tr = document.createElement('tr');
+                tr.className = getRowClass(raw);
+
+                const lastCheckin = formatDateShort(client.lastCheckinDate);
+                const lastReminder = raw.last_checkin_reminder_sent
+                    ? formatDateShort(raw.last_checkin_reminder_sent)
+                    : '—';
+
+                const reminderBadge = getReminderBadge(raw);
+                const freqDays = raw.reminder_frequency_days || 7;
+                const clientId = raw.id;
+                const isEnabled = raw.checkin_reminders_enabled !== false;
+                const isFlagged = raw.reminder_status === 'flagged';
+
+                // Build action buttons based on state
+                let actions = '';
+                if (isFlagged) {
+                    actions = `
+                        <button class="crm-btn crm-btn-primary crm-btn-sm" onclick="unflagClient('${clientId}')">
+                            Genaktiver
+                        </button>`;
+                } else if (!isEnabled) {
+                    actions = `
+                        <button class="crm-btn crm-btn-outline crm-btn-sm" onclick="toggleClientReminders('${clientId}', true)">
+                            Aktiver
+                        </button>`;
+                } else {
+                    actions = `
+                        <button class="crm-btn crm-btn-outline crm-btn-sm" onclick="toggleClientReminders('${clientId}', false)">
+                            Pause
+                        </button>
+                        <button class="crm-btn crm-btn-accent crm-btn-sm" onclick="sendReminderNow('${clientId}')">
+                            Send Nu
+                        </button>`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>${client.name || 'Unavngivet'}</strong></td>
+                    <td>${lastCheckin}</td>
+                    <td>${reminderBadge}</td>
+                    <td>${lastReminder}</td>
+                    <td>
+                        <input type="number"
+                               class="freq-input"
+                               value="${freqDays}"
+                               min="1" max="30"
+                               ${isFlagged ? 'disabled' : ''}
+                               onchange="updateClientFrequency('${clientId}', this.value)">
+                    </td>
+                    <td>
+                        <div class="client-actions">${actions}</div>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+            if (window.initLucideIcons) window.initLucideIcons();
+        }
+
+        // ── Client actions ──
+        async function toggleClientReminders(coachingClientId, enable) {
+            try {
+                const sb = window.getSupabase();
+                const { error } = await sb
+                    .from('coaching_clients')
+                    .update({ checkin_reminders_enabled: enable })
+                    .eq('id', coachingClientId);
+
+                if (error) throw error;
+                showStatus(`Reminders ${enable ? 'aktiveret' : 'paused'}`, 'success');
+                loadClients();
+            } catch (error) {
+                console.error('Error toggling reminders:', error);
+                showStatus('Fejl ved opdatering', 'error');
+            }
+        }
+
+        async function updateClientFrequency(coachingClientId, days) {
+            try {
+                const sb = window.getSupabase();
+                const { error } = await sb
+                    .from('coaching_clients')
+                    .update({ reminder_frequency_days: parseInt(days) })
+                    .eq('id', coachingClientId);
+
+                if (error) throw error;
+                showStatus('Frekvens opdateret', 'success');
+            } catch (error) {
+                console.error('Error updating frequency:', error);
+                showStatus('Fejl ved opdatering', 'error');
+            }
+        }
+
+        async function unflagClient(coachingClientId) {
+            if (!confirm('Genaktiver denne klient og fjern flag?')) return;
+            try {
+                const sb = window.getSupabase();
+                const { error } = await sb
+                    .from('coaching_clients')
+                    .update({
+                        reminder_status: 'none',
+                        flagged_at: null,
+                        flag_reason: null,
+                        checkin_reminders_enabled: true
+                    })
+                    .eq('id', coachingClientId);
+
+                if (error) throw error;
+                showStatus('Klient genaktiveret', 'success');
+                loadClients();
+            } catch (error) {
+                console.error('Error unflagging client:', error);
+                showStatus('Fejl ved genaktivering', 'error');
+            }
+        }
+
+        async function sendReminderNow(coachingClientId) {
+            if (!confirm('Send check-in reminder til denne klient nu?')) return;
+
+            try {
+                const client = clients.find(c => (c._raw || {}).id === coachingClientId);
+                if (!client || !client.email) {
+                    showStatus('Klient email ikke fundet', 'error');
+                    return;
+                }
+
+                await CRM.emailSend.send(
+                    client.email,
+                    'Check-in Reminder',
+                    `Hej ${client.name || 'der'},\n\nDet er tid til din ugentlige check-in. Husk at udfylde dit check-in skema.\n\nMed venlig hilsen,\nDit Coaching Team`,
+                    { notes: 'Auto check-in reminder' }
+                );
+
+                const sb = window.getSupabase();
+                await sb
+                    .from('coaching_clients')
+                    .update({ last_checkin_reminder_sent: new Date().toISOString() })
+                    .eq('id', coachingClientId);
+
+                showStatus('Reminder logget! (SMTP kræver Edge Function)', 'success');
+                loadClients();
+            } catch (error) {
+                console.error('Error sending reminder:', error);
+                showStatus('Fejl ved afsendelse', 'error');
+            }
+        }
+
+        async function runAutomationNow() {
+            if (!confirm('Send check-in reminders til ALLE aktive klienter der er klar? Fortsæt?')) return;
+
+            try {
+                const data = await CRM.emailAutomation.run();
+                if (data.success) {
+                    showStatus(`Automation kørt! ${data.emailsSent || 0} emails sendt.`, 'success');
+                    loadData();
+                } else {
+                    showStatus(data.message || 'Email automation kræver server-side Edge Function', 'info');
+                }
+            } catch (error) {
+                console.error('Error running automation:', error);
+                showStatus('Fejl ved kørsel af automation', 'error');
+            }
+        }
+
+        // ── Status message ──
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status-message');
+            statusEl.textContent = message;
+            statusEl.className = 'crm-alert crm-alert-' + (type === 'info' ? 'info' : type);
+            statusEl.style.display = 'flex';
+
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // ── Init ──
+        function waitForCRM(fn, maxWait = 10000) {
+            if (window.CRM) return fn();
+            const start = Date.now();
+            const interval = setInterval(() => {
+                if (window.CRM) { clearInterval(interval); fn(); }
+                else if (Date.now() - start > maxWait) {
+                    clearInterval(interval);
+                    console.warn('CRM not loaded within timeout');
+                }
+            }, 100);
+        }
+        waitForCRM(() => loadData());
+    </script>
+</body>
+</html>

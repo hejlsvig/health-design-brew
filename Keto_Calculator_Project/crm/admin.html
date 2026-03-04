@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Dashboard - Shifting Source</title>
+    <link rel="stylesheet" href="crm-theme.css">
+    <style>
+        /* ── Admin Dashboard — page-specific overrides ──
+           All colors use CSS vars from crm-theme.css so reskinning
+           only requires changing the 5 brand colors there.           */
+
+        .container {
+            max-width: var(--page-max-width);
+            margin: 0 auto;
+            padding: 1.25rem var(--page-padding);
+        }
+
+        .page-header {
+            margin-bottom: 1.25rem;
+        }
+
+        .page-header h1 {
+            font-family: var(--font-heading);
+            font-size: 1.6rem;
+            color: var(--color-text);
+        }
+
+        .page-header p {
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.15rem;
+        }
+
+        /* Stat cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .stat-card {
+            background: var(--color-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .stat-card:hover {
+            border-color: var(--brand-sage);
+        }
+
+        .stat-card.active {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 1px var(--brand-primary);
+        }
+
+        .stat-card h3 {
+            font-family: var(--font-body);
+            color: var(--color-text-muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-card .value {
+            font-family: var(--font-body);
+            color: var(--color-text);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Content sections */
+        .leads-section {
+            background: var(--color-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-header h2 {
+            font-family: var(--font-heading);
+            color: var(--color-text);
+            font-size: 1.15rem;
+        }
+
+        .search-box {
+            padding: 0.4rem 0.85rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            font-size: 0.82rem;
+            font-family: var(--font-body);
+            width: 220px;
+            background: var(--color-card);
+            color: var(--color-text);
+            outline: none;
+            transition: border-color var(--transition);
+        }
+        .search-box:focus { border-color: var(--brand-primary); }
+        .search-box::placeholder { color: var(--color-text-light); }
+
+        /* Tables */
+        .leads-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 0.82rem;
+        }
+
+        .leads-table th {
+            background: hsl(40, 20%, 96%);
+            padding: 0.65rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid var(--color-border);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .leads-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.15s ease;
+            position: relative;
+            padding-right: 1.4rem !important;
+        }
+        .leads-table th.sortable:hover { color: var(--brand-primary); }
+        .leads-table th.sortable::after {
+            content: '▲';
+            position: absolute;
+            right: 0.3rem;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.25;
+            font-size: 0.55rem;
+        }
+        .leads-table th.sortable.sort-asc::after {
+            content: '▲';
+            opacity: 1;
+            color: var(--brand-primary);
+        }
+        .leads-table th.sortable.sort-desc::after {
+            content: '▼';
+            opacity: 1;
+            color: var(--brand-primary);
+        }
+
+        .leads-table td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid var(--color-border-light);
+            color: var(--color-text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .leads-table tr:hover {
+            background: var(--color-card-hover);
+            cursor: pointer;
+        }
+
+        .leads-table th:nth-child(1),
+        .leads-table td:nth-child(1) { width: 15%; }
+        .leads-table th:nth-child(2),
+        .leads-table td:nth-child(2) { width: 12%; }
+        .leads-table th:nth-child(3),
+        .leads-table td:nth-child(3) { width: 5%; }
+        .leads-table th:nth-child(4),
+        .leads-table td:nth-child(4) { width: 5%; }
+        .leads-table th:nth-child(5),
+        .leads-table td:nth-child(5) { width: 6%; }
+        .leads-table th:nth-child(6),
+        .leads-table td:nth-child(6) { width: 8%; }
+        .leads-table th:nth-child(7),
+        .leads-table td:nth-child(7) { width: 8%; }
+        .leads-table th:nth-child(8),
+        .leads-table td:nth-child(8) { width: 5%; text-align: center; }
+        .leads-table th:nth-child(9),
+        .leads-table td:nth-child(9) { width: 10%; }
+        .leads-table th:nth-child(10),
+        .leads-table td:nth-child(10) { width: 8%; }
+        .leads-table th:nth-child(11),
+        .leads-table td:nth-child(11) { width: 12%; white-space: normal; }
+
+        #clients-table th:nth-child(1),
+        #clients-table td:nth-child(1) { width: 18%; }
+        #clients-table th:nth-child(2),
+        #clients-table td:nth-child(2) { width: 12%; }
+        #clients-table th:nth-child(3),
+        #clients-table td:nth-child(3) { width: 12%; }
+        #clients-table th:nth-child(4),
+        #clients-table td:nth-child(4) { width: 8%; }
+        #clients-table th:nth-child(5),
+        #clients-table td:nth-child(5) { width: 8%; }
+        #clients-table th:nth-child(6),
+        #clients-table td:nth-child(6) { width: 10%; }
+        #clients-table th:nth-child(7),
+        #clients-table td:nth-child(7) { width: 10%; }
+        #clients-table th:nth-child(8),
+        #clients-table td:nth-child(8) { width: 8%; }
+        #clients-table th:nth-child(9),
+        #clients-table td:nth-child(9) { width: 14%; white-space: normal; }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 10px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .badge-active    { background: var(--color-green-subtle);  color: var(--brand-primary); }
+        .badge-inactive  { background: var(--color-red-subtle);    color: var(--color-red); }
+        .badge-new       { background: var(--color-orange-subtle); color: var(--brand-accent); }
+
+        /* Buttons */
+        .btn {
+            padding: 0.4rem 0.85rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: var(--font-body);
+            cursor: pointer;
+            transition: all var(--transition);
+            background: var(--color-card);
+            color: var(--color-text-muted);
+        }
+        .btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+        .btn-primary {
+            background: var(--brand-primary);
+            color: var(--brand-surface);
+            border-color: var(--brand-primary);
+        }
+        .btn-primary:hover {
+            background: hsl(152, 40%, 18%);
+        }
+        .btn-success {
+            background: var(--brand-primary);
+            color: var(--brand-surface);
+            border-color: var(--brand-primary);
+        }
+        .btn-success:hover {
+            background: hsl(152, 40%, 18%);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--color-border);
+            margin-bottom: 1.25rem;
+        }
+
+        .tab-button {
+            padding: 0.6rem 1.25rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: var(--font-body);
+            color: var(--color-text-muted);
+            cursor: pointer;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all var(--transition);
+            background: none;
+        }
+        .tab-button:hover { color: var(--color-text); }
+        .tab-button.active {
+            color: var(--brand-primary);
+            border-bottom-color: var(--brand-primary);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: var(--color-card);
+            margin: 3rem auto;
+            padding: 2rem;
+            border-radius: var(--radius);
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--color-border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .modal-header h2 {
+            font-family: var(--font-heading);
+            color: var(--color-text);
+            font-size: 1.3rem;
+        }
+
+        .close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--color-text-light);
+            transition: color var(--transition);
+        }
+        .close:hover { color: var(--color-text); }
+
+        /* Detail grid (in modal) */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-item {
+            padding: 0.75rem;
+            background: var(--brand-surface);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--color-border-light);
+        }
+
+        .detail-item label {
+            display: block;
+            color: var(--color-text-muted);
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.2rem;
+        }
+
+        .detail-item .value {
+            color: var(--color-text);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        /* Client cards */
+        .client-card {
+            background: var(--color-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            transition: border-color var(--transition);
+        }
+        .client-card:hover { border-color: var(--brand-sage); }
+
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .client-name {
+            font-family: var(--font-heading);
+            font-size: 1.05rem;
+            color: var(--color-text);
+        }
+
+        .client-email {
+            color: var(--color-text-muted);
+            font-size: 0.8rem;
+        }
+
+        .client-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .client-stat {
+            text-align: center;
+            padding: 0.5rem;
+            background: var(--brand-surface);
+            border-radius: var(--radius-sm);
+        }
+
+        .client-stat-label {
+            font-size: 0.65rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.15rem;
+        }
+
+        .client-stat-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        .client-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 0.75rem;
+        }
+
+        /* States */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--color-text-muted);
+        }
+        .empty-state h3 {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            color: var(--color-text);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Stat expanded list */
+        .stat-expanded-list {
+            display: none;
+            background: var(--color-card);
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-top: 0.5rem;
+            border: 1px solid var(--color-border);
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .stat-expanded-list.stat-overlay {
+            position: absolute;
+            top: 100%; left: 0; right: 0;
+            z-index: 100;
+            margin-top: 0.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        .stat-expanded-list.show { display: block; }
+        .stat-expanded-list h3 {
+            font-family: var(--font-heading);
+            color: var(--color-text);
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 0.5rem;
+        }
+
+        .stat-list-item {
+            padding: 0.6rem 0.75rem;
+            background: var(--brand-surface);
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.35rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .stat-list-item:hover { background: hsl(40, 30%, 92%); }
+        .stat-list-item-main { flex: 1; }
+        .stat-list-item-name {
+            font-weight: 600;
+            color: var(--color-text);
+            font-size: 0.85rem;
+            margin-bottom: 0.1rem;
+        }
+        .stat-list-item-email {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+
+        /* View toggle (clients list/cards) */
+        .view-toggle {
+            display: flex;
+            gap: 2px;
+            background: var(--color-border-light);
+            border-radius: var(--radius);
+            padding: 2px;
+        }
+        .view-toggle button {
+            padding: 0.3rem 0.65rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: var(--font-body);
+            background: transparent;
+            color: var(--color-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all var(--transition);
+        }
+        .view-toggle button.active-view {
+            background: var(--brand-primary);
+            color: var(--brand-surface);
+        }
+
+        /* Lead filter bar */
+        .lead-filter-bar {
+            background: var(--color-card);
+            padding: 0.65rem 1.25rem;
+            border: 1px solid var(--color-border);
+            border-bottom: none;
+            border-radius: var(--radius) var(--radius) 0 0;
+            display: flex;
+            gap: 0.35rem;
+        }
+    </style>
+</head>
+<body>
+    <script src="nav-loader.js"></script>
+    <div id="nav-container"></div>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 data-i18n="dashboard.title">Dashboard</h1>
+            <p id="dashboard-subtitle" data-i18n="dashboard.subtitle">Oversigt over alle leads og coaching klienter</p>
+        </div>
+
+        <div class="stats-grid">
+            <div>
+                <div class="stat-card" onclick="switchTab('leads')">
+                    <h3 data-i18n="dashboard.total_leads">Total Leads</h3>
+                    <div class="value" id="total-leads">0</div>
+                </div>
+            </div>
+            <div>
+                <div class="stat-card" onclick="switchLeadsView('my')">
+                    <h3 data-i18n="dashboard.my_leads">Mine Leads</h3>
+                    <div class="value" id="my-leads">0</div>
+                </div>
+            </div>
+            <div>
+                <div class="stat-card" onclick="switchTab('clients')">
+                    <h3 data-i18n="dashboard.active_clients">Aktive Klienter</h3>
+                    <div class="value" id="active-coaching">0</div>
+                </div>
+            </div>
+            <div>
+                <div class="stat-card" onclick="switchLeadsView('unassigned')">
+                    <h3 data-i18n="dashboard.unassigned_leads">Ikke-tildelte Leads</h3>
+                    <div class="value" id="unassigned-leads">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('leads')">
+                Leads (<span id="leads-count">0</span>)
+            </button>
+            <button class="tab-button" onclick="switchTab('clients')">
+                Aktive Klienter (<span id="clients-count">0</span>)
+            </button>
+        </div>
+
+        <!-- Leads Tab Content -->
+        <div class="tab-content active" id="leads-tab">
+            <!-- Lead View Filter (All / My / Unassigned) - ONLY for Leads tab -->
+            <div class="lead-filter-bar">
+                <button class="btn btn-primary" id="view-all-btn" onclick="switchLeadsView('all')" data-i18n="dashboard.all_leads">
+                    Alle Leads
+                </button>
+                <button class="btn" id="view-my-btn" onclick="switchLeadsView('my')" data-i18n="dashboard.my_leads">
+                    Mine Leads
+                </button>
+                <button class="btn" id="view-unassigned-btn" onclick="switchLeadsView('unassigned')" data-i18n="dashboard.unassigned_leads">
+                    Ikke-tildelte
+                </button>
+            </div>
+            <div class="leads-section">
+                <div class="section-header">
+                    <h2 data-i18n="dashboard.leads_without_coaching">Leads uden Aktiv Coaching</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn btn-primary" onclick="openCreateLeadModal()" style="white-space: nowrap; padding: 8px 16px; font-size: 14px;">+ Tilføj Lead</button>
+                        <input type="text" class="search-box" id="search-input-leads" placeholder="Søg efter email eller navn..." data-i18n="dashboard.search_placeholder">
+                    </div>
+                </div>
+
+                <div id="loading-leads" class="loading">
+                    <p data-i18n="dashboard.loading_leads">Indlæser leads...</p>
+                </div>
+
+                <div id="empty-state-leads" class="empty-state" style="display: none;">
+                    <h3 data-i18n="dashboard.no_leads_without_coaching">Ingen leads uden coaching</h3>
+                    <p data-i18n="dashboard.no_leads_hint">Alle leads har aktiv coaching eller der er ingen leads endnu</p>
+                </div>
+
+                <table class="leads-table" id="leads-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="email" onclick="sortLeads('email')" data-i18n="dashboard.table_email">Email</th>
+                            <th class="sortable" data-sort="name" onclick="sortLeads('name')" data-i18n="dashboard.table_name">Navn</th>
+                            <th data-i18n="dashboard.table_language">Sprog</th>
+                            <th class="sortable" data-sort="age" onclick="sortLeads('age')" data-i18n="dashboard.table_age">Alder</th>
+                            <th class="sortable" data-sort="weight" onclick="sortLeads('weight')" data-i18n="dashboard.table_weight">Vægt</th>
+                            <th class="sortable" data-sort="weight_goal" onclick="sortLeads('weight_goal')" data-i18n="dashboard.table_goal">Mål</th>
+                            <th class="sortable" data-sort="daily_calories" onclick="sortLeads('daily_calories')" data-i18n="dashboard.table_calories">Kalorier</th>
+                            <th class="sortable" data-sort="gdpr_consent" onclick="sortLeads('gdpr_consent')" data-i18n="dashboard.table_gdpr">GDPR</th>
+                            <th class="sortable sort-desc" data-sort="created_at" onclick="sortLeads('created_at')" data-i18n="dashboard.table_date">Dato</th>
+                            <th class="sortable" data-sort="status" onclick="sortLeads('status')" data-i18n="dashboard.table_status">Status</th>
+                            <th data-i18n="dashboard.table_action">Handling</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leads-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Clients Tab Content -->
+        <div class="tab-content" id="clients-tab">
+            <div class="leads-section">
+                <div class="section-header">
+                    <h2 data-i18n="dashboard.active_coaching_clients">Aktive Coaching Klienter</h2>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div class="view-toggle">
+                            <button id="clients-view-list" class="active-view" onclick="switchClientsView('list')">
+                                <i data-lucide="list"></i> Liste
+                            </button>
+                            <button id="clients-view-cards" onclick="switchClientsView('cards')">
+                                <i data-lucide="layout-grid"></i> Kort
+                            </button>
+                        </div>
+                        <input type="text" class="search-box" id="search-input-clients" placeholder="Søg efter email eller navn..." data-i18n="dashboard.search_placeholder">
+                    </div>
+                </div>
+
+                <div id="loading-clients" class="loading">
+                    <p data-i18n="dashboard.loading_clients">Indlæser klienter...</p>
+                </div>
+
+                <div id="empty-state-clients" class="empty-state" style="display: none;">
+                    <h3 data-i18n="dashboard.no_active_clients">Ingen aktive klienter endnu</h3>
+                    <p data-i18n="dashboard.activate_coaching_hint">Aktiver coaching for leads via "✓ Aktivér Coaching" knappen</p>
+                </div>
+
+                <table class="leads-table" id="clients-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Navn</th>
+                            <th>Coach</th>
+                            <th>Vægt</th>
+                            <th>Mål</th>
+                            <th>Kalorier</th>
+                            <th>Dage Aktiv</th>
+                            <th>Status</th>
+                            <th>Handling</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-tbody"></tbody>
+                </table>
+
+                <div class="clients-grid" id="clients-grid" style="display: none;">
+                    <!-- Client cards will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lead Detail Modal -->
+    <div id="lead-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 data-i18n="dashboard.lead_details">Lead Detaljer</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        let allLeads = [];
+        let allClients = [];
+        let activeCoachingLeadIds = new Set();
+        let currentUser = null;
+        let currentLeadsView = 'all'; // 'all', 'my', 'unassigned'
+        let currentClientsView = 'list'; // 'list' or 'cards'
+        let myLeadIds = new Set();
+        let unassignedLeadIds = new Set();
+        let currentSortField = 'created_at';
+        let currentSortDir = 'desc';
+
+        // ── Column Sorting ──
+        function sortLeads(field) {
+            if (currentSortField === field) {
+                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortField = field;
+                currentSortDir = 'asc';
+            }
+
+            // Update header styles (CSS ::after handles the icons)
+            document.querySelectorAll('#leads-table th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+            const activeHeader = document.querySelector(`#leads-table th[data-sort="${field}"]`);
+            if (activeHeader) {
+                activeHeader.classList.add(currentSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+
+            renderLeads();
+        }
+
+        // Wait for i18n to be available
+        function waitForI18n() {
+            return new Promise((resolve) => {
+                const check = () => {
+                    if (window.i18n && window.i18nScriptLoaded) {
+                        console.log('[admin] i18n is ready!');
+                        resolve();
+                        return true;
+                    }
+                    return false;
+                };
+                if (check()) return;
+                const checkInterval = setInterval(() => {
+                    if (check()) clearInterval(checkInterval);
+                }, 50);
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    console.error('[admin] Timeout waiting for i18n');
+                    resolve();
+                }, 5000);
+            });
+        }
+
+        // Wait for CRM API to be available
+        function waitForCRM() {
+            return new Promise((resolve) => {
+                const check = () => {
+                    if (window.CRM && window.CRM.leads) {
+                        resolve();
+                        return true;
+                    }
+                    return false;
+                };
+                if (check()) return;
+                const checkInterval = setInterval(() => {
+                    if (check()) clearInterval(checkInterval);
+                }, 50);
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    console.error('[admin] Timeout waiting for CRM API');
+                    resolve();
+                }, 5000);
+            });
+        }
+
+        // Load navigation component and check auth
+        loadNavComponent(() => {
+            checkAuthAndUpdateNav().then(async (user) => {
+                currentUser = user;
+                setActiveNav('dashboard');
+
+                // Wait for i18n and CRM API to load
+                await Promise.all([waitForI18n(), waitForCRM()]);
+
+                // Update translations based on user language
+                if (window.i18n && user.language) {
+                    await window.i18n.setLanguage(user.language);
+                    updateTabLabels();
+                }
+
+                // Initialize dashboard after auth check
+                init();
+            });
+        });
+
+        // Load lead assignments via Supabase
+        async function loadLeadAssignments() {
+            try {
+                // Get my leads
+                const myLeadsData = await CRM.leads.getMyLeads(currentUser.id);
+                myLeadIds = new Set((myLeadsData.leads || []).map(l => l.id));
+
+                // Get unassigned leads
+                const unassignedData = await CRM.leads.getUnassigned();
+                unassignedLeadIds = new Set((unassignedData.leads || []).map(l => l.id));
+
+                // Update stats
+                document.getElementById('my-leads').textContent = myLeadIds.size;
+                document.getElementById('unassigned-leads').textContent = unassignedLeadIds.size;
+            } catch (error) {
+                console.error('Error loading lead assignments:', error);
+            }
+        }
+
+        // Switch leads view (all / my / unassigned)
+        function switchLeadsView(view) {
+            currentLeadsView = view;
+
+            // Update button styles — use class-based approach
+            ['view-all-btn', 'view-my-btn', 'view-unassigned-btn'].forEach(id => {
+                const btn = document.getElementById(id);
+                btn.classList.remove('btn-primary');
+                btn.style.background = '';
+                btn.style.color = '';
+            });
+            const activeId = view === 'all' ? 'view-all-btn' : view === 'my' ? 'view-my-btn' : 'view-unassigned-btn';
+            document.getElementById(activeId).classList.add('btn-primary');
+
+            // Update subtitle
+            const subtitle = document.getElementById('dashboard-subtitle');
+            if (view === 'my') {
+                subtitle.textContent = window.i18n ? window.i18n.t('dashboard.subtitle_my') : 'Mine tildelte leads og klienter';
+            } else if (view === 'unassigned') {
+                subtitle.textContent = window.i18n ? window.i18n.t('dashboard.subtitle_unassigned') : 'Leads som ikke er tildelt til nogen';
+            } else {
+                subtitle.textContent = window.i18n ? window.i18n.t('dashboard.subtitle') : 'Oversigt over alle leads og coaching klienter';
+            }
+
+            // Reload leads with filter
+            renderLeads();
+        }
+
+        // Update tab labels with current language
+        function updateTabLabels() {
+            const leadsCount = document.getElementById('leads-count').textContent;
+            const clientsCount = document.getElementById('clients-count').textContent;
+
+            const tabButtons = document.querySelectorAll('.tab-button');
+            if (tabButtons[0]) {
+                const leadsLabel = window.i18n ? window.i18n.t('dashboard.leads_tab') : 'Leads';
+                tabButtons[0].innerHTML = `${leadsLabel} (<span id="leads-count">${leadsCount}</span>)`;
+            }
+            if (tabButtons[1]) {
+                const clientsLabel = window.i18n ? window.i18n.t('dashboard.clients_tab') : 'Aktive Klienter';
+                tabButtons[1].innerHTML = `${clientsLabel} (<span id="clients-count">${clientsCount}</span>)`;
+            }
+        }
+
+        // Switch between tabs
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+            // Find and activate the correct tab button
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(btn => {
+                if (btn.onclick && btn.onclick.toString().includes(`'${tab}'`)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tab}-tab`).classList.add('active');
+        }
+
+        // Load all data on page load — via Supabase
+        async function loadLeads() {
+            try {
+                // Load all leads via CRM adapter
+                allLeads = await CRM.leads.getAll();
+
+                // Load all coaching clients via CRM adapter
+                const clientsData = await CRM.coaching.getAll();
+                allClients = clientsData.clients || [];
+
+                // Create a Set of lead IDs that have active coaching
+                activeCoachingLeadIds = new Set(allClients.map(c => c.lead_id));
+
+                // Load lead assignments
+                await loadLeadAssignments();
+
+                // Render based on current view
+                renderLeads();
+                renderClients();
+
+                // Update stats
+                updateStats(allLeads, allClients);
+            } catch (error) {
+                console.error('Error loading leads:', error);
+                document.getElementById('loading-leads').innerHTML = '<p style="color: red;">Fejl ved indl\u00e6sning. Tjek din internetforbindelse.</p>';
+            }
+        }
+
+        // Render leads table (with filtering + sorting)
+        function renderLeads() {
+            // Filter leads without active coaching
+            let leadsToShow = allLeads.filter(lead => !activeCoachingLeadIds.has(lead.id));
+
+            // Apply view filter
+            if (currentLeadsView === 'my') {
+                leadsToShow = leadsToShow.filter(lead => myLeadIds.has(lead.id));
+            } else if (currentLeadsView === 'unassigned') {
+                leadsToShow = leadsToShow.filter(lead => unassignedLeadIds.has(lead.id));
+            }
+
+            // Apply sorting
+            const field = currentSortField;
+            const dir = currentSortDir === 'asc' ? 1 : -1;
+            leadsToShow.sort((a, b) => {
+                let valA = a[field];
+                let valB = b[field];
+                // Handle nulls
+                if (valA == null && valB == null) return 0;
+                if (valA == null) return 1;
+                if (valB == null) return -1;
+                // Dates
+                if (field === 'created_at') {
+                    return dir * (new Date(valA) - new Date(valB));
+                }
+                // Numbers
+                if (typeof valA === 'number' || (typeof valA === 'string' && !isNaN(valA) && valA !== '')) {
+                    return dir * (Number(valA) - Number(valB));
+                }
+                // Booleans (GDPR)
+                if (typeof valA === 'boolean') {
+                    return dir * ((valA ? 1 : 0) - (valB ? 1 : 0));
+                }
+                // Strings
+                return dir * String(valA).localeCompare(String(valB), 'da');
+            });
+
+            // Update leads tab
+            document.getElementById('loading-leads').style.display = 'none';
+            if (leadsToShow.length === 0) {
+                document.getElementById('empty-state-leads').style.display = 'block';
+                document.getElementById('leads-table').style.display = 'none';
+            } else {
+                document.getElementById('empty-state-leads').style.display = 'none';
+                document.getElementById('leads-table').style.display = 'table';
+                renderLeadsTable(leadsToShow);
+            }
+        }
+
+        // Render leads table
+        function renderLeadsTable(leads) {
+            const tbody = document.getElementById('leads-tbody');
+            tbody.innerHTML = '';
+
+            leads.forEach(lead => {
+                const row = document.createElement('tr');
+                row.onclick = () => openLeadDetail(lead.id);
+
+                const createdDate = new Date(lead.created_at);
+                const isNew = (Date.now() - createdDate) < 24 * 60 * 60 * 1000; // Less than 24h
+
+                const langBadge = lead.language ? lead.language.toUpperCase() : 'DA';
+                // GDPR: 1 or true means consent given
+                const gdprIcon = (lead.gdpr_consent === 1 || lead.gdpr_consent === true) ? '✓' : '✗';
+                const gdprColor = (lead.gdpr_consent === 1 || lead.gdpr_consent === true) ? '#28a745' : '#dc3545';
+
+                row.innerHTML = `
+                    <td>${lead.email}</td>
+                    <td>${lead.name || '-'}</td>
+                    <td><span class="badge badge-new">${langBadge}</span></td>
+                    <td>${lead.age}</td>
+                    <td>${lead.weight} kg</td>
+                    <td>${lead.weight_goal}</td>
+                    <td>${lead.daily_calories} kcal</td>
+                    <td><span style="color: ${gdprColor}; font-weight: bold; font-size: 18px;">${gdprIcon}</span></td>
+                    <td>${formatDate(lead.created_at)}</td>
+                    <td><span class="badge ${isNew ? 'badge-new' : 'badge-inactive'}">${isNew ? (window.i18n ? window.i18n.t('dashboard.badge_new') : 'NY') : (window.i18n ? window.i18n.t('dashboard.badge_lead') : 'LEAD')}</span></td>
+                    <td><button class="btn btn-primary" onclick="event.stopPropagation(); openLeadDetail(${lead.id})">${window.i18n ? window.i18n.t('dashboard.view_details') : 'Se detaljer'}</button></td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Render clients as cards (with filtering)
+        function renderClients() {
+            let clientsToShow = allClients;
+
+            // Apply view filter
+            if (currentLeadsView === 'my') {
+                clientsToShow = allClients.filter(client => myLeadIds.has(client.lead_id));
+            } else if (currentLeadsView === 'unassigned') {
+                // Unassigned view doesn't show clients
+                clientsToShow = [];
+            }
+
+            // Update clients tab
+            document.getElementById('loading-clients').style.display = 'none';
+            if (clientsToShow.length === 0) {
+                document.getElementById('empty-state-clients').style.display = 'block';
+                document.getElementById('clients-grid').style.display = 'none';
+                document.getElementById('clients-table').style.display = 'none';
+            } else {
+                document.getElementById('empty-state-clients').style.display = 'none';
+                if (currentClientsView === 'list') {
+                    document.getElementById('clients-grid').style.display = 'none';
+                    document.getElementById('clients-table').style.display = 'table';
+                    renderClientsTable(clientsToShow);
+                } else {
+                    document.getElementById('clients-table').style.display = 'none';
+                    document.getElementById('clients-grid').style.display = 'grid';
+                    renderClientsGrid(clientsToShow);
+                }
+            }
+        }
+
+        // Render clients grid
+        function renderClientsGrid(clients) {
+            const grid = document.getElementById('clients-grid');
+            grid.innerHTML = '';
+
+            const T = (key, fallback) => window.i18n ? window.i18n.t('dashboard.' + key) : fallback;
+
+            clients.forEach(client => {
+                const startDate = new Date(client.start_date);
+                const daysActive = Math.floor((Date.now() - startDate) / (1000 * 60 * 60 * 24));
+
+                const card = document.createElement('div');
+                card.className = 'client-card';
+                card.innerHTML = `
+                    <div class="client-header">
+                        <div>
+                            <div class="client-name">${client.name || T('unnamed_client', 'Unavngivet Klient')}</div>
+                            <div class="client-email">${client.email}</div>
+                        </div>
+                        <span class="badge badge-active">${T('badge_active', 'AKTIV')}</span>
+                    </div>
+
+                    <div class="client-stats">
+                        <div class="client-stat">
+                            <div class="client-stat-label">${T('start_weight', 'Startvægt')}</div>
+                            <div class="client-stat-value">${client.weight} kg</div>
+                        </div>
+                        <div class="client-stat">
+                            <div class="client-stat-label">${T('goal', 'Mål')}</div>
+                            <div class="client-stat-value">${client.weight_goal} ${T('kg_per_month', 'kg/md')}</div>
+                        </div>
+                        <div class="client-stat">
+                            <div class="client-stat-label">${T('days_active', 'Dage Aktiv')}</div>
+                            <div class="client-stat-value">${daysActive}</div>
+                        </div>
+                        <div class="client-stat">
+                            <div class="client-stat-label">${T('age', 'Alder')}</div>
+                            <div class="client-stat-value">${client.age} ${T('years', 'år')}</div>
+                        </div>
+                    </div>
+
+                    <div class="client-actions">
+                        <button class="btn btn-primary" onclick="viewCheckins(${client.lead_id})">
+                            ${getIcon('viewCheckins')} ${T('view_checkins', 'Se Check-ins')}
+                        </button>
+                        <button class="btn btn-success" onclick="openCheckin(${client.lead_id})">
+                            ${getIcon('newCheckin')} ${T('new_checkin', 'Ny Check-in')}
+                        </button>
+                        <button class="btn btn-primary" onclick="openLeadDetail(${client.lead_id})">
+                            ${getIcon('viewProfile')} ${T('view_profile', 'Se Profil')}
+                        </button>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+            // Re-initialize Lucide icons for dynamically added content
+            if (window.initLucideIcons) window.initLucideIcons();
+        }
+
+        // Render clients as table (list view)
+        function renderClientsTable(clients) {
+            const tbody = document.getElementById('clients-tbody');
+            tbody.innerHTML = '';
+
+            const T = (key, fallback) => window.i18n ? window.i18n.t('dashboard.' + key) : fallback;
+
+            clients.forEach(client => {
+                const row = document.createElement('tr');
+                row.onclick = () => window.location.href = `coaching-profil.html?id=${client.lead_id}`;
+
+                const startDate = new Date(client.start_date);
+                const daysActive = Math.floor((Date.now() - startDate) / (1000 * 60 * 60 * 24));
+                const coachName = client.coach_name || '-';
+
+                row.innerHTML = `
+                    <td>${client.email}</td>
+                    <td>${client.name || '-'}</td>
+                    <td>${coachName}</td>
+                    <td>${client.weight} kg</td>
+                    <td>${client.weight_goal} kg/md</td>
+                    <td>${client.daily_calories || '-'} kcal</td>
+                    <td>${daysActive} dage</td>
+                    <td><span class="badge badge-active">${T('badge_active', 'AKTIV')}</span></td>
+                    <td>
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); window.location.href='coaching-profil.html?id=${client.lead_id}'">
+                            Se detaljer
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Switch between list and card view for clients
+        function switchClientsView(view) {
+            currentClientsView = view;
+
+            // Update button styles
+            const listBtn = document.getElementById('clients-view-list');
+            const cardsBtn = document.getElementById('clients-view-cards');
+
+            listBtn.classList.toggle('active-view', view === 'list');
+            cardsBtn.classList.toggle('active-view', view === 'cards');
+            listBtn.style.background = '';
+            listBtn.style.color = '';
+            cardsBtn.style.background = '';
+            cardsBtn.style.color = '';
+
+            // Re-render clients with new view
+            renderClients();
+        }
+
+        // Update statistics
+        function updateStats(leads, clients) {
+            // Total leads
+            document.getElementById('total-leads').textContent = leads.length;
+
+            // Leads count (without active coaching)
+            const leadsWithoutCoaching = leads.filter(lead => !activeCoachingLeadIds.has(lead.id));
+            document.getElementById('leads-count').textContent = leadsWithoutCoaching.length;
+
+            // Clients count
+            document.getElementById('clients-count').textContent = clients.length;
+            document.getElementById('active-coaching').textContent = clients.length;
+
+            // Update tab labels with correct language
+            updateTabLabels();
+        }
+
+        // Toggle stat detail list
+        function toggleStatDetail(statType) {
+            const listContainer = document.getElementById(`${statType}-list`);
+            if (!listContainer) return; // No overlay for this stat type
+
+            const statCard = event.currentTarget;
+
+            // Close all other stat lists
+            document.querySelectorAll('.stat-expanded-list').forEach(list => {
+                if (list.id !== `${statType}-list`) {
+                    list.classList.remove('show');
+                }
+            });
+            document.querySelectorAll('.stat-card').forEach(card => {
+                if (card !== statCard) {
+                    card.classList.remove('active');
+                }
+            });
+
+            // Toggle current list
+            const isShowing = listContainer.classList.contains('show');
+
+            if (isShowing) {
+                listContainer.classList.remove('show');
+                statCard.classList.remove('active');
+            } else {
+                listContainer.classList.add('show');
+                statCard.classList.add('active');
+                renderStatDetail(statType, listContainer);
+            }
+        }
+
+        // Render detailed list for a stat
+        function renderStatDetail(statType, container) {
+            let data = [];
+            let title = '';
+
+            switch(statType) {
+                case 'total-leads':
+                    data = allLeads;
+                    title = 'Alle Leads';
+                    break;
+                case 'active-coaching':
+                    data = allClients;
+                    title = 'Aktive Coaching Klienter';
+                    break;
+            }
+
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <h3>${title}</h3>
+                    <p style="text-align: center; color: #999; padding: 20px;">Ingen data at vise</p>
+                `;
+                return;
+            }
+
+            // Render list
+            let html = `<h3>${title} (${data.length})</h3>`;
+
+            if (statType === 'active-coaching') {
+                // Render clients
+                data.forEach(client => {
+                    const unnamed = window.i18n ? window.i18n.t('dashboard.unnamed') : 'Unavngivet';
+                    html += `
+                        <div class="stat-list-item" onclick="openLeadDetail(${client.lead_id})">
+                            <div class="stat-list-item-main">
+                                <div class="stat-list-item-name">${client.name || unnamed}</div>
+                                <div class="stat-list-item-email">${client.email}</div>
+                            </div>
+                            <span class="badge badge-active">${window.i18n ? window.i18n.t('dashboard.badge_active') : 'AKTIV'}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                // Render leads
+                data.forEach(lead => {
+                    const createdDate = new Date(lead.created_at);
+                    const isNew = (Date.now() - createdDate) < 24 * 60 * 60 * 1000;
+                    const hasCoaching = activeCoachingLeadIds.has(lead.id);
+                    const unnamed = window.i18n ? window.i18n.t('dashboard.unnamed') : 'Unavngivet';
+                    const badgeText = hasCoaching
+                        ? (window.i18n ? window.i18n.t('dashboard.badge_coaching') : 'COACHING')
+                        : (isNew ? (window.i18n ? window.i18n.t('dashboard.badge_new') : 'NY') : (window.i18n ? window.i18n.t('dashboard.badge_lead') : 'LEAD'));
+
+                    html += `
+                        <div class="stat-list-item" onclick="openLeadDetail(${lead.id})">
+                            <div class="stat-list-item-main">
+                                <div class="stat-list-item-name">${lead.name || unnamed}</div>
+                                <div class="stat-list-item-email">${lead.email}</div>
+                            </div>
+                            <span class="badge ${hasCoaching ? 'badge-active' : (isNew ? 'badge-new' : 'badge-inactive')}">
+                                ${badgeText}
+                            </span>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Open lead detail page (new dedicated page instead of modal)
+        async function openLeadDetail(leadId) {
+            // Check if lead has active coaching via Supabase
+            try {
+                const checkData = await CRM.coaching.checkActive(leadId);
+                const hasActiveCoaching = checkData.hasActiveCoaching;
+
+                // Route to correct page based on coaching status
+                if (hasActiveCoaching) {
+                    window.location.href = `coaching-profil.html?id=${leadId}`;
+                } else {
+                    window.location.href = `lead-profil.html?id=${leadId}`;
+                }
+            } catch (error) {
+                console.error('Error checking coaching status:', error);
+                window.location.href = `lead-profil.html?id=${leadId}`;
+            }
+        }
+
+        // Old modal function - kept for reference but not used
+        async function openLeadDetailOLD(leadId) {
+            try {
+                const lead = await CRM.leads.getById(leadId);
+
+                // Check if lead has active coaching
+                const checkData = await CRM.coaching.checkActive(leadId);
+                const hasActiveCoaching = checkData.hasActiveCoaching;
+
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Email</label>
+                            <div class="value">${lead.email}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Navn</label>
+                            <div class="value">${lead.name || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Køn</label>
+                            <div class="value">${lead.gender === 'male' ? 'Mand' : 'Kvinde'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Alder</label>
+                            <div class="value">${lead.age} år</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Vægt</label>
+                            <div class="value">${lead.weight} kg</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Højde</label>
+                            <div class="value">${lead.height} cm</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Aktivitetsniveau</label>
+                            <div class="value">${lead.activity}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>BMR</label>
+                            <div class="value">${lead.bmr} kcal</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>TDEE</label>
+                            <div class="value">${lead.tdee} kcal</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Vægttabs Mål</label>
+                            <div class="value">${lead.weight_goal} kg/md</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Daglige Kalorier</label>
+                            <div class="value">${lead.daily_calories} kcal</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Måltider pr. dag</label>
+                            <div class="value">${lead.meals_per_day || 3} måltider</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Tilberedningstid</label>
+                            <div class="value">${formatPrepTime(lead.prep_time)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Antal Dage</label>
+                            <div class="value">${lead.num_days} dage</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Leftovers</label>
+                            <div class="value">${lead.leftovers ? 'Ja' : 'Nej'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Diet Type</label>
+                            <div class="value">${lead.diet_type || 'Custom Keto'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Sprog</label>
+                            <div class="value">${lead.language ? lead.language.toUpperCase() : 'DA'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>GDPR Samtykke</label>
+                            <div class="value">${(lead.gdpr_consent === 1 || lead.gdpr_consent === true) ? '✓ Ja' : '✗ Nej'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Oprettet</label>
+                            <div class="value">${formatDate(lead.created_at)}</div>
+                        </div>
+                        <div class="detail-item" style="grid-column: span 2;">
+                            <label>Seneste Kontakt</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input
+                                    type="datetime-local"
+                                    id="last-contact-${lead.id}"
+                                    value="${lead.last_contact_date ? formatDateForInput(lead.last_contact_date) : ''}"
+                                    style="flex: 1; padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;"
+                                >
+                                <button class="btn btn-primary" onclick="updateLastContact(${lead.id})" style="padding: 8px 16px;">
+                                    Opdater
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px;">
+                        <h3 style="margin-bottom: 15px;">Ekskluderede Ingredienser (${lead.excludedIngredients.length})</h3>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            ${lead.excludedIngredients.length > 0 ? lead.excludedIngredients.join(', ') : 'Ingen ekskluderinger'}
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px;">
+                        <h3 style="margin-bottom: 15px;">Admin Kommentarer</h3>
+                        <textarea
+                            id="admin-comments-${lead.id}"
+                            style="width: 100%; min-height: 120px; padding: 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: inherit; font-size: 14px;"
+                            placeholder="Tilføj noter om denne lead..."
+                        >${lead.admin_comments || ''}</textarea>
+                        <button class="btn btn-primary" onclick="saveComments(${lead.id})" style="margin-top: 10px;">
+                            Gem Kommentarer
+                        </button>
+                    </div>
+
+                    <div style="margin-top: 30px;">
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+                            <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
+                                <input type="checkbox" id="send-email-${lead.id}" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                <span>
+                                    <strong>${getIcon('emailHistory')} Send madplan via email til ${lead.email}</strong><br>
+                                    <small style="color: #666;">Madplanen sendes automatisk når den er genereret</small>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div style="text-align: center; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                            <button class="btn btn-success" onclick="activateCoaching(${lead.id})">
+                                ✓ Aktivér Coaching
+                            </button>
+                            <button class="btn btn-primary" onclick="openCheckin(${lead.id})" style="display: none;" id="checkin-btn-${lead.id}">
+                                ${getIcon('checkins')} Ugentlig Check-in
+                            </button>
+                            <button class="btn btn-primary" onclick="viewCheckins(${lead.id})" style="display: none;" id="view-checkins-btn-${lead.id}">
+                                ${getIcon('viewCheckins')} Se Check-ins
+                            </button>
+                            <button class="btn btn-primary" onclick="generateMealPlan(${lead.id})" id="generate-plan-btn-${lead.id}">
+                                ${getIcon('aiModel')} Generer Madplan
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('lead-modal').style.display = 'block';
+
+                // Show/hide buttons based on coaching status
+                setTimeout(() => {
+                    const activateBtn = document.querySelector(`button[onclick="activateCoaching(${lead.id})"]`);
+                    const checkinBtn = document.getElementById(`checkin-btn-${lead.id}`);
+                    const viewCheckinsBtn = document.getElementById(`view-checkins-btn-${lead.id}`);
+
+                    if (hasActiveCoaching) {
+                        if (activateBtn) activateBtn.style.display = 'none';
+                        if (checkinBtn) checkinBtn.style.display = 'block';
+                        if (viewCheckinsBtn) viewCheckinsBtn.style.display = 'block';
+                    } else {
+                        if (activateBtn) activateBtn.style.display = 'block';
+                        if (checkinBtn) checkinBtn.style.display = 'none';
+                        if (viewCheckinsBtn) viewCheckinsBtn.style.display = 'none';
+                    }
+                }, 50);
+            } catch (error) {
+                console.error('Error loading lead details:', error);
+                alert('Fejl ved indlæsning af lead detaljer');
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('lead-modal').style.display = 'none';
+        }
+
+        // Save admin comments — via Supabase
+        async function saveComments(leadId) {
+            const comments = document.getElementById(`admin-comments-${leadId}`).value;
+
+            try {
+                await CRM.leads.saveComments(leadId, comments);
+                alert('Kommentarer gemt!');
+            } catch (error) {
+                console.error('Error saving comments:', error);
+                alert('Fejl ved gemning af kommentarer');
+            }
+        }
+
+        // Activate coaching — via Supabase
+        async function activateCoaching(leadId) {
+            // First check if already active
+            try {
+                const checkData = await CRM.coaching.checkActive(leadId);
+                if (checkData.hasActiveCoaching) {
+                    alert('Denne lead har allerede aktiv coaching!');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking coaching status:', error);
+            }
+
+            if (!confirm('Er du sikker p\u00e5 at du vil aktivere coaching for denne klient?')) {
+                return;
+            }
+
+            try {
+                await CRM.coaching.activate(leadId, {
+                    adminId: currentUser?.id,
+                    notes: 'Coaching startet via admin panel',
+                });
+                alert('Coaching aktiveret!');
+                closeModal();
+                loadLeads(); // Reload
+            } catch (error) {
+                console.error('Error activating coaching:', error);
+                alert('Fejl ved aktivering af coaching: ' + (error.message || 'Ukendt fejl'));
+            }
+        }
+
+        // Open check-in form for coaching client — via Supabase
+        async function openCheckin(leadId) {
+            try {
+                const data = await CRM.coaching.getAll();
+                const client = data.clients.find(c => c.lead_id === leadId);
+
+                if (client) {
+                    window.open(`checkin.html?id=${client.id}`, '_blank');
+                } else {
+                    alert('Kunne ikke finde coaching klient data');
+                }
+            } catch (error) {
+                console.error('Error opening check-in:', error);
+                alert('Fejl ved \u00e5bning af check-in formular');
+            }
+        }
+
+        // View check-ins for coaching client — via Supabase
+        async function viewCheckins(leadId) {
+            try {
+                const data = await CRM.coaching.getAll();
+                const client = data.clients.find(c => c.lead_id === leadId);
+
+                if (client) {
+                    window.open(`admin-checkins.html?id=${client.id}`, '_blank');
+                } else {
+                    alert('Kunne ikke finde coaching klient data');
+                }
+            } catch (error) {
+                console.error('Error opening check-ins view:', error);
+                alert('Fejl ved \u00e5bning af check-in oversigt');
+            }
+        }
+
+        // Format date helper
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('da-DK', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Format date for datetime-local input
+        function formatDateForInput(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // Update last contact date — via Supabase
+        async function updateLastContact(leadId) {
+            const dateInput = document.getElementById(`last-contact-${leadId}`).value;
+
+            if (!dateInput) {
+                alert('V\u00e6lg venligst en dato');
+                return;
+            }
+
+            try {
+                await CRM.leads.updateLastContact(leadId, dateInput);
+                alert('Seneste kontakt opdateret!');
+            } catch (error) {
+                console.error('Error updating last contact:', error);
+                alert('Fejl ved opdatering af dato');
+            }
+        }
+
+        // Format prep time helper
+        function formatPrepTime(prepTime) {
+            const labels = {
+                'fast': 'Hurtige retter (15-20 min)',
+                'medium': 'Medium (20-40 min)',
+                'long': 'Ingen tidsbegrænsning (40+ min)',
+                'mix': 'Blandet'
+            };
+            return labels[prepTime] || prepTime || 'Medium';
+        }
+
+        // Generate meal plan for a lead
+        // NOTE: This feature requires an AI service (Supabase Edge Function or external API).
+        // Currently disabled until edge function is set up.
+        async function generateMealPlan(leadId) {
+            alert('Madplan-generering er midlertidigt utilg\u00e6ngelig.\n\nDenne funktion kr\u00e6ver en AI-service der endnu ikke er konfigureret med Supabase.');
+        }
+
+        // Initialize page (called after nav loads and auth check)
+        async function init() {
+            if (currentUser) {
+                await loadLeads();
+
+                // Add search event listeners after DOM is ready
+                const searchInputLeads = document.getElementById('search-input-leads');
+                const searchInputClients = document.getElementById('search-input-clients');
+
+                if (searchInputLeads) {
+                    searchInputLeads.addEventListener('input', handleLeadsSearch);
+                }
+                if (searchInputClients) {
+                    searchInputClients.addEventListener('input', handleClientsSearch);
+                }
+            }
+        }
+
+        // Search handlers
+        function handleLeadsSearch(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            // Filter leads without coaching first
+            let leadsToShow = allLeads.filter(lead => !activeCoachingLeadIds.has(lead.id));
+
+            // Apply view filter
+            if (currentLeadsView === 'my') {
+                leadsToShow = leadsToShow.filter(lead => myLeadIds.has(lead.id));
+            } else if (currentLeadsView === 'unassigned') {
+                leadsToShow = leadsToShow.filter(lead => unassignedLeadIds.has(lead.id));
+            }
+
+            // Apply search filter
+            if (searchTerm) {
+                leadsToShow = leadsToShow.filter(lead =>
+                    lead.email.toLowerCase().includes(searchTerm) ||
+                    (lead.name && lead.name.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            // Render
+            document.getElementById('loading-leads').style.display = 'none';
+            if (leadsToShow.length === 0) {
+                document.getElementById('empty-state-leads').style.display = 'block';
+                document.getElementById('leads-table').style.display = 'none';
+            } else {
+                document.getElementById('empty-state-leads').style.display = 'none';
+                document.getElementById('leads-table').style.display = 'table';
+                renderLeadsTable(leadsToShow);
+            }
+        }
+
+        function handleClientsSearch(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            let clientsToShow = allClients;
+
+            // Apply view filter
+            if (currentLeadsView === 'my') {
+                clientsToShow = allClients.filter(client => myLeadIds.has(client.lead_id));
+            } else if (currentLeadsView === 'unassigned') {
+                clientsToShow = [];
+            }
+
+            // Apply search filter
+            if (searchTerm) {
+                clientsToShow = clientsToShow.filter(client =>
+                    client.email.toLowerCase().includes(searchTerm) ||
+                    (client.name && client.name.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            // Render
+            document.getElementById('loading-clients').style.display = 'none';
+            if (clientsToShow.length === 0) {
+                document.getElementById('empty-state-clients').style.display = 'block';
+                document.getElementById('clients-grid').style.display = 'none';
+                document.getElementById('clients-table').style.display = 'none';
+            } else {
+                document.getElementById('empty-state-clients').style.display = 'none';
+                if (currentClientsView === 'list') {
+                    document.getElementById('clients-grid').style.display = 'none';
+                    document.getElementById('clients-table').style.display = 'table';
+                    renderClientsTable(clientsToShow);
+                } else {
+                    document.getElementById('clients-table').style.display = 'none';
+                    document.getElementById('clients-grid').style.display = 'grid';
+                    renderClientsGrid(clientsToShow);
+                }
+            }
+        }
+
+        // Note: init() is now called from nav-component load in the script above
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadLeads, 30000);
+
+        // ==================== CREATE LEAD MODAL ====================
+        function openCreateLeadModal() {
+            document.getElementById('create-lead-modal').style.display = 'flex';
+        }
+
+        function closeCreateLeadModal() {
+            document.getElementById('create-lead-modal').style.display = 'none';
+            document.getElementById('create-lead-form').reset();
+            document.getElementById('create-lead-status').textContent = '';
+        }
+
+        async function submitCreateLead(e) {
+            e.preventDefault();
+            const statusEl = document.getElementById('create-lead-status');
+            const btn = document.getElementById('create-lead-submit-btn');
+
+            const email = document.getElementById('new-lead-email').value.trim();
+            const name = document.getElementById('new-lead-name').value.trim();
+            const gender = document.getElementById('new-lead-gender').value;
+            const age = parseInt(document.getElementById('new-lead-age').value) || null;
+            const weight = parseInt(document.getElementById('new-lead-weight').value) || null;
+            const height = parseInt(document.getElementById('new-lead-height').value) || null;
+            const language = document.getElementById('new-lead-language').value;
+            const gdpr = document.getElementById('new-lead-gdpr').checked;
+
+            if (!email) {
+                statusEl.textContent = '⚠️ Email er påkrævet';
+                statusEl.style.color = '#dc3545';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Opretter...';
+            statusEl.textContent = '';
+
+            try {
+                const result = await CRM.leads.createLead({
+                    email, name, gender, age, weight, height, language,
+                    gdpr_consent: gdpr,
+                    source: 'manual',
+                    adminId: currentUser?.id
+                });
+
+                statusEl.textContent = '✅ Lead oprettet!';
+                statusEl.style.color = '#28a745';
+
+                setTimeout(() => {
+                    closeCreateLeadModal();
+                    loadLeads(); // Refresh the leads list
+                }, 1000);
+            } catch (error) {
+                console.error('Error creating lead:', error);
+                statusEl.textContent = '❌ Fejl: ' + (error.message || 'Ukendt fejl');
+                statusEl.style.color = '#dc3545';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Opret Lead';
+            }
+        }
+    </script>
+
+    <!-- Create Lead Modal -->
+    <div id="create-lead-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:var(--color-card, #fff); border-radius:12px; padding:30px; width:500px; max-width:90vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0; color:var(--color-text, #333);">Tilføj Ny Lead</h2>
+                <button onclick="closeCreateLeadModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">&times;</button>
+            </div>
+            <form id="create-lead-form" onsubmit="submitCreateLead(event)">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div style="grid-column: span 2;">
+                        <label style="display:block; font-weight:600; margin-bottom:5px; color:var(--color-text, #333);">Email *</label>
+                        <input type="email" id="new-lead-email" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px; color:var(--color-text, #333);">Navn</label>
+                        <input type="text" id="new-lead-name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px; color:var(--color-text, #333);">Køn</label>
+                        <select id="new-lead-gender" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                            <option value="">Vælg...</option>
+                            <option value="male">Mand</option>
+                            <option value="female">Kvinde</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px; color:var(--color-text, #333);">Alder</label>
+                        <input type="number" id="new-lead-age" min="1" max="120" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px; color:var(--color-text, #333);">Vægt (kg)</label>
+                        <input type="number" id="new-lead-weight" min="20" max="300" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px; color:var(--color-text, #333);">Højde (cm)</label>
+                        <input type="number" id="new-lead-height" min="100" max="250" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px; color:var(--color-text, #333);">Sprog</label>
+                        <select id="new-lead-language" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                            <option value="da">Dansk</option>
+                            <option value="en">English</option>
+                            <option value="se">Svenska</option>
+                        </select>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="new-lead-gdpr" style="width:18px; height:18px;">
+                            <span style="font-weight:600; color:var(--color-text, #333);">GDPR samtykke givet</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="create-lead-status" style="margin-top:15px; font-weight:600; text-align:center;"></div>
+                <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+                    <button type="button" onclick="closeCreateLeadModal()" style="padding:10px 20px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; font-size:14px;">Annuller</button>
+                    <button type="submit" id="create-lead-submit-btn" class="btn btn-primary" style="padding:10px 20px; font-size:14px;">Opret Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

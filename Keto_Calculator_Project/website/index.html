@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keto Calculator & Meal Planner - Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+
+        <!-- STEP 0: Landing Page -->
+        <div id="step-0" class="step active">
+            <div class="landing-page">
+                <h1 class="main-title">PERSONALIZED KETO<br>MEAL PLANNER</h1>
+                <p class="subtitle" data-translate="landing.subtitle">Calculate Your Daily Needs & Get Custom Meal Plans</p>
+
+                <div class="card">
+                    <h2 data-translate="landing.language_select">Select Your Language / Vælg dit sprog</h2>
+                    <div class="language-buttons">
+                        <button class="lang-btn active" onclick="setLanguage('da', event)">
+                            <span>Dansk</span>
+                        </button>
+                        <button class="lang-btn" onclick="setLanguage('en', event)">
+                            <span>English</span>
+                        </button>
+                        <button class="lang-btn" onclick="setLanguage('se', event)">
+                            <span>Svenska</span>
+                        </button>
+                    </div>
+
+                    <h2 data-translate="landing.unit_select" style="margin-top: 30px;">Select Units / Vælg enheder</h2>
+                    <div class="unit-buttons">
+                        <label class="radio-card active">
+                            <input type="radio" name="units" value="metric" checked>
+                            <span data-translate="landing.metric">Metric (kg, cm)</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="units" value="imperial">
+                            <span data-translate="landing.imperial">Imperial (lb, inches)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-large" onclick="nextStep()">
+                    <span data-translate="landing.start_button">START</span> →
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 1: Personal Stats -->
+        <div id="step-1" class="step">
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span data-translate="steps.step_1">Step 1 of 6: Personal Information</span>
+                    <span class="progress-percent">17%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 17%;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span data-translate="personal_stats.title">Personal Information</span></h2>
+
+                <div class="form-group">
+                    <label data-translate="personal_stats.gender">Gender</label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="gender" value="male" checked>
+                            <span data-translate="personal_stats.male">Male</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="gender" value="female">
+                            <span data-translate="personal_stats.female">Female</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label data-translate="personal_stats.age">Age</label>
+                        <div class="input-with-unit">
+                            <input type="number" id="age" min="18" max="100" placeholder="35" required>
+                            <span class="unit" data-translate="personal_stats.age_unit">years</span>
+                        </div>
+                        <div class="error-message" id="age-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label data-translate="personal_stats.height">Height</label>
+                        <div class="input-with-unit">
+                            <input type="number" id="height" min="100" max="250" placeholder="180" required>
+                            <span class="unit" id="height-unit" data-translate="personal_stats.height_unit_metric">cm</span>
+                        </div>
+                        <div class="error-message" id="height-error"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label data-translate="personal_stats.weight">Weight</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="weight" min="30" max="300" step="0.1" placeholder="85.5" required>
+                        <span class="unit" id="weight-unit" data-translate="personal_stats.weight_unit_metric">kg</span>
+                    </div>
+                    <div class="error-message" id="weight-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label data-translate="personal_stats.activity_level">Activity Level</label>
+                    <select id="activity_level" class="select-input">
+                        <option value="sedentary" data-translate="personal_stats.activity_sedentary">Sedentary (little or no exercise)</option>
+                        <option value="lightly_active" data-translate="personal_stats.activity_lightly">Lightly Active (1-3 days/week)</option>
+                        <option value="moderately_active" data-translate="personal_stats.activity_moderately" selected>Moderately Active (3-5 days/week)</option>
+                        <option value="very_active" data-translate="personal_stats.activity_very">Very Active (6-7 days/week)</option>
+                        <option value="extra_active" data-translate="personal_stats.activity_extra">Extra Active (physical job)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" onclick="prevStep()">
+                    ← <span data-translate="navigation.back">Back</span>
+                </button>
+                <button class="btn btn-primary" onclick="calculateAndNext()">
+                    <span data-translate="navigation.next">Next</span> →
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 2: BMR & TDEE Results -->
+        <div id="step-2" class="step">
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span data-translate="steps.step_2">Step 2 of 6: Your Metabolic Profile</span>
+                    <span class="progress-percent">33%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 33%;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span data-translate="metabolic_profile.title">Your Results</span></h2>
+
+                <div class="result-box">
+                    <h3 data-translate="metabolic_profile.bmr_title">BMR (Basal Metabolic Rate)</h3>
+                    <div class="result-value">
+                        <span id="bmr-result">1,820</span>
+                        <span class="unit" data-translate="metabolic_profile.kcal_per_day">kcal/day</span>
+                    </div>
+                    <p class="result-description" data-translate="metabolic_profile.bmr_description">This is your resting metabolic rate</p>
+                </div>
+
+                <div class="result-box">
+                    <h3 data-translate="metabolic_profile.tdee_title">TDEE (Total Daily Energy Expenditure)</h3>
+                    <div class="result-value">
+                        <span id="tdee-result">2,821</span>
+                        <span class="unit" data-translate="metabolic_profile.kcal_per_day">kcal/day</span>
+                    </div>
+                    <p class="result-description" data-translate="metabolic_profile.tdee_description">This is your daily expenditure with activity</p>
+                </div>
+
+                <div class="info-box">
+                    <span data-translate="metabolic_profile.info">Calculated based on Mifflin-St Jeor formula</span>
+                </div>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" onclick="prevStep()">
+                    ← <span data-translate="navigation.back">Back</span>
+                </button>
+                <button class="btn btn-primary" onclick="nextStep()">
+                    <span data-translate="navigation.next">Next</span> →
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 3: Weight Goal -->
+        <div id="step-3" class="step">
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span data-translate="steps.step_3">Step 3 of 6: Weight Goal</span>
+                    <span class="progress-percent">50%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 50%;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span data-translate="weight_goal.title">Weight Goal</span></h2>
+
+                <p class="question" data-translate="weight_goal.question">How much weight do you want to lose per month?</p>
+
+                <div class="slider-container">
+                    <input type="range" id="weight-goal-slider" min="0" max="3" step="0.5" value="2" class="slider" oninput="updateWeightGoalDisplay(this.value)">
+                    <div class="slider-labels">
+                        <span data-translate="weight_goal.slider_min">0 kg</span>
+                        <span data-translate="weight_goal.slider_max">3 kg</span>
+                    </div>
+                </div>
+
+                <div class="weight-goal-display">
+                    <span id="weight-goal-value">2.0</span> kg <span data-translate="weight_goal.per_month">per month</span>
+                </div>
+
+                <div class="quick-select">
+                    <button class="quick-btn" onclick="setWeightGoal(0, event)">0 kg</button>
+                    <button class="quick-btn" onclick="setWeightGoal(0.5, event)">0.5 kg</button>
+                    <button class="quick-btn" onclick="setWeightGoal(1, event)">1 kg</button>
+                    <button class="quick-btn active" onclick="setWeightGoal(2, event)">2 kg</button>
+                    <button class="quick-btn" onclick="setWeightGoal(3, event)">3 kg</button>
+                </div>
+
+                <div class="calorie-breakdown">
+                    <h3><span data-translate="weight_goal.results_title">Your Daily Calories</span></h3>
+                    <table class="results-table">
+                        <tr>
+                            <td data-translate="weight_goal.tdee">TDEE:</td>
+                            <td><span id="tdee-display">2,821</span> kcal/day</td>
+                        </tr>
+                        <tr>
+                            <td data-translate="weight_goal.deficit">Calorie Deficit:</td>
+                            <td>- <span id="deficit-display">513</span> kcal/day</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td data-translate="weight_goal.daily_goal">Your daily goal:</td>
+                            <td><strong><span id="daily-calories-display">2,308</span> kcal/day</strong></td>
+                        </tr>
+                    </table>
+                    <div class="expected-loss">
+                        <span data-translate="weight_goal.expected_loss">Expected weight loss:</span> <span id="expected-loss">2</span> kg/<span data-translate="weight_goal.per_month_unit">month</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <span data-translate="weight_goal.recommendation">Recommended: 0.5-2 kg/month for healthy loss</span>
+                </div>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" onclick="prevStep()">
+                    ← <span data-translate="navigation.back">Back</span>
+                </button>
+                <button class="btn btn-primary" onclick="nextStep()">
+                    <span data-translate="navigation.next">Next</span> →
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 4: Fasting Protocol -->
+        <div id="step-4" class="step">
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span data-translate="steps.step_4">Step 4 of 6: Fasting Protocol</span>
+                    <span class="progress-percent">67%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 67%;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 data-translate="fasting.title">Hvor mange måltider om dagen?</h2>
+                <p class="subtitle" data-translate="fasting.description">Vælg hvor mange måltider du vil have i din madplan</p>
+
+                <div class="fasting-options">
+                    <label class="fasting-card">
+                        <input type="radio" name="meals" value="1">
+                        <div class="fasting-content">
+                            <h3 data-translate="fasting.meals_1_title">1 Måltid</h3>
+                            <p data-translate="fasting.meals_1_desc">Et stort måltid om dagen</p>
+                            <small data-translate="fasting.meals_1_small">OMAD (One Meal A Day)</small>
+                        </div>
+                    </label>
+
+                    <label class="fasting-card">
+                        <input type="radio" name="meals" value="2">
+                        <div class="fasting-content">
+                            <h3 data-translate="fasting.meals_2_title">2 Måltider</h3>
+                            <p data-translate="fasting.meals_2_desc">To solide måltider dagligt</p>
+                            <small data-translate="fasting.meals_2_small">Frokost og aftensmad</small>
+                        </div>
+                    </label>
+
+                    <label class="fasting-card active">
+                        <input type="radio" name="meals" value="3" checked>
+                        <div class="fasting-content">
+                            <h3 data-translate="fasting.meals_3_title">3 Måltider (Anbefalet)</h3>
+                            <p data-translate="fasting.meals_3_desc">Tre måltider fordelt over dagen</p>
+                            <small data-translate="fasting.meals_3_small">Morgenmad, frokost og aftensmad</small>
+                        </div>
+                    </label>
+                </div>
+
+                <h2 style="margin-top: 40px;" data-translate="fasting.prep_time_title">Tilberedningstid</h2>
+                <p class="subtitle" data-translate="fasting.prep_time_description">Hvor lang tid må opskrifterne tage at lave?</p>
+
+                <div class="fasting-options">
+                    <label class="fasting-card">
+                        <input type="radio" name="prep_time" value="fast">
+                        <div class="fasting-content">
+                            <h3 data-translate="fasting.prep_fast_title">Hurtige Retter</h3>
+                            <p data-translate="fasting.prep_fast_desc">Maks 15-20 minutter</p>
+                            <small data-translate="fasting.prep_fast_small">Perfekt til travle dage</small>
+                        </div>
+                    </label>
+
+                    <label class="fasting-card active">
+                        <input type="radio" name="prep_time" value="medium" checked>
+                        <div class="fasting-content">
+                            <h3 data-translate="fasting.prep_medium_title">Medium (Anbefalet)</h3>
+                            <p data-translate="fasting.prep_medium_desc">20-40 minutter</p>
+                            <small data-translate="fasting.prep_medium_small">God balance mellem tid og kvalitet</small>
+                        </div>
+                    </label>
+
+                    <label class="fasting-card">
+                        <input type="radio" name="prep_time" value="long">
+                        <div class="fasting-content">
+                            <h3 data-translate="fasting.prep_long_title">Ingen Tidsbegrænsning</h3>
+                            <p data-translate="fasting.prep_long_desc">40+ minutter tilladt</p>
+                            <small data-translate="fasting.prep_long_small">Når du har tid til at nyde madlavningen</small>
+                        </div>
+                    </label>
+
+                    <label class="fasting-card">
+                        <input type="radio" name="prep_time" value="mix">
+                        <div class="fasting-content">
+                            <h3 data-translate="fasting.prep_mix_title">Blandet</h3>
+                            <p data-translate="fasting.prep_mix_desc">Mix af hurtige og langsomme</p>
+                            <small data-translate="fasting.prep_mix_small">Varieret madplan med forskellige tider</small>
+                        </div>
+                    </label>
+                </div>
+
+                <h2 style="margin-top: 40px;" data-translate="budget.title">Budget</h2>
+                <p class="subtitle" data-translate="budget.description">Hvilket prisniveau passer til dit budget?</p>
+
+                <div class="fasting-options">
+                    <label class="fasting-card">
+                        <input type="radio" name="budget" value="cheap">
+                        <div class="fasting-content">
+                            <h3 data-translate="budget.cheap_title">Billigt</h3>
+                            <p data-translate="budget.cheap_desc">Økonomiske ingredienser</p>
+                            <small data-translate="budget.cheap_small">Kylling, hakket oksekød, æg, sæsongrøntsager</small>
+                        </div>
+                    </label>
+
+                    <label class="fasting-card active">
+                        <input type="radio" name="budget" value="medium" checked>
+                        <div class="fasting-content">
+                            <h3 data-translate="budget.medium_title">Middel (Anbefalet)</h3>
+                            <p data-translate="budget.medium_desc">God balance mellem pris og kvalitet</p>
+                            <small data-translate="budget.medium_small">Mix af billige og dyrere ingredienser</small>
+                        </div>
+                    </label>
+
+                    <label class="fasting-card">
+                        <input type="radio" name="budget" value="expensive">
+                        <div class="fasting-content">
+                            <h3 data-translate="budget.expensive_title">Dyrt</h3>
+                            <p data-translate="budget.expensive_desc">Premium ingredienser</p>
+                            <small data-translate="budget.expensive_small">Laks, ribeye, avocado, gourmet oste</small>
+                        </div>
+                    </label>
+
+                    <label class="fasting-card">
+                        <input type="radio" name="budget" value="mixed">
+                        <div class="fasting-content">
+                            <h3 data-translate="budget.mixed_title">Mixet</h3>
+                            <p data-translate="budget.mixed_desc">Varieret prisniveau</p>
+                            <small data-translate="budget.mixed_small">Nogle dage billigt, andre dage luksus</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" onclick="prevStep()">
+                    ← <span data-translate="navigation.back">Back</span>
+                </button>
+                <button class="btn btn-primary" onclick="nextStep()">
+                    <span data-translate="navigation.next">Next</span> →
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 5: Ingredient Preferences (FULL LIST) -->
+        <div id="step-5" class="step">
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span data-translate="steps.step_5">Step 5 of 6: Food Preferences</span>
+                    <span class="progress-percent">83%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 83%;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span data-translate="ingredients.title">Select Your Ingredients</span></h2>
+                <p class="subtitle" data-translate="ingredients.description">Deselect what you don't like or are allergic to. Only checked items will be used in your meal plan.</p>
+
+                <!-- MEAT & POULTRY -->
+                <div class="ingredient-category">
+                    <div class="category-header" onclick="toggleCategoryCollapse(this)">
+                        <div class="category-header-left">
+                            <span class="collapse-icon">▼</span>
+                            <h3><span data-translate="ingredients.categories.meat">Meat & Poultry</span></h3>
+                            <span class="category-count">(15 items)</span>
+                        </div>
+                        <button class="toggle-all" onclick="toggleCategory(this, event)" data-translate="ingredients.deselect_all">Deselect All</button>
+                    </div>
+                    <div class="ingredient-grid">
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.beef">Beef</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.chicken">Chicken</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.pork">Pork</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.lamb">Lamb</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.duck">Duck</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.turkey">Turkey</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.bacon">Bacon</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.ham">Ham</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.veal">Veal</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.venison">Venison</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.meatballs">Meatballs</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.sausages">Sausages</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.salami">Salami</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.pepperoni">Pepperoni</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.chorizo">Chorizo</span></label>
+                    </div>
+                </div>
+
+                <!-- FISH & SEAFOOD -->
+                <div class="ingredient-category collapsed">
+                    <div class="category-header" onclick="toggleCategoryCollapse(this)">
+                        <div class="category-header-left">
+                            <span class="collapse-icon">▼</span>
+                            <h3><span data-translate="ingredients.categories.fish">Fish & Seafood</span></h3>
+                            <span class="category-count">(18 items)</span>
+                        </div>
+                        <button class="toggle-all" onclick="toggleCategory(this, event)" data-translate="ingredients.deselect_all">Deselect All</button>
+                    </div>
+                    <div class="ingredient-grid">
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.salmon">Salmon</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cod">Cod</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.tuna">Tuna</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.shrimp">Shrimp</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.mussels">Mussels</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.mackerel">Mackerel</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.lobster">Lobster</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.crab">Crab</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.oysters">Oysters</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.halibut">Halibut</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.herring">Herring</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.anchovies">Anchovies</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.sardines">Sardines</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.eel">Eel</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.monkfish">Monkfish</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.smoked_salmon">Smoked Salmon</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.trout">Trout</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.squid">Squid</span></label>
+                    </div>
+                </div>
+
+                <!-- DAIRY & EGGS -->
+                <div class="ingredient-category collapsed">
+                    <div class="category-header" onclick="toggleCategoryCollapse(this)">
+                        <div class="category-header-left">
+                            <span class="collapse-icon">▼</span>
+                            <h3><span data-translate="ingredients.categories.dairy">Dairy & Eggs</span></h3>
+                            <span class="category-count">(18 items)</span>
+                        </div>
+                        <button class="toggle-all" onclick="toggleCategory(this, event)" data-translate="ingredients.deselect_all">Deselect All</button>
+                    </div>
+                    <div class="ingredient-grid">
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.butter">Butter</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cream">Cream</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.milk">Milk</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cheese">Cheese</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cream_cheese">Cream Cheese</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cottage_cheese">Cottage Cheese</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.greek_yogurt">Greek Yogurt</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.mozzarella">Mozzarella</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.parmesan">Parmesan</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cheddar">Cheddar</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.brie">Brie</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.gorgonzola">Gorgonzola</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.feta">Feta</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.ricotta">Ricotta</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.mascarpone">Mascarpone</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.creme_fraiche">Crème fraiche</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.whipping_cream">Whipping Cream</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.eggs">Eggs</span></label>
+                    </div>
+                </div>
+
+                <!-- VEGETABLES -->
+                <div class="ingredient-category collapsed">
+                    <div class="category-header" onclick="toggleCategoryCollapse(this)">
+                        <div class="category-header-left">
+                            <span class="collapse-icon">▼</span>
+                            <h3><span data-translate="ingredients.categories.vegetables">Vegetables (Low-Carb)</span></h3>
+                            <span class="category-count">(31 items)</span>
+                        </div>
+                        <button class="toggle-all" onclick="toggleCategory(this, event)" data-translate="ingredients.deselect_all">Deselect All</button>
+                    </div>
+                    <div class="ingredient-grid">
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.broccoli">Broccoli</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cauliflower">Cauliflower</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.spinach">Spinach</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.lettuce">Lettuce</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.iceberg_lettuce">Iceberg Lettuce</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cucumber">Cucumber</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.zucchini">Zucchini</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.bell_peppers">Bell Peppers</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.onion">Onion</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.garlic">Garlic</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.tomatoes">Tomatoes</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.avocado">Avocado</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.mushrooms">Mushrooms</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.asparagus">Asparagus</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.kale">Kale</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.celery">Celery</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.radishes">Radishes</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.eggplant">Eggplant</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.brussels_sprouts">Brussels Sprouts</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.pointed_cabbage">Pointed Cabbage</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.white_cabbage">White Cabbage</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.red_cabbage">Red Cabbage</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.chinese_cabbage">Chinese Cabbage</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.bok_choy">Bok Choy</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.arugula">Arugula</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.green_beans">Green Beans</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.artichokes">Artichokes</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.olives">Olives</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.pickles">Pickles</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.sauerkraut">Sauerkraut</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.kimchi">Kimchi</span></label>
+                    </div>
+                </div>
+
+                <!-- NUTS & SEEDS -->
+                <div class="ingredient-category collapsed">
+                    <div class="category-header" onclick="toggleCategoryCollapse(this)">
+                        <div class="category-header-left">
+                            <span class="collapse-icon">▼</span>
+                            <h3><span data-translate="ingredients.categories.nuts">Nuts & Seeds</span></h3>
+                            <span class="category-count">(15 items)</span>
+                        </div>
+                        <button class="toggle-all" onclick="toggleCategory(this, event)" data-translate="ingredients.deselect_all">Deselect All</button>
+                    </div>
+                    <div class="ingredient-grid">
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.almonds">Almonds</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.walnuts">Walnuts</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.pecans">Pecans</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.chia_seeds">Chia Seeds</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.flaxseeds">Flaxseeds</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.pumpkin_seeds">Pumpkin Seeds</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.sunflower_seeds">Sunflower Seeds</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.macadamia_nuts">Macadamia Nuts</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.hazelnuts">Hazelnuts</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.brazil_nuts">Brazil Nuts</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.sesame_seeds">Sesame Seeds</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.pine_nuts">Pine Nuts</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.pistachios">Pistachios</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.coconut">Coconut</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.coconut_milk">Coconut Milk</span></label>
+                    </div>
+                </div>
+
+                <!-- FATS & OILS -->
+                <div class="ingredient-category collapsed">
+                    <div class="category-header" onclick="toggleCategoryCollapse(this)">
+                        <div class="category-header-left">
+                            <span class="collapse-icon">▼</span>
+                            <h3><span data-translate="ingredients.categories.fats">Fats & Oils</span></h3>
+                            <span class="category-count">(10 items)</span>
+                        </div>
+                        <button class="toggle-all" onclick="toggleCategory(this, event)" data-translate="ingredients.deselect_all">Deselect All</button>
+                    </div>
+                    <div class="ingredient-grid">
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.olive_oil">Olive Oil</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.coconut_oil">Coconut Oil</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.avocado_oil">Avocado Oil</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.mct_oil">MCT Oil</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.sesame_oil">Sesame Oil</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.ghee">Ghee</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.lard">Lard</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.duck_fat">Duck Fat</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.peanut_oil">Peanut Oil</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.macadamia_oil">Macadamia Oil</span></label>
+                    </div>
+                </div>
+
+                <!-- HERBS & SPICES -->
+                <div class="ingredient-category collapsed">
+                    <div class="category-header" onclick="toggleCategoryCollapse(this)">
+                        <div class="category-header-left">
+                            <span class="collapse-icon">▼</span>
+                            <h3><span data-translate="ingredients.categories.herbs">Herbs & Spices</span></h3>
+                            <span class="category-count">(15 items)</span>
+                        </div>
+                        <button class="toggle-all" onclick="toggleCategory(this, event)" data-translate="ingredients.deselect_all">Deselect All</button>
+                    </div>
+                    <div class="ingredient-grid">
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.basil">Basil</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.oregano">Oregano</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.thyme">Thyme</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.rosemary">Rosemary</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.parsley">Parsley</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cilantro">Cilantro</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.dill">Dill</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.mint">Mint</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.ginger">Ginger</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.turmeric">Turmeric</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.paprika">Paprika</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.chili">Chili</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.curry">Curry</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.black_pepper">Black Pepper</span></label>
+                        <label class="checkbox-item"><input type="checkbox" checked><span data-translate="ingredients.items.cinnamon">Cinnamon</span></label>
+                    </div>
+                </div>
+
+                <div class="selected-count">
+                    <span data-translate="ingredients.selected">Selected ingredients:</span> <span id="ingredient-count">122 / 122</span>
+                </div>
+
+                <div class="info-box" style="margin-top: 20px;">
+                    <strong data-translate="ingredients.tip_label">Tip:</strong> <span data-translate="ingredients.tip_text">Deselect ingredients you don't eat (vegetarian, pescatarian, allergies, etc.). AI will only use checked items in your meal plan.</span>
+                </div>
+
+                <!-- Health Preferences -->
+                <div style="margin-top: 40px;">
+                    <h2 data-translate="health.title">Sundhedspræferencer</h2>
+                    <p class="subtitle" data-translate="health.description">Vælg dine sundhedsmæssige prioriteter</p>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e0e0e0;">
+                            <input type="checkbox" id="anti-inflammatory" name="anti-inflammatory" checked style="width: 20px; height: 20px; cursor: pointer;">
+                            <div>
+                                <strong data-translate="health.anti_inflammatory_title">Antiinflammatorisk (Anbefalet)</strong>
+                                <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;" data-translate="health.anti_inflammatory_desc">Prioriter ingredienser der reducerer inflammation som laks, grøntsager, olivenolie, nødder og krydderier</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e0e0e0;">
+                            <input type="checkbox" id="avoid-processed" name="avoid-processed" checked style="width: 20px; height: 20px; cursor: pointer;">
+                            <div>
+                                <strong data-translate="health.avoid_processed_title">Undgå Ultraprocesseret Mad (Anbefalet)</strong>
+                                <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;" data-translate="health.avoid_processed_desc">Fokuser på hele, naturlige fødevarer. Undgå pølser, bacon, deli-kød og højt processerede produkter</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" onclick="prevStep()">
+                    ← <span data-translate="navigation.back">Back</span>
+                </button>
+                <button class="btn btn-primary" onclick="nextStep()">
+                    <span data-translate="navigation.next">Next</span> →
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 6: Final Configuration -->
+        <div id="step-6" class="step">
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span data-translate="steps.step_6">Step 6 of 6: Meal Plan Settings</span>
+                    <span class="progress-percent">100%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span data-translate="meal_plan_config.title">Meal Plan Settings</span></h2>
+
+                <div class="form-group">
+                    <label data-translate="meal_plan_config.days_question">How many days do you want a meal plan for?</label>
+                    <div class="day-buttons">
+                        <button class="day-btn" onclick="setDays(1, event)">1</button>
+                        <button class="day-btn" onclick="setDays(2, event)">2</button>
+                        <button class="day-btn" onclick="setDays(3, event)">3</button>
+                        <button class="day-btn active" onclick="setDays(4, event)">4</button>
+                        <button class="day-btn" onclick="setDays(5, event)">5</button>
+                        <button class="day-btn" onclick="setDays(6, event)">6</button>
+                        <button class="day-btn" onclick="setDays(7, event)">7</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label data-translate="meal_plan_config.cooking_strategy">Madlavningsstrategi</label>
+                    <div class="radio-group">
+                        <label class="radio-option leftovers-option">
+                            <input type="radio" name="leftovers" value="yes" checked>
+                            <div class="option-content">
+                                <strong data-translate="meal_plan_config.leftovers_yes_title">Ja - Lav mad til flere dage</strong>
+                                <p class="option-description" data-translate="meal_plan_config.leftovers_yes_desc">Lav større portioner og gem rester til næste dag. Sparer tid og reducerer madlavning.</p>
+                                <p class="option-example"><em data-translate="meal_plan_config.leftovers_yes_example">Eksempel: Lav aftensmad mandag, varm op tirsdag</em></p>
+                            </div>
+                        </label>
+                        <label class="radio-option leftovers-option">
+                            <input type="radio" name="leftovers" value="no">
+                            <div class="option-content">
+                                <strong data-translate="meal_plan_config.leftovers_no_title">Nej - Friske måltider hver dag</strong>
+                                <p class="option-description" data-translate="meal_plan_config.leftovers_no_desc">Ny opskrift hver dag. Mere variation, men kræver mere tid.</p>
+                                <p class="option-example"><em data-translate="meal_plan_config.leftovers_no_example">Eksempel: Forskellige retter hver dag</em></p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <span data-translate="meal_plan_config.diet_info"><strong>Om din kosttype:</strong> Dine ingrediens-valg fra forrige trin bestemmer om din plan er vegetarisk, pescetarisk, eller inkluderer alle fødevarer. AI'en vil kun bruge de ingredienser du har valgt!</span>
+                </div>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" onclick="prevStep()">
+                    ← <span data-translate="navigation.back">Back</span>
+                </button>
+                <button class="btn btn-primary" onclick="showSummary()">
+                    <span data-translate="navigation.next">Next</span> →
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 7: Summary & Demo Success -->
+        <div id="step-7" class="step">
+            <div class="card success-card">
+                <h1 data-translate="final_step.title">Din Personlige Madplan Er Klar!</h1>
+                <p class="subtitle" data-translate="final_step.subtitle">Indtast din email for at modtage din gratis keto madplan</p>
+
+                <div class="summary-box">
+                    <h3 data-translate="final_step.configuration">Din Konfiguration:</h3>
+                    <ul id="summary-list" class="summary-list">
+                    </ul>
+                </div>
+
+                <!-- Email Input Section -->
+                <div class="email-section" style="margin: 30px 0;">
+                    <div class="form-group">
+                        <label for="user-email" style="font-weight: 600; font-size: 16px; margin-bottom: 10px; display: block;" data-translate="final_step.email_label">
+                            Din Email Adresse
+                        </label>
+                        <input
+                            type="email"
+                            id="user-email"
+                            data-translate-placeholder="final_step.email_placeholder"
+                            placeholder="din@email.dk"
+                            required
+                            style="width: 100%; padding: 15px; font-size: 16px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px;"
+                        >
+                        <p style="font-size: 14px; color: #666; margin: 5px 0;" data-translate="final_step.email_info">
+                            Vi sender dig din madplan som PDF på email. Ingen spam, vi lover!
+                        </p>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label for="user-name" style="font-weight: 600; font-size: 16px; margin-bottom: 10px; display: block;" data-translate="final_step.name_label">
+                            Dit Navn (valgfrit)
+                        </label>
+                        <input
+                            type="text"
+                            id="user-name"
+                            data-translate-placeholder="final_step.name_placeholder"
+                            placeholder="Anders"
+                            style="width: 100%; padding: 15px; font-size: 16px; border: 2px solid #e0e0e0; border-radius: 8px;"
+                        >
+                    </div>
+
+                    <div class="form-group" style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                        <label style="display: flex; align-items: flex-start; cursor: pointer;">
+                            <input
+                                type="checkbox"
+                                id="gdpr-consent"
+                                required
+                                style="margin-top: 4px; margin-right: 12px; width: 18px; height: 18px; cursor: pointer;"
+                            >
+                            <span style="font-size: 14px; line-height: 1.6; color: #333;" data-translate="final_step.gdpr_text">
+                                Jeg accepterer at I kontakter mig på email med min personlige madplan og eventuelle opfølgende beskeder om coaching tilbud. Jeg kan til enhver tid framelde mig.
+                            </span>
+                        </label>
+                        <p style="font-size: 12px; color: #666; margin: 10px 0 0 30px;" data-translate="final_step.gdpr_info">
+                            Vi respekterer din privatlivspolitik og sender kun relevant information om keto og sundhed.
+                        </p>
+                    </div>
+
+                    <button class="btn btn-primary btn-large" onclick="sendMealPlan()" id="send-btn" style="margin-top: 20px; width: 100%;" data-translate="final_step.submit_button">
+                        Send Min Gratis Madplan
+                    </button>
+
+                    <div id="submit-message" style="margin-top: 15px; padding: 15px; border-radius: 8px; display: none;"></div>
+                </div>
+
+                <div class="prompt-preview" style="margin-top: 30px;">
+                    <h3 data-translate="final_step.preview_title">ChatGPT Prompt Preview</h3>
+                    <div class="prompt-content" id="prompt-content"></div>
+                    <div class="prompt-meta">
+                        <span data-translate="final_step.preview_info"><strong>Info:</strong> Dette er promptet der sendes til ChatGPT 4 via N8N workflow for at generere din personlige keto madplan.</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="restartPrototype()" style="margin-top: 20px;">
+                    ← <span data-translate="final_step.restart_button">Start Forfra</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="translations.js"></script>
+    <script src="calculator.js"></script>
+</body>
+</html>

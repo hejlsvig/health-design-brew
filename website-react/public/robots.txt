@@ -1,0 +1,10 @@
+# Shifting Source — robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /crm/
+Disallow: /login
+Disallow: /profile
+
+# Sitemap
+Sitemap: https://shiftingsource.com/sitemap.xml

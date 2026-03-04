@@ -1,0 +1,147 @@
+<!-- Language Selector Component -->
+<style>
+    .language-selector {
+        position: relative;
+        display: inline-block;
+    }
+
+    .language-current {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .language-current:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+    }
+
+    .language-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        min-width: 180px;
+        display: none;
+        z-index: 1000;
+    }
+
+    .language-dropdown.show {
+        display: block;
+    }
+
+    .language-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .language-option:last-child {
+        border-bottom: none;
+    }
+
+    .language-option:hover {
+        background: #f8f9ff;
+    }
+
+    .language-option.active {
+        background: #e7f3ff;
+        font-weight: 600;
+    }
+
+    .language-option .name {
+        flex: 1;
+        font-size: 14px;
+    }
+
+    .language-option .check {
+        color: #667eea;
+        font-size: 18px;
+    }
+</style>
+
+<div class="language-selector" id="language-selector">
+    <div class="language-current" onclick="toggleLanguageDropdown()">
+        <span id="current-language">Dansk</span>
+        <span>▼</span>
+    </div>
+
+    <div class="language-dropdown" id="language-dropdown">
+        <div class="language-option" data-lang="da" onclick="changeLanguage('da')">
+            <span class="name">Dansk</span>
+            <span class="check" style="display: none;">✓</span>
+        </div>
+        <div class="language-option" data-lang="en" onclick="changeLanguage('en')">
+            <span class="name">English</span>
+            <span class="check" style="display: none;">✓</span>
+        </div>
+        <div class="language-option" data-lang="se" onclick="changeLanguage('se')">
+            <span class="name">Svenska</span>
+            <span class="check" style="display: none;">✓</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle dropdown
+    function toggleLanguageDropdown() {
+        const dropdown = document.getElementById('language-dropdown');
+        dropdown.classList.toggle('show');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const selector = document.getElementById('language-selector');
+        if (selector && !selector.contains(e.target)) {
+            document.getElementById('language-dropdown').classList.remove('show');
+        }
+    });
+
+    // Change language
+    async function changeLanguage(lang) {
+        await i18n.setLanguage(lang);
+
+        // Update current language display
+        const languages = {
+            'da': { name: 'Dansk' },
+            'en': { name: 'English' },
+            'se': { name: 'Svenska' }
+        };
+
+        document.getElementById('current-language').textContent = languages[lang].name;
+
+        // Update active state
+        document.querySelectorAll('.language-option').forEach(opt => {
+            const isActive = opt.getAttribute('data-lang') === lang;
+            opt.classList.toggle('active', isActive);
+            opt.querySelector('.check').style.display = isActive ? 'inline' : 'none';
+        });
+
+        // Close dropdown
+        document.getElementById('language-dropdown').classList.remove('show');
+
+        // Show success message (optional)
+        console.log(`Language changed to: ${languages[lang].name}`);
+    }
+
+    // Initialize language selector on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const currentLang = i18n.getCurrentLanguage();
+        changeLanguage(currentLang);
+    });
+</script>
