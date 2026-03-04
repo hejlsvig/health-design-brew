@@ -18,7 +18,7 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^8.0.1",
     "openai": "^6.17.0",
     "pdfkit": "^0.17.2",
     "sqlite3": "^5.1.7"
