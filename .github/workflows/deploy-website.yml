@@ -10,7 +10,7 @@ on:
     paths:
       - 'website-react/**'
       - '.github/workflows/deploy-website.yml'
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch: # Allow manual trigge
 
 jobs:
   build-and-deploy:
@@ -53,5 +53,5 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           port: 22
           local_path: ./website-react/dist/
-          remote_path: /www/
+          remote_path: ./
           sftp_only: true
