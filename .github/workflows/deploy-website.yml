@@ -52,6 +52,6 @@ jobs:
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
           port: 22
-          local_path: ./website-react/dist/*
+          local_path: ./website-react/dist/
           remote_path: /www/
           sftp_only: true
