@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Settings, Key, Cpu, Save, Loader2, Check, ArrowLeft, Eye, EyeOff, Image, Server, MessageSquare, RotateCcw, Share2, Instagram, Youtube, Facebook, FileText, ImageIcon, ExternalLink, Sparkles, Shield, Globe, Search, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Mail, Bell } from 'lucide-react'
@@ -7,6 +7,55 @@ import { getSettings, saveSetting, AVAILABLE_MODELS } from '@/lib/openai'
 import { supabase } from '@/lib/supabase'
 import { DEFAULT_PROMPTS } from '@/lib/chatai'
 import { cn } from '@/lib/utils'
+
+/** Reusable save button for individual sections */
+function SectionSaveButton({ onSave, label = 'Gem' }: { onSave: () => Promise<void>; label?: string }) {
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleClick = async () => {
+    setError('')
+    setSaving(true)
+    setSaved(false)
+    try {
+      // Refresh session before every save to prevent RLS silent blocks
+      const { error: refreshError } = await supabase.auth.refreshSession()
+      if (refreshError) {
+        setError('Din session er udløbet. Log venligst ind igen.')
+        setSaving(false)
+        return
+      }
+      await onSave()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err: any) {
+      setError(err.message || 'Kunne ikke gemme')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 pt-3 border-t border-border/30 mt-4">
+      <button
+        onClick={handleClick}
+        disabled={saving}
+        className="inline-flex h-9 items-center gap-2 px-5 rounded-md bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+      >
+        {saving ? (
+          <><Loader2 className="h-4 w-4 animate-spin" />Gemmer...</>
+        ) : saved ? (
+          <><Check className="h-4 w-4" />Gemt!</>
+        ) : (
+          <><Save className="h-4 w-4" />{label}</>
+        )}
+      </button>
+      {saved && <span className="text-sm text-green-600 font-medium">Gemt</span>}
+      {error && <span className="text-sm text-destructive">{error}</span>}
+    </div>
+  )
+}
 
 type SettingsTab = 'ai' | 'social' | 'seo' | 'hosting'
 
@@ -23,8 +72,6 @@ export default function AdminSettings() {
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<SettingsTab>('ai')
 
@@ -227,85 +274,63 @@ export default function AdminSettings() {
     }
   }
 
-  const handleSave = async () => {
-    setError('')
-    setSaving(true)
-    setSaved(false)
+  // ── Per-section save functions ──
 
-    try {
-      // Refresh session to ensure auth token is valid before saving
-      const { error: refreshError } = await supabase.auth.refreshSession()
-      if (refreshError) {
-        console.error('[Settings] Session refresh failed:', refreshError)
-        setError('Din session er udløbet. Log venligst ind igen.')
-        setSaving(false)
-        return
-      }
-
-      // Only save API key if user actually changed it (not the masked version)
-      if (apiKey && !apiKey.startsWith('sk-••••')) {
-        if (!apiKey.startsWith('sk-')) {
-          setError('API key must start with "sk-"')
-          setSaving(false)
-          return
-        }
-        await saveSetting('openai_api_key', apiKey, user?.id)
-      }
-
-      await saveSetting('ai_model', model, user?.id)
-
-      // Kie.ai key
-      if (kieaiKey && !kieaiKey.startsWith('••••')) {
-        await saveSetting('kieai_api_key', kieaiKey, user?.id)
-      }
-
-      // FTP settings
-      if (ftpHost) await saveSetting('ftp_host', ftpHost, user?.id)
-      if (ftpUsername) await saveSetting('ftp_username', ftpUsername, user?.id)
-      if (ftpPassword && !ftpPassword.startsWith('••••')) {
-        await saveSetting('ftp_password', ftpPassword, user?.id)
-      }
-
-      // AI Prompts (save even if empty — empty means "use default")
-      await saveSetting('chat_system_prompt_da', chatPromptDa, user?.id)
-      await saveSetting('chat_system_prompt_en', chatPromptEn, user?.id)
-      await saveSetting('chat_system_prompt_se', chatPromptSe, user?.id)
-
-      // Article & image prompts
-      await saveSetting('article_system_prompt', articlePrompt, user?.id)
-      await saveSetting('image_generation_prompt', imagePrompt, user?.id)
-
-      // Social media links
-      await saveSetting('social_instagram', socialInstagram, user?.id)
-      await saveSetting('social_youtube', socialYoutube, user?.id)
-      await saveSetting('social_tiktok', socialTiktok, user?.id)
-      await saveSetting('social_facebook', socialFacebook, user?.id)
-
-      // SEO & Security
-      await saveSetting('site_url', siteUrl, user?.id)
-      await saveSetting('site_name', siteName, user?.id)
-      await saveSetting('seo_default_description', seoDefaultDescription, user?.id)
-      await saveSetting('seo_google_verification', seoGoogleVerification, user?.id)
-      await saveSetting('ga_measurement_id', gaMeasurementId, user?.id)
-      await saveSetting('seo_robots_disallow', seoRobotsDisallow, user?.id)
-      await saveSetting('security_frame_options', securityFrameOptions, user?.id)
-      await saveSetting('security_referrer_policy', securityReferrerPolicy, user?.id)
-      await saveSetting('admin_notification_email', adminNotificationEmail, user?.id)
-      await saveSetting('health_check_enabled', healthCheckEnabled ? 'true' : 'false', user?.id)
-
-      // Rate limiting & CSP
-      await saveSetting('rate_limit_max_requests', rateLimitMax, user?.id)
-      await saveSetting('rate_limit_window_seconds', rateLimitWindow, user?.id)
-      await saveSetting('csp_extra_domains', cspExtraDomains, user?.id)
-
-      setSaved(true)
-      setTimeout(() => setSaved(false), 5000)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
+  const saveOpenAI = useCallback(async () => {
+    if (apiKey && !apiKey.startsWith('sk-••••')) {
+      if (!apiKey.startsWith('sk-')) throw new Error('API key skal starte med "sk-"')
+      await saveSetting('openai_api_key', apiKey, user?.id)
     }
-  }
+    await saveSetting('ai_model', model, user?.id)
+  }, [apiKey, model, user?.id])
+
+  const saveKieai = useCallback(async () => {
+    if (kieaiKey && !kieaiKey.startsWith('••••')) {
+      await saveSetting('kieai_api_key', kieaiKey, user?.id)
+    }
+  }, [kieaiKey, user?.id])
+
+  const savePrompts = useCallback(async () => {
+    await saveSetting('chat_system_prompt_da', chatPromptDa, user?.id)
+    await saveSetting('chat_system_prompt_en', chatPromptEn, user?.id)
+    await saveSetting('chat_system_prompt_se', chatPromptSe, user?.id)
+    await saveSetting('article_system_prompt', articlePrompt, user?.id)
+    await saveSetting('image_generation_prompt', imagePrompt, user?.id)
+  }, [chatPromptDa, chatPromptEn, chatPromptSe, articlePrompt, imagePrompt, user?.id])
+
+  const saveSocial = useCallback(async () => {
+    await saveSetting('social_instagram', socialInstagram, user?.id)
+    await saveSetting('social_youtube', socialYoutube, user?.id)
+    await saveSetting('social_tiktok', socialTiktok, user?.id)
+    await saveSetting('social_facebook', socialFacebook, user?.id)
+  }, [socialInstagram, socialYoutube, socialTiktok, socialFacebook, user?.id])
+
+  const saveSeo = useCallback(async () => {
+    await saveSetting('site_url', siteUrl, user?.id)
+    await saveSetting('site_name', siteName, user?.id)
+    await saveSetting('seo_default_description', seoDefaultDescription, user?.id)
+    await saveSetting('seo_google_verification', seoGoogleVerification, user?.id)
+    await saveSetting('ga_measurement_id', gaMeasurementId, user?.id)
+    await saveSetting('seo_robots_disallow', seoRobotsDisallow, user?.id)
+  }, [siteUrl, siteName, seoDefaultDescription, seoGoogleVerification, gaMeasurementId, seoRobotsDisallow, user?.id])
+
+  const saveSecurity = useCallback(async () => {
+    await saveSetting('security_frame_options', securityFrameOptions, user?.id)
+    await saveSetting('security_referrer_policy', securityReferrerPolicy, user?.id)
+    await saveSetting('rate_limit_max_requests', rateLimitMax, user?.id)
+    await saveSetting('rate_limit_window_seconds', rateLimitWindow, user?.id)
+    await saveSetting('csp_extra_domains', cspExtraDomains, user?.id)
+    await saveSetting('admin_notification_email', adminNotificationEmail, user?.id)
+    await saveSetting('health_check_enabled', healthCheckEnabled ? 'true' : 'false', user?.id)
+  }, [securityFrameOptions, securityReferrerPolicy, rateLimitMax, rateLimitWindow, cspExtraDomains, adminNotificationEmail, healthCheckEnabled, user?.id])
+
+  const saveFtp = useCallback(async () => {
+    if (ftpHost) await saveSetting('ftp_host', ftpHost, user?.id)
+    if (ftpUsername) await saveSetting('ftp_username', ftpUsername, user?.id)
+    if (ftpPassword && !ftpPassword.startsWith('••••')) {
+      await saveSetting('ftp_password', ftpPassword, user?.id)
+    }
+  }, [ftpHost, ftpUsername, ftpPassword, user?.id])
 
   if (authLoading || loading) {
     return (
@@ -435,6 +460,8 @@ export default function AdminSettings() {
                   ))}
                 </div>
               </div>
+
+              <SectionSaveButton onSave={saveOpenAI} label="Gem API-indstillinger" />
             </section>
 
             {/* ── Kie.ai Image Generation ── */}
@@ -479,6 +506,8 @@ export default function AdminSettings() {
                   </a>
                 </p>
               </div>
+
+              <SectionSaveButton onSave={saveKieai} label="Gem Kie.ai nøgle" />
             </section>
 
             {/* ── AI Prompt Management ── */}
@@ -645,6 +674,8 @@ export default function AdminSettings() {
                   </p>
                 </div>
               )}
+
+              <SectionSaveButton onSave={savePrompts} label="Gem prompts" />
             </section>
           </>
         )}
@@ -718,6 +749,8 @@ export default function AdminSettings() {
                   />
                 </div>
               </div>
+
+              <SectionSaveButton onSave={saveSocial} label="Gem profil-links" />
             </section>
 
             {/* ── Social Publisher Quick Link ── */}
@@ -836,6 +869,8 @@ export default function AdminSettings() {
                   </p>
                 </div>
               </div>
+
+              <SectionSaveButton onSave={saveSeo} label="Gem SEO-indstillinger" />
             </section>
 
             {/* ── robots.txt ── */}
@@ -861,6 +896,8 @@ export default function AdminSettings() {
                   Ændringer her gemmes i databasen og kan bruges til at regenerere filen.
                 </p>
               </div>
+
+              <SectionSaveButton onSave={saveSeo} label="Gem SEO & robots" />
             </section>
 
             {/* ── Sikkerhed ── */}
@@ -1056,6 +1093,8 @@ export default function AdminSettings() {
                   </div>
                 )}
               </div>
+
+              <SectionSaveButton onSave={saveSecurity} label="Gem sikkerhedsindstillinger" />
             </section>
           </>
         )}
@@ -1119,38 +1158,11 @@ export default function AdminSettings() {
                   </div>
                 </div>
               </div>
+
+              <SectionSaveButton onSave={saveFtp} label="Gem FTP-indstillinger" />
             </section>
           </>
         )}
-
-        {/* ── Save Button (always visible) ── */}
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex h-10 items-center gap-2 px-6 rounded-md bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('admin.saving', 'Gemmer...')}
-              </>
-            ) : saved ? (
-              <>
-                <Check className="h-4 w-4" />
-                {t('admin.saved', 'Gemt!')}
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                {t('admin.saveSettings', 'Gem indstillinger')}
-              </>
-            )}
-          </button>
-          {saved && (
-            <span className="text-sm text-green-600 font-medium">{t('admin.settingsSaved', 'Indstillingerne er gemt')}</span>
-          )}
-        </div>
       </div>
     </div>
   )

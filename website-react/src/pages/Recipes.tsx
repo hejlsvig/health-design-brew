@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { setSEO, setRecipeJsonLd, clearSEO } from '@/lib/seo'
 
-/* âââ types âââ */
+/* ─── types ─── */
 interface IngredientItem { full_text: string; amount?: number; unit?: string; name?: string }
 interface InstructionItem { step_number: number; step_text: string }
 
@@ -56,7 +56,7 @@ function resolveStringArray(data: string[] | Record<string, string[]> | null | u
   return data[lang] || data['da'] || []
 }
 
-/* âââ component âââ */
+/* ─── component ─── */
 export default function Recipes() {
   const { t, i18n } = useTranslation()
   const { user, isAdmin } = useAuth()
@@ -71,7 +71,7 @@ export default function Recipes() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
-  /* âââ helpers âââ */
+  /* ─── helpers ─── */
   const loc = (field: Record<string, string> | null | undefined, fallback = '') => {
     if (!field) return fallback
     return field[lang] || field['da'] || field['en'] || fallback
@@ -84,7 +84,7 @@ export default function Recipes() {
     return v !== key ? v : cat
   }
 
-  /* âââ data fetching âââ */
+  /* ─── data fetching ─── */
   const fetchRecipes = useCallback(async () => {
     const { data, error } = await supabase
       .from('recipes')
@@ -108,7 +108,7 @@ export default function Recipes() {
   useEffect(() => { fetchRecipes() }, [fetchRecipes])
   useEffect(() => { fetchFavorites() }, [fetchFavorites])
 
-  /* âââ favorites toggle âââ */
+  /* ─── favorites toggle ─── */
   const toggleFavorite = async (recipeId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -123,7 +123,7 @@ export default function Recipes() {
     }
   }
 
-  /* âââ filtering âââ */
+  /* ─── filtering ─── */
   const allCategories = Array.from(
     new Set(recipes.flatMap(r => resolveStringArray(r.categories, lang)))
   ).sort()
@@ -138,14 +138,14 @@ export default function Recipes() {
     return matchCat && matchSearch
   })
 
-  /* âââ detail view âââ */
+  /* ─── detail view ─── */
   const activeRecipe = activeSlug ? recipes.find(r => r.slug === activeSlug) : null
 
   if (activeRecipe) {
     return <RecipeDetail recipe={activeRecipe} loc={loc} lang={lang} t={t} user={user} isAdmin={isAdmin} favorites={favorites} toggleFavorite={toggleFavorite} setSearchParams={setSearchParams} />
   }
 
-  /* âââ list view âââ */
+  /* ─── list view ─── */
   return (
     <>
       {/* Hero */}
@@ -239,9 +239,9 @@ export default function Recipes() {
   )
 }
 
-/* ââââââââââââââââââââââââââââââââââââââââââââ
+/* ════════════════════════════════════════════
    Recipe Card
-   ââââââââââââââââââââââââââââââââââââââââââââ */
+   ════════════════════════════════════════════ */
 function RecipeCard({
   recipe, loc, t, lang, user, isAdmin, isFav, toggleFavorite, setSearchParams,
 }: {
@@ -364,9 +364,9 @@ function RecipeCard({
   )
 }
 
-/* ââââââââââââââââââââââââââââââââââââââââââââ
+/* ════════════════════════════════════════════
    Recipe Detail View
-   âââââââââââââââââââââââââââââââââââââââââââ */
+   ════════════════════════════════════════════ */
 function RecipeDetail({
   recipe, loc, lang, t, user, isAdmin, favorites, toggleFavorite, setSearchParams,
 }: {
@@ -416,7 +416,7 @@ function RecipeDetail({
     return () => { clearSEO() }
   }, [recipe])
 
-  /* Print recipe â opens a clean print window */
+  /* Print recipe — opens a clean print window */
   const handlePrint = () => {
     const title = loc(recipe.title)
     const desc = loc(recipe.description)
@@ -455,22 +455,22 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
 <h1>${title}</h1>
 <div class="meta">
   ${recipe.total_time ? `Tid: ${recipe.total_time} min` : ''}
-  ${recipe.total_time && portionCount ? ' Â· ' : ''}
+  ${recipe.total_time && portionCount ? ' · ' : ''}
   ${portionCount ? `Portioner: ${portionCount}` : ''}
-  ${recipe.difficulty ? ` Â· Niveau: ${recipe.difficulty}` : ''}
+  ${recipe.difficulty ? ` · Niveau: ${recipe.difficulty}` : ''}
 </div>
 <p class="desc">${desc}</p>
 
-<h2>Ingredienser${scale !== 1 ? ` (Ã${scale % 1 === 0 ? scale : scale.toFixed(1)})` : ''}</h2>
+<h2>Ingredienser${scale !== 1 ? ` (×${scale % 1 === 0 ? scale : scale.toFixed(1)})` : ''}</h2>
 <ul>${ings}</ul>
 
-<h2>FremgangsmÃ¥de</h2>
+<h2>Fremgangsmåde</h2>
 <ol>${steps}</ol>
 
-<h2>NÃ¦ringsindhold${scale !== 1 ? ` (${portionCount} portioner)` : ''}</h2>
+<h2>Næringsindhold${scale !== 1 ? ` (${portionCount} portioner)` : ''}</h2>
 <table>${nutritionRows}</table>
 
-<div class="footer">Shifting Source â shiftingsource.com</div>
+<div class="footer">Shifting Source — shiftingsource.com</div>
 </body></html>`
 
     const win = window.open('', '_blank')
@@ -494,8 +494,8 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
     if (ing.amount == null || scale === 1) return ing.full_text
     const scaledAmt = scaleAmount(ing.amount)
     const original = ing.full_text
-    // Match digits (150, 0.5, 1,5) OR Unicode fractions (Â½ â Â¼ Â¾ etc.)
-    const numOrFractionRe = /[\d]+([.,]\d+)?|[Â½ââÂ¼Â¾ââââââââââ]/
+    // Match digits (150, 0.5, 1,5) OR Unicode fractions (½ ⅓ ¼ ¾ etc.)
+    const numOrFractionRe = /[\d]+([.,]\d+)?|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/
     if (numOrFractionRe.test(original)) {
       return original.replace(numOrFractionRe, scaledAmt)
     }
@@ -646,7 +646,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
                 <h2 className="font-serif text-2xl text-foreground">{t('recipes.ingredients')}</h2>
                 {scale !== 1 && (
                   <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">
-                    Ã{scale % 1 === 0 ? scale : scale.toFixed(1)}
+                    ×{scale % 1 === 0 ? scale : scale.toFixed(1)}
                   </span>
                 )}
               </div>
@@ -679,7 +679,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
               </ol>
             </section>
 
-            {/* Tips â only shown when present */}
+            {/* Tips — only shown when present */}
             {recipe.tips && (typeof recipe.tips === 'string' ? recipe.tips.trim() : loc(recipe.tips as Record<string, string>)) && (
               <section className="rounded-md border border-accent/30 bg-accent/5 p-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -693,7 +693,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
             )}
           </div>
 
-          {/* Sidebar â Nutrition */}
+          {/* Sidebar — Nutrition */}
           <aside className="space-y-6">
             <div className="rounded-md border bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
@@ -713,7 +713,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
               </div>
             </div>
 
-            {/* Macro chart visual â always per serving (doesn't scale) */}
+            {/* Macro chart visual — always per serving (doesn't scale) */}
             {recipe.protein != null && recipe.fat != null && recipe.carbs != null && (
               <div className="rounded-md border bg-card p-5 shadow-sm">
                 <h3 className="font-serif text-lg text-foreground mb-4">{t('recipes.macroDistribution')}</h3>
@@ -727,7 +727,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
   )
 }
 
-/* âââ Nutrient Row âââ */
+/* ─── Nutrient Row ─── */
 function NutrientRow({ label, value, unit, color, highlight }: {
   label: string; value: number | null; unit: string; color: string; highlight?: boolean
 }) {
@@ -743,7 +743,7 @@ function NutrientRow({ label, value, unit, color, highlight }: {
   )
 }
 
-/* âââ Simple Macro Chart âââ */
+/* ─── Simple Macro Chart ─── */
 function MacroChart({ protein, fat, carbs, t }: { protein: number; fat: number; carbs: number; t: (k: string) => string }) {
   const proteinCal = protein * 4
   const fatCal = fat * 9
