@@ -19,13 +19,6 @@ function SectionSaveButton({ onSave, label = 'Gem' }: { onSave: () => Promise<vo
     setSaving(true)
     setSaved(false)
     try {
-      // Refresh session before every save to prevent RLS silent blocks
-      const { error: refreshError } = await supabase.auth.refreshSession()
-      if (refreshError) {
-        setError('Din session er udløbet. Log venligst ind igen.')
-        setSaving(false)
-        return
-      }
       await onSave()
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
