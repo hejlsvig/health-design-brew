@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Flame, Search, Menu, X, ChevronDown, Settings, Share2 } from 'lucide-react'
+import { Flame, Search, Menu, X, ChevronDown, Settings, Share2, Target } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 
@@ -128,6 +128,13 @@ export default function Navbar() {
                     {t('nav.admin')}
                   </Link>
                   <Link
+                    to="/admin/crm"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="CRM"
+                  >
+                    <Target className="h-4 w-4" />
+                  </Link>
+                  <Link
                     to="/admin/social-publisher"
                     className="text-muted-foreground hover:text-foreground transition-colors"
                     title="Social Publisher"
@@ -199,6 +206,10 @@ export default function Navbar() {
                   <>
                     <Link to="/admin" onClick={() => setMobileOpen(false)} className="text-sm text-accent font-medium py-2">
                       {t('nav.admin')}
+                    </Link>
+                    <Link to="/admin/crm" onClick={() => setMobileOpen(false)} className="text-sm text-muted-foreground py-2 flex items-center gap-1.5">
+                      <Target className="h-3.5 w-3.5" />
+                      CRM
                     </Link>
                     <Link to="/admin/social-publisher" onClick={() => setMobileOpen(false)} className="text-sm text-muted-foreground py-2 flex items-center gap-1.5">
                       <Share2 className="h-3.5 w-3.5" />

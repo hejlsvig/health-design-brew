@@ -161,7 +161,7 @@ export default function AdminDashboard() {
           title: t('admin.cardCrm'),
           description: t('admin.cardCrmDesc'),
           icon: Target,
-          to: '__external_crm__',
+          to: '/admin/crm',
           stats: '',
           color: 'bg-cyan-600',
         },
@@ -202,20 +202,6 @@ export default function AdminDashboard() {
         </div>
       </>
     )
-
-    if (card.to === '__external_crm__') {
-      return (
-        <a
-          key={card.to}
-          href="/crm/admin.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex flex-col rounded-md border border-border bg-card p-5 shadow-sm hover:shadow-md hover:border-accent/50 transition-all"
-        >
-          {inner}
-        </a>
-      )
-    }
 
     return (
       <Link
