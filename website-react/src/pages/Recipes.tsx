@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { setSEO, setRecipeJsonLd, clearSEO } from '@/lib/seo'
 
-/* ─── types ─── */
+/* âââ types âââ */
 interface IngredientItem { full_text: string; amount?: number; unit?: string; name?: string }
 interface InstructionItem { step_number: number; step_text: string }
 
@@ -36,8 +36,8 @@ interface Recipe {
   servings: number | null
   difficulty: string | null
   image_url: string | null
-  categories: string[] | null
-  tags: string[] | null
+  categories: string[] | Record<string, string[]> | null
+  tags: string[] | Record<string, string[]> | null
   tips: Record<string, string> | string | null
   status: string
 }
@@ -49,7 +49,14 @@ function resolveArray<T>(data: MultiLangArray<T> | null | undefined, lang: strin
   return (data as Record<string, T[]>)[lang] || (data as Record<string, T[]>)['da'] || []
 }
 
-/* ─── component ─── */
+/** Resolve categories/tags which can be string[] | Record<string, string[]> | null */
+function resolveStringArray(data: string[] | Record<string, string[]> | null | undefined, lang: string): string[] {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  return data[lang] || data['da'] || []
+}
+
+/* âââ component âââ */
 export default function Recipes() {
   const { t, i18n } = useTranslation()
   const { user, isAdmin } = useAuth()
@@ -64,7 +71,7 @@ export default function Recipes() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
-  /* ─── helpers ─── */
+  /* âââ helpers âââ */
   const loc = (field: Record<string, string> | null | undefined, fallback = '') => {
     if (!field) return fallback
     return field[lang] || field['da'] || field['en'] || fallback
@@ -77,7 +84,7 @@ export default function Recipes() {
     return v !== key ? v : cat
   }
 
-  /* ─── data fetching ─── */
+  /* âââ data fetching âââ */
   const fetchRecipes = useCallback(async () => {
     const { data, error } = await supabase
       .from('recipes')
@@ -101,7 +108,7 @@ export default function Recipes() {
   useEffect(() => { fetchRecipes() }, [fetchRecipes])
   useEffect(() => { fetchFavorites() }, [fetchFavorites])
 
-  /* ─── favorites toggle ─── */
+  /* âââ favorites toggle âââ */
   const toggleFavorite = async (recipeId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -116,29 +123,29 @@ export default function Recipes() {
     }
   }
 
-  /* ─── filtering ─── */
+  /* âââ filtering âââ */
   const allCategories = Array.from(
-    new Set(recipes.flatMap(r => r.categories ?? []))
+    new Set(recipes.flatMap(r => resolveStringArray(r.categories, lang)))
   ).sort()
 
   const filtered = recipes.filter(r => {
-    const matchCat = categoryFilter === 'all' || (r.categories ?? []).includes(categoryFilter)
+    const matchCat = categoryFilter === 'all' || resolveStringArray(r.categories, lang).includes(categoryFilter)
     const q = search.toLowerCase()
     const matchSearch = !q
       || loc(r.title).toLowerCase().includes(q)
       || loc(r.description).toLowerCase().includes(q)
-      || (r.tags ?? []).some(tag => tag.toLowerCase().includes(q))
+      || resolveStringArray(r.tags, lang).some(tag => tag.toLowerCase().includes(q))
     return matchCat && matchSearch
   })
 
-  /* ─── detail view ─── */
+  /* âââ detail view âââ */
   const activeRecipe = activeSlug ? recipes.find(r => r.slug === activeSlug) : null
 
   if (activeRecipe) {
     return <RecipeDetail recipe={activeRecipe} loc={loc} lang={lang} t={t} user={user} isAdmin={isAdmin} favorites={favorites} toggleFavorite={toggleFavorite} setSearchParams={setSearchParams} />
   }
 
-  /* ─── list view ─── */
+  /* âââ list view âââ */
   return (
     <>
       {/* Hero */}
@@ -216,6 +223,7 @@ export default function Recipes() {
                   recipe={recipe}
                   loc={loc}
                   t={t}
+                  lang={lang}
                   user={user}
                   isAdmin={isAdmin}
                   isFav={favorites.has(recipe.id)}
@@ -231,15 +239,16 @@ export default function Recipes() {
   )
 }
 
-/* ════════════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââââââââ
    Recipe Card
-   ════════════════════════════════════════════ */
+   ââââââââââââââââââââââââââââââââââââââââââââ */
 function RecipeCard({
-  recipe, loc, t, user, isAdmin, isFav, toggleFavorite, setSearchParams,
+  recipe, loc, t, lang, user, isAdmin, isFav, toggleFavorite, setSearchParams,
 }: {
   recipe: Recipe
   loc: (f: Record<string, string> | null | undefined, fb?: string) => string
   t: (k: string) => string
+  lang: string
   user: any
   isAdmin: boolean
   isFav: boolean
@@ -299,16 +308,13 @@ function RecipeCard({
           <h3 className="font-serif text-base leading-snug text-white line-clamp-2 drop-shadow-md">
             {loc(recipe.title, 'Untitled')}
           </h3>
-          {(recipe.categories ?? []).length > 0 && (
+          {resolveStringArray(recipe.categories, lang).length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
-              {(recipe.categories ?? []).map(cat => {
-                const translated = t(`recipes.categoryMap.${cat}`)
-                return (
-                  <span key={cat} className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
-                    {translated !== `recipes.categoryMap.${cat}` ? translated : cat}
-                  </span>
-                )
-              })}
+              {resolveStringArray(recipe.categories, lang).map(cat => (
+                <span key={cat} className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
+                  {cat}
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -358,9 +364,9 @@ function RecipeCard({
   )
 }
 
-/* ════════════════════════════════════════════
+/* ââââââââââââââââââââââââââââââââââââââââââââ
    Recipe Detail View
-   ════════════════════════════════════════════ */
+   âââââââââââââââââââââââââââââââââââââââââââ */
 function RecipeDetail({
   recipe, loc, lang, t, user, isAdmin, favorites, toggleFavorite, setSearchParams,
 }: {
@@ -405,12 +411,12 @@ function RecipeDetail({
       instructions: resolveArray(recipe.instructions, lang)
         .sort((a, b) => a.step_number - b.step_number)
         .map(s => s.step_text),
-      categories: recipe.categories ?? undefined,
+      categories: resolveStringArray(recipe.categories, lang),
     })
     return () => { clearSEO() }
   }, [recipe])
 
-  /* Print recipe — opens a clean print window */
+  /* Print recipe â opens a clean print window */
   const handlePrint = () => {
     const title = loc(recipe.title)
     const desc = loc(recipe.description)
@@ -449,22 +455,22 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
 <h1>${title}</h1>
 <div class="meta">
   ${recipe.total_time ? `Tid: ${recipe.total_time} min` : ''}
-  ${recipe.total_time && portionCount ? ' · ' : ''}
+  ${recipe.total_time && portionCount ? ' Â· ' : ''}
   ${portionCount ? `Portioner: ${portionCount}` : ''}
-  ${recipe.difficulty ? ` · Niveau: ${recipe.difficulty}` : ''}
+  ${recipe.difficulty ? ` Â· Niveau: ${recipe.difficulty}` : ''}
 </div>
 <p class="desc">${desc}</p>
 
-<h2>Ingredienser${scale !== 1 ? ` (×${scale % 1 === 0 ? scale : scale.toFixed(1)})` : ''}</h2>
+<h2>Ingredienser${scale !== 1 ? ` (Ã${scale % 1 === 0 ? scale : scale.toFixed(1)})` : ''}</h2>
 <ul>${ings}</ul>
 
-<h2>Fremgangsmåde</h2>
+<h2>FremgangsmÃ¥de</h2>
 <ol>${steps}</ol>
 
-<h2>Næringsindhold${scale !== 1 ? ` (${portionCount} portioner)` : ''}</h2>
+<h2>NÃ¦ringsindhold${scale !== 1 ? ` (${portionCount} portioner)` : ''}</h2>
 <table>${nutritionRows}</table>
 
-<div class="footer">Shifting Source — shiftingsource.com</div>
+<div class="footer">Shifting Source â shiftingsource.com</div>
 </body></html>`
 
     const win = window.open('', '_blank')
@@ -488,8 +494,8 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
     if (ing.amount == null || scale === 1) return ing.full_text
     const scaledAmt = scaleAmount(ing.amount)
     const original = ing.full_text
-    // Match digits (150, 0.5, 1,5) OR Unicode fractions (½ ⅓ ¼ ¾ etc.)
-    const numOrFractionRe = /[\d]+([.,]\d+)?|[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/
+    // Match digits (150, 0.5, 1,5) OR Unicode fractions (Â½ â Â¼ Â¾ etc.)
+    const numOrFractionRe = /[\d]+([.,]\d+)?|[Â½ââÂ¼Â¾ââââââââââ]/
     if (numOrFractionRe.test(original)) {
       return original.replace(numOrFractionRe, scaledAmt)
     }
@@ -532,22 +538,16 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
             {loc(recipe.title)}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            {(recipe.categories ?? []).map(cat => {
-              const cv = t(`recipes.categoryMap.${cat}`)
-              return (
-                <span key={cat} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">
-                  {cv !== `recipes.categoryMap.${cat}` ? cv : cat}
-                </span>
-              )
-            })}
-            {(recipe.tags ?? []).map(tag => {
-              const tv = t(`recipes.tagMap.${tag}`)
-              return (
-                <span key={tag} className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white">
-                  {tv !== `recipes.tagMap.${tag}` ? tv : tag}
-                </span>
-              )
-            })}
+            {resolveStringArray(recipe.categories, lang).map(cat => (
+              <span key={cat} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">
+                {cat}
+              </span>
+            ))}
+            {resolveStringArray(recipe.tags, lang).map(tag => (
+              <span key={tag} className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white">
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -646,7 +646,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
                 <h2 className="font-serif text-2xl text-foreground">{t('recipes.ingredients')}</h2>
                 {scale !== 1 && (
                   <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">
-                    ×{scale % 1 === 0 ? scale : scale.toFixed(1)}
+                    Ã{scale % 1 === 0 ? scale : scale.toFixed(1)}
                   </span>
                 )}
               </div>
@@ -679,7 +679,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
               </ol>
             </section>
 
-            {/* Tips — only shown when present */}
+            {/* Tips â only shown when present */}
             {recipe.tips && (typeof recipe.tips === 'string' ? recipe.tips.trim() : loc(recipe.tips as Record<string, string>)) && (
               <section className="rounded-md border border-accent/30 bg-accent/5 p-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -693,7 +693,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
             )}
           </div>
 
-          {/* Sidebar — Nutrition */}
+          {/* Sidebar â Nutrition */}
           <aside className="space-y-6">
             <div className="rounded-md border bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
@@ -713,7 +713,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
               </div>
             </div>
 
-            {/* Macro chart visual — always per serving (doesn't scale) */}
+            {/* Macro chart visual â always per serving (doesn't scale) */}
             {recipe.protein != null && recipe.fat != null && recipe.carbs != null && (
               <div className="rounded-md border bg-card p-5 shadow-sm">
                 <h3 className="font-serif text-lg text-foreground mb-4">{t('recipes.macroDistribution')}</h3>
@@ -727,7 +727,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
   )
 }
 
-/* ─── Nutrient Row ─── */
+/* âââ Nutrient Row âââ */
 function NutrientRow({ label, value, unit, color, highlight }: {
   label: string; value: number | null; unit: string; color: string; highlight?: boolean
 }) {
@@ -743,7 +743,7 @@ function NutrientRow({ label, value, unit, color, highlight }: {
   )
 }
 
-/* ─── Simple Macro Chart ─── */
+/* âââ Simple Macro Chart âââ */
 function MacroChart({ protein, fat, carbs, t }: { protein: number; fat: number; carbs: number; t: (k: string) => string }) {
   const proteinCal = protein * 4
   const fatCal = fat * 9
