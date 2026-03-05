@@ -71,7 +71,11 @@ export default function Recipes() {
   }
 
   /** Translate a category or tag name via i18n maps (fallback to original if no translation) */
-  const tCat = (cat: string) => { const v = t(`recipes.categoryMap.${cat}`); return v !== `recipes.categoryMap.${cat}` ? v : cat }
+  const tCat = (cat: string) => {
+    const key = `recipes.categoryMap.${cat}`
+    const v = i18n.t(key)
+    return v !== key ? v : cat
+  }
 
   /* ─── data fetching ─── */
   const fetchRecipes = useCallback(async () => {
@@ -298,7 +302,7 @@ function RecipeCard({
           {(recipe.categories ?? []).length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {(recipe.categories ?? []).map(cat => {
-                const translated = t(`recipes.categoryMap.${cat}`)
+                const translated = i18n.t(`recipes.categoryMap.${cat}`)
                 return (
                   <span key={cat} className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
                     {translated !== `recipes.categoryMap.${cat}` ? translated : cat}
@@ -529,7 +533,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {(recipe.categories ?? []).map(cat => {
-              const cv = t(`recipes.categoryMap.${cat}`)
+              const cv = i18n.t(`recipes.categoryMap.${cat}`)
               return (
                 <span key={cat} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">
                   {cv !== `recipes.categoryMap.${cat}` ? cv : cat}
