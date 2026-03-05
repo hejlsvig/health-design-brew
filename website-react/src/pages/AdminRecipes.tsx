@@ -57,37 +57,14 @@ interface Instruction {
   step_text: string
 }
 
-/** Resolve a multi-lang or flat JSONB field to a single-language array */
-function resolveIngredients(data: any): Ingredient[] {
-  if (!data) return []
-  if (Array.isArray(data)) return data                      // flat (legacy)
-  if (data.da && Array.isArray(data.da)) return data.da     // multi-lang → use DA for editing
-  return []
-}
-
-function resolveInstructions(data: any): Instruction[] {
-  if (!data) return []
-  if (Array.isArray(data)) return data
-  if (data.da && Array.isArray(data.da)) return data.da
-  return []
-}
-
-/** Wrap flat array back into multi-lang format, preserving existing translations */
-function wrapMultiLang<T>(edited: T[], original: any): Record<string, T[]> | T[] {
-  if (!original || Array.isArray(original)) {
-    // Legacy format — wrap into multi-lang with da only
-    return { da: edited }
-  }
-  // Multi-lang — update da, preserve en/se
-  return { ...original, da: edited }
-}
+/* (resolveIngredients / resolveInstructions / wrapMultiLang removed — multi-lang editing is now native) */
 
 type EditorRecipe = {
   slug: string
   title: Record<string, string>
   description: Record<string, string>
-  ingredients: Ingredient[]
-  instructions: Instruction[]
+  ingredients: Record<string, Ingredient[]>
+  instructions: Record<string, Instruction[]>
   calories: number | null
   protein: number | null
   fat: number | null
@@ -104,7 +81,7 @@ type EditorRecipe = {
   status: string
   featured: boolean
   published_at: string | null
-  tips: string
+  tips: Record<string, string>
   seo_title: Record<string, string>
   seo_description: Record<string, string>
 }
@@ -113,8 +90,8 @@ const EMPTY_RECIPE: EditorRecipe = {
   slug: '',
   title: { da: '', en: '', se: '' },
   description: { da: '', en: '', se: '' },
-  ingredients: [{ full_text: '', name: '' }],
-  instructions: [{ step_number: 1, step_text: '' }],
+  ingredients: { da: [{ full_text: '', name: '' }], en: [{ full_text: '', name: '' }], se: [{ full_text: '', name: '' }] },
+  instructions: { da: [{ step_number: 1, step_text: '' }], en: [{ step_number: 1, step_text: '' }], se: [{ step_number: 1, step_text: '' }] },
   calories: null,
   protein: null,
   fat: null,
@@ -128,7 +105,7 @@ const EMPTY_RECIPE: EditorRecipe = {
   categories: [],
   tags: [],
   published_countries: ['dk', 'en', 'se'],
-  tips: '',
+  tips: { da: '', en: '', se: '' },
   status: 'draft',
   featured: false,
   published_at: null,
@@ -155,10 +132,7 @@ export default function AdminRecipes() {
   const [view, setView] = useState<'list' | 'editor'>('list')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<EditorRecipe>(EMPTY_RECIPE)
-  // Store the original multi-lang data so we preserve en/se translations on save
-  const [originalIngredients, setOriginalIngredients] = useState<any>(null)
-  const [originalInstructions, setOriginalInstructions] = useState<any>(null)
-  const [originalTips, setOriginalTips] = useState<any>(null)
+  // (multi-lang data is now stored directly in form.ingredients/instructions/tips)
   const [editorLang, setEditorLang] = useState('da')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -205,9 +179,6 @@ export default function AdminRecipes() {
 
   const openNew = () => {
     setEditingId(null)
-    setOriginalIngredients(null)
-    setOriginalInstructions(null)
-    setOriginalTips(null)
     setForm(EMPTY_RECIPE)
     setTagsInput('')
     setCategoriesInput('')
@@ -216,17 +187,39 @@ export default function AdminRecipes() {
     setView('editor')
   }
 
+  /** Normalize ingredients data to multi-lang Record */
+  const normalizeMultiLangArray = <T,>(data: any, fallback: T[]): Record<string, T[]> => {
+    if (!data) return { da: fallback, en: fallback, se: fallback }
+    if (Array.isArray(data)) return { da: data.length ? data : fallback, en: fallback, se: fallback }
+    // Already multi-lang object
+    return {
+      da: (data.da && data.da.length) ? data.da : fallback,
+      en: (data.en && data.en.length) ? data.en : [{ full_text: '', name: '' } as any],
+      se: (data.se && data.se.length) ? data.se : [{ full_text: '', name: '' } as any],
+    }
+  }
+
+  /** Normalize tips to multi-lang Record */
+  const normalizeMultiLangString = (data: any): Record<string, string> => {
+    if (!data) return { da: '', en: '', se: '' }
+    if (typeof data === 'string') return { da: data, en: '', se: '' }
+    return { da: data.da || '', en: data.en || '', se: data.se || '' }
+  }
+
   const openEdit = (recipe: Recipe) => {
     setEditingId(recipe.id)
-    setOriginalIngredients(recipe.ingredients)
-    setOriginalInstructions(recipe.instructions)
-    setOriginalTips((recipe as any).tips)
     setForm({
       slug: recipe.slug,
       title: recipe.title || { da: '', en: '', se: '' },
       description: recipe.description || { da: '', en: '', se: '' },
-      ingredients: resolveIngredients(recipe.ingredients).length ? resolveIngredients(recipe.ingredients) : [{ full_text: '', name: '' }],
-      instructions: resolveInstructions(recipe.instructions).length ? resolveInstructions(recipe.instructions) : [{ step_number: 1, step_text: '' }],
+      ingredients: normalizeMultiLangArray<Ingredient>(
+        recipe.ingredients,
+        [{ full_text: '', name: '' }]
+      ),
+      instructions: normalizeMultiLangArray<Instruction>(
+        recipe.instructions,
+        [{ step_number: 1, step_text: '' }]
+      ),
       calories: recipe.calories,
       protein: recipe.protein,
       fat: recipe.fat,
@@ -240,9 +233,7 @@ export default function AdminRecipes() {
       categories: recipe.categories || [],
       tags: recipe.tags || [],
       published_countries: recipe.published_countries || ['dk', 'en', 'se'],
-      tips: typeof (recipe as any).tips === 'object' && (recipe as any).tips !== null
-        ? ((recipe as any).tips as Record<string, string>).da || ''
-        : (recipe as any).tips || '',
+      tips: normalizeMultiLangString((recipe as any).tips),
       status: recipe.status,
       featured: (recipe as any).featured || false,
       published_at: recipe.published_at,
@@ -348,60 +339,79 @@ export default function AdminRecipes() {
     return obj?.[editorLang] || ''
   }
 
-  /* ─── Ingredient management ─── */
+  /* ─── Current language helpers ─── */
+  const currentIngredients = form.ingredients[editorLang] || [{ full_text: '', name: '' }]
+  const currentInstructions = form.instructions[editorLang] || [{ step_number: 1, step_text: '' }]
+
+  /* ─── Ingredient management (language-aware) ─── */
   const updateIngredient = (index: number, field: keyof Ingredient, value: string | number) => {
     setForm(prev => {
-      const updated = [...prev.ingredients]
-      updated[index] = { ...updated[index], [field]: value }
+      const langData = [...(prev.ingredients[editorLang] || [])]
+      langData[index] = { ...langData[index], [field]: value }
       // Auto-build full_text when amount/unit/name changes
       if (field === 'amount' || field === 'unit' || field === 'name') {
-        const ing = updated[index]
+        const ing = langData[index]
         const parts = []
         if (ing.amount != null && ing.amount !== 0) parts.push(String(ing.amount))
         if (ing.unit) parts.push(ing.unit)
         if (ing.name) parts.push(ing.name)
-        updated[index].full_text = parts.join(' ')
+        langData[index].full_text = parts.join(' ')
       }
-      return { ...prev, ingredients: updated }
+      return { ...prev, ingredients: { ...prev.ingredients, [editorLang]: langData } }
     })
   }
 
   const addIngredient = () => {
     setForm(prev => ({
       ...prev,
-      ingredients: [...prev.ingredients, { full_text: '', name: '' }],
+      ingredients: {
+        ...prev.ingredients,
+        [editorLang]: [...(prev.ingredients[editorLang] || []), { full_text: '', name: '' }],
+      },
     }))
   }
 
   const removeIngredient = (index: number) => {
     setForm(prev => ({
       ...prev,
-      ingredients: prev.ingredients.filter((_, i) => i !== index),
+      ingredients: {
+        ...prev.ingredients,
+        [editorLang]: (prev.ingredients[editorLang] || []).filter((_, i) => i !== index),
+      },
     }))
   }
 
-  /* ─── Instruction management ─── */
+  /* ─── Instruction management (language-aware) ─── */
   const updateInstruction = (index: number, value: string) => {
     setForm(prev => {
-      const updated = [...prev.instructions]
-      updated[index] = { ...updated[index], step_text: value }
-      return { ...prev, instructions: updated }
+      const langData = [...(prev.instructions[editorLang] || [])]
+      langData[index] = { ...langData[index], step_text: value }
+      return { ...prev, instructions: { ...prev.instructions, [editorLang]: langData } }
     })
   }
 
   const addInstruction = () => {
-    setForm(prev => ({
-      ...prev,
-      instructions: [...prev.instructions, { step_number: prev.instructions.length + 1, step_text: '' }],
-    }))
+    setForm(prev => {
+      const langData = prev.instructions[editorLang] || []
+      return {
+        ...prev,
+        instructions: {
+          ...prev.instructions,
+          [editorLang]: [...langData, { step_number: langData.length + 1, step_text: '' }],
+        },
+      }
+    })
   }
 
   const removeInstruction = (index: number) => {
     setForm(prev => ({
       ...prev,
-      instructions: prev.instructions
-        .filter((_, i) => i !== index)
-        .map((inst, i) => ({ ...inst, step_number: i + 1 })),
+      instructions: {
+        ...prev.instructions,
+        [editorLang]: (prev.instructions[editorLang] || [])
+          .filter((_, i) => i !== index)
+          .map((inst, i) => ({ ...inst, step_number: i + 1 })),
+      },
     }))
   }
 
@@ -416,19 +426,34 @@ export default function AdminRecipes() {
       const parsedTags = tagsInput.split(',').map(s => s.trim()).filter(Boolean)
       const parsedCategories = categoriesInput.split(',').map(s => s.trim()).filter(Boolean)
 
-      // Clean ingredients — remove empty rows
-      const cleanIngredients = form.ingredients.filter(ing => ing.full_text.trim() || ing.name.trim())
-      // Clean instructions — remove empty rows
-      const cleanInstructions = form.instructions
-        .filter(inst => inst.step_text.trim())
-        .map((inst, i) => ({ ...inst, step_number: i + 1 }))
+      // Clean ingredients per language — remove empty rows
+      const cleanIngredients: Record<string, Ingredient[]> = {}
+      for (const lang of Object.keys(form.ingredients)) {
+        const cleaned = (form.ingredients[lang] || []).filter(ing => ing.full_text.trim() || ing.name.trim())
+        if (cleaned.length > 0) cleanIngredients[lang] = cleaned
+      }
+
+      // Clean instructions per language — remove empty rows
+      const cleanInstructions: Record<string, Instruction[]> = {}
+      for (const lang of Object.keys(form.instructions)) {
+        const cleaned = (form.instructions[lang] || [])
+          .filter(inst => inst.step_text.trim())
+          .map((inst, i) => ({ ...inst, step_number: i + 1 }))
+        if (cleaned.length > 0) cleanInstructions[lang] = cleaned
+      }
+
+      // Clean tips — only include non-empty languages
+      const cleanTips: Record<string, string> = {}
+      for (const lang of Object.keys(form.tips)) {
+        if (form.tips[lang]?.trim()) cleanTips[lang] = form.tips[lang].trim()
+      }
 
       const payload = {
         slug: form.slug,
         title: form.title,
         description: form.description,
-        ingredients: wrapMultiLang(cleanIngredients, originalIngredients),
-        instructions: wrapMultiLang(cleanInstructions, originalInstructions),
+        ingredients: Object.keys(cleanIngredients).length > 0 ? cleanIngredients : { da: [] },
+        instructions: Object.keys(cleanInstructions).length > 0 ? cleanInstructions : { da: [] },
         calories: form.calories,
         protein: form.protein,
         fat: form.fat,
@@ -439,11 +464,7 @@ export default function AdminRecipes() {
         servings: form.servings,
         difficulty: form.difficulty,
         image_url: form.image_url || null,
-        tips: form.tips.trim()
-          ? (typeof originalTips === 'object' && originalTips !== null
-            ? { ...originalTips, da: form.tips.trim() }
-            : { da: form.tips.trim() })
-          : null,
+        tips: Object.keys(cleanTips).length > 0 ? cleanTips : null,
         categories: parsedCategories,
         tags: parsedTags,
         published_countries: form.published_countries,
@@ -722,13 +743,13 @@ export default function AdminRecipes() {
           {/* ─── Ingredients ─── */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium">{t('admin.fieldIngredients')}</label>
+              <label className="text-sm font-medium">{t('admin.fieldIngredients')} ({editorLang.toUpperCase()})</label>
               <button onClick={addIngredient} className="text-xs text-accent hover:text-accent/80 flex items-center gap-1">
                 <Plus className="h-3 w-3" /> {t('admin.addIngredient')}
               </button>
             </div>
             <div className="space-y-2">
-              {form.ingredients.map((ing, i) => (
+              {currentIngredients.map((ing, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <input
                     type="number"
@@ -758,7 +779,7 @@ export default function AdminRecipes() {
                     className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     placeholder={t('admin.placeholderFullIngredient')}
                   />
-                  {form.ingredients.length > 1 && (
+                  {currentIngredients.length > 1 && (
                     <button onClick={() => removeIngredient(i)} className="p-1 text-muted-foreground hover:text-destructive">
                       <Minus className="h-4 w-4" />
                     </button>
@@ -771,13 +792,13 @@ export default function AdminRecipes() {
           {/* ─── Instructions ─── */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium">{t('admin.fieldInstructions')}</label>
+              <label className="text-sm font-medium">{t('admin.fieldInstructions')} ({editorLang.toUpperCase()})</label>
               <button onClick={addInstruction} className="text-xs text-accent hover:text-accent/80 flex items-center gap-1">
                 <Plus className="h-3 w-3" /> {t('admin.addStep')}
               </button>
             </div>
             <div className="space-y-2">
-              {form.instructions.map((inst, i) => (
+              {currentInstructions.map((inst, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground mt-0.5">
                     {i + 1}
@@ -789,7 +810,7 @@ export default function AdminRecipes() {
                     className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-y"
                     placeholder={`${t('admin.stepPlaceholder')} ${i + 1}`}
                   />
-                  {form.instructions.length > 1 && (
+                  {currentInstructions.length > 1 && (
                     <button onClick={() => removeInstruction(i)} className="p-1 mt-1 text-muted-foreground hover:text-destructive">
                       <Minus className="h-4 w-4" />
                     </button>
@@ -855,10 +876,10 @@ export default function AdminRecipes() {
 
           {/* Tips */}
           <div>
-            <label className="block text-xs font-medium mb-1">{t('admin.fieldTips')}</label>
+            <label className="block text-xs font-medium mb-1">{t('admin.fieldTips')} ({editorLang.toUpperCase()})</label>
             <textarea
-              value={form.tips}
-              onChange={e => setForm(prev => ({ ...prev, tips: e.target.value }))}
+              value={form.tips[editorLang] || ''}
+              onChange={e => setForm(prev => ({ ...prev, tips: { ...prev.tips, [editorLang]: e.target.value } }))}
               rows={3}
               placeholder={t('admin.tipsPlaceholder')}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-y"
