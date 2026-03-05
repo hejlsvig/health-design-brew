@@ -186,7 +186,7 @@ Hosting: `ftp_host`, `ftp_username`, `ftp_password`
 | `/about` | About | Om-side (CMS-redigerbar) |
 | `/privacy` | Privacy | Privatlivspolitik (CMS-redigerbar) |
 | `/terms` | Terms | Servicevilkår (CMS-redigerbar) |
-| `/login` | Login | OTP magic link login |
+| `/login` | Login | Dual auth: Magic Link + password login |
 | `/profile` | Profile | Brugerprofil |
 | `*` | NotFound | 404-side |
 
@@ -211,6 +211,14 @@ Hosting: `ftp_host`, `ftp_username`, `ftp_password`
 
 ## Edge Functions (Supabase/Deno)
 
+### I `website-react/supabase/functions/` (nyere)
+| Funktion | Formål | Secrets |
+|----------|--------|---------|
+| `proxy-kieai` | Proxyer Kie.ai Nanobanana Pro API (billedgenerering) | Via `admin_settings` |
+| `proxy-image` | Downloader AI-billeder server-side (CORS workaround) | — |
+| `upload-image-ftp` | Uploader billeder til one.com via FTP | Via `admin_settings` (ftp_*) |
+
+### I `Keto_Calculator_Project/supabase/functions/` (ældre)
 | Funktion | Formål | Secrets |
 |----------|--------|---------|
 | `generate-mealplan` | Proxyer OpenAI kald server-side (API key aldrig i browser) | `OPENAI_API_KEY` |
@@ -384,8 +392,15 @@ Det deler Supabase-database med React-appen og serveres via Vite proxy i dev.
 | AI Content | ✅ Komplet | `lib/chatai.ts`, `lib/kieai.ts`, `lib/openai.ts` | ⚠️ Tæt koblet |
 | Calculator | ✅ Komplet | `pages/Calculator.tsx`, `lib/calculator.ts` | ⚠️ Tæt koblet |
 | Auth | ✅ Komplet | `contexts/AuthContext.tsx` | ⚠️ Core platform |
+| Image Upload (FTP) | ✅ Komplet | `functions/upload-image-ftp/`, `AiImageGenerator.tsx` | ✅ Selvstændigt |
 
 **Næste skridt:** Når Social Publisher er færdigbygget, refaktorér det som det første ægte modul med sin egen mappestruktur. Brug det som template for at modularisere resten.
+
+### Seneste ændringer (marts 2026)
+- **Dual auth**: Login understøtter nu Magic Link + password. Profil-siden har "Opret adgangskode"-sektion.
+- **CRM tilgængelig**: AdminDashboard linker korrekt til `/admin/crm`. CRM-ikon i navbar for admins.
+- **FTP image upload**: Ny Edge Function `upload-image-ftp` — AI-genererede billeder uploades direkte til one.com via FTP.
+- **PubMed-artikler**: 3 forskningsartikler tilføjet (anti-inflammatorisk kost, metabolisk skift, kunstige sødestoffer).
 
 ---
 
@@ -397,7 +412,7 @@ Det deler Supabase-database med React-appen og serveres via Vite proxy i dev.
 4. **Backend** — Express.js serveren bruges primært til email og legacy API; de fleste nye features bruger Edge Functions
 5. **Manglende tests** — Ingen unit tests endnu; health check er eneste automatiserede QA
 6. **Staging miljø** — Alt deployes direkte til produktion; ingen staging
-7. **GDPR "Slet min konto"** — Endnu ikke implementeret som bruger-facing feature
+7. **GDPR "Slet min konto"** — Implementeret i Profile.tsx (anonymiserer profil + sign out)
 
 ---
 
@@ -407,5 +422,5 @@ Det deler Supabase-database med React-appen og serveres via Vite proxy i dev.
 2. **Modularisér Social Publisher** — Første ægte modul med isoleret mappestruktur
 3. **Brug modulet som template** til at refaktorere andre features
 4. **Staging miljø** — Separat deploy-target for test
-5. **GDPR selvbetjening** — "Slet min konto" for brugere
+5. ~~**GDPR selvbetjening**~~ — ✅ Implementeret (Profile.tsx: eksporter data + slet konto)
 6. **Unit tests** — Vitest for kritiske lib-funktioner

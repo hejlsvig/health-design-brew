@@ -72,7 +72,7 @@ export async function fetchLeads(filters?: {
     .from('lead_status')
     .select(`
       *,
-      profile:profiles!lead_status_user_id_fkey (
+      profile:profiles (
         email, name, language, daily_calories, tdee,
         newsletter_consent, marketing_consent, coaching_contact_consent,
         created_at
