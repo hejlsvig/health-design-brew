@@ -42,14 +42,14 @@ async function getKieaiApiKey(authHeader: string): Promise<string | null> {
     return null
   }
 
-  // Check admin status
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
+  // Check admin status via crm_users (matches frontend AuthContext logic)
+  const { data: crmUser } = await supabase
+    .from('crm_users')
+    .select('role, active')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.is_admin) {
+  if (!crmUser || crmUser.role !== 'admin' || !crmUser.active) {
     return null
   }
 
@@ -76,12 +76,12 @@ serve(async (req) => {
     const apiKey = await getKieaiApiKey(authHeader)
     if (!apiKey) {
       return jsonResponse({
-        error: 'Ikke autoriseret eller Kie.ai API key mangler. GÃ¥ til Admin â Indstillinger.',
+        error: 'Ikke autoriseret eller Kie.ai API key mangler.',
         code: 'AUTH_OR_KEY_MISSING',
       }, 401)
     }
 
-    // ââ createTask ââ
+    // -- createTask --
     if (action === 'createTask') {
       if (!prompt) {
         return jsonResponse({ error: 'Manglende prompt parameter' }, 400)
@@ -128,7 +128,7 @@ serve(async (req) => {
         data = JSON.parse(responseText)
       } catch {
         return jsonResponse({
-          error: `Kie.ai returnerede ugyldigt JSON`,
+          error: 'Kie.ai returnerede ugyldigt JSON',
           code: 'KIEAI_INVALID_JSON',
         }, 502)
       }
@@ -151,7 +151,7 @@ serve(async (req) => {
       return jsonResponse({ taskId: resultTaskId })
     }
 
-    // ââ recordInfo (poll) ââ
+    // -- recordInfo (poll) --
     if (action === 'recordInfo') {
       if (!taskId) {
         return jsonResponse({ error: 'Manglende taskId parameter' }, 400)

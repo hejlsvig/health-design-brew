@@ -3,8 +3,8 @@
  * Uses Gemini 3.0 Pro via Kie.ai's API.
  *
  * Flow:
- * 1. generateImagePrompt() â uses OpenAI to create a visual prompt from article content
- * 2. generateImage() â sends prompt to proxy-kieai Edge Function, polls for result, returns image URL
+ * 1. generateImagePrompt() - uses OpenAI to create a visual prompt from article content
+ * 2. generateImage() - sends prompt to proxy-kieai Edge Function, polls for result, returns image URL
  *
  * All Kie.ai API calls are proxied through a Supabase Edge Function (proxy-kieai)
  * to avoid CORS issues and keep the API key secure.
@@ -13,22 +13,22 @@
 import { getSettings } from './openai'
 import { supabase } from './supabase'
 
-// ââ Constants ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Constants --
 
 const POLL_INTERVAL_MS = 2500
-const MAX_POLL_ATTEMPTS = 30 // 30 Ã 2.5s = 75s max
+const MAX_POLL_ATTEMPTS = 30 // 30 x 2.5s = 75s max
 const FETCH_TIMEOUT_MS = 15000 // 15s timeout for individual API calls
 
-// ââ Types ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Types --
 
 interface TaskResult {
   resultUrls?: string[]
   [key: string]: unknown
 }
 
-// ââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Helpers --
 
-/** Fetch with timeout â prevents hanging requests */
+/** Fetch with timeout - prevents hanging requests */
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
@@ -42,11 +42,11 @@ async function fetchWithTimeout(
     return response
   } catch (err: any) {
     if (err.name === 'AbortError') {
-      throw new Error(`ForespÃ¸rgsel timeout efter ${Math.round(timeoutMs / 1000)} sekunder. Tjek din internetforbindelse og prÃ¸v igen.`)
+      throw new Error(`Forespørgsel timeout efter ${Math.round(timeoutMs / 1000)} sekunder. Tjek din internetforbindelse og prøv igen.`)
     }
     // Provide helpful error for CORS/network issues
     if (err.message === 'Failed to fetch' || err.message?.includes('NetworkError')) {
-      throw new Error('NetvÃ¦rksfejl â kunne ikke oprette forbindelse til serveren. Dette kan skyldes CORS-blokering eller manglende internetforbindelse.')
+      throw new Error('Netværksfejl — kunne ikke oprette forbindelse til serveren. Dette kan skyldes CORS-blokering eller manglende internetforbindelse.')
     }
     throw err
   } finally {
@@ -78,7 +78,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = session?.access_token
 
   if (!token) {
-    throw new Error('Du skal vÃ¦re logget ind som admin for at generere billeder.')
+    throw new Error('Du skal være logget ind som admin for at generere billeder.')
   }
 
   return {
@@ -87,35 +87,35 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   }
 }
 
-// ââ Image Prompt Generation (via OpenAI) âââââââââââââââââââââââââââââ
+// -- Image Prompt Generation (via OpenAI) --
 
 const IMAGE_PROMPT_SYSTEM_RECIPE = `You are a professional food photography director. Based on the recipe content provided, create a detailed image prompt for AI image generation.
 
-CRITICAL â CULTURAL CONTEXT PRIORITY:
+CRITICAL — CULTURAL CONTEXT PRIORITY:
 The "Categories / Tags" field is THE most important signal for the cultural setting and styling.
-If a tag says "Fransk" or "French" â the image MUST have a French aesthetic.
-If a tag says "Italiensk" or "Italian" â the image MUST have an Italian aesthetic.
+If a tag says "Fransk" or "French" — the image MUST have a French aesthetic.
+If a tag says "Italiensk" or "Italian" — the image MUST have an Italian aesthetic.
 Tags override any assumptions you might make from the dish name or ingredients alone.
 
 CULTURAL STYLING GUIDE:
-  â¢ French (Fransk) â marble or zinc bistro table, linen napkin, rustic baguette nearby, soft Parisian window light, muted tones, elegant but effortless plating, wine glass or carafe in background
-  â¢ Italian (Italiensk) â rustic olive-wood table, terracotta tiles, warm golden light, fresh herbs, Mediterranean feel
-  â¢ Danish / Nordic summer â bright white garden table, green surroundings, natural daylight, wildflowers
-  â¢ Nordic winter / Heavy Nordic â dark wooden table, candlelight, cozy hygge atmosphere, wool textures
-  â¢ Asian (Asiatisk) â minimalist setting, bamboo elements, black/white contrast, clean lines
-  â¢ Mexican (Mexicansk) â colorful tiles, terracotta, bright natural light, lime wedges, cilantro sprigs
-  â¢ Middle Eastern (MellemÃ¸stlig) â ornate brass tray, warm spice tones, pomegranate seeds, rustic stone surface
-  â¢ General keto â clean modern kitchen, marble countertop, fresh colorful ingredients, bright light
+  - French (Fransk) — marble or zinc bistro table, linen napkin, rustic baguette nearby, soft Parisian window light, muted tones, elegant but effortless plating, wine glass or carafe in background
+  - Italian (Italiensk) — rustic olive-wood table, terracotta tiles, warm golden light, fresh herbs, Mediterranean feel
+  - Danish / Nordic summer — bright white garden table, green surroundings, natural daylight, wildflowers
+  - Nordic winter / Heavy Nordic — dark wooden table, candlelight, cozy hygge atmosphere, wool textures
+  - Asian (Asiatisk) — minimalist setting, bamboo elements, black/white contrast, clean lines
+  - Mexican (Mexicansk) — colorful tiles, terracotta, bright natural light, lime wedges, cilantro sprigs
+  - Middle Eastern (Mellemøstlig) — ornate brass tray, warm spice tones, pomegranate seeds, rustic stone surface
+  - General keto — clean modern kitchen, marble countertop, fresh colorful ingredients, bright light
 
-COMPOSITION â TEXT OVERLAY ZONE:
+COMPOSITION — TEXT OVERLAY ZONE:
 The LEFT ~40% of the image will have a title/text overlay on the website's full-size view.
 Therefore: place the main subject (the dish) in the CENTER or RIGHT side of the frame.
-The LEFT side should be kept relatively simple â soft background, blurred elements, dark/moody tones, or empty surface â so white text remains readable on top of it.
+The LEFT side should be kept relatively simple — soft background, blurred elements, dark/moody tones, or empty surface — so white text remains readable on top of it.
 Think of it like a magazine layout: the hero food is right-of-center, and the left has breathing room for a headline.
 
 RULES:
-- Describe a realistic, beautiful food photograph â NOT text, graphics, or illustrations
-- Focus on the dish itself â plating, garnish, steam, textures, surrounding ingredients
+- Describe a realistic, beautiful food photograph — NOT text, graphics, or illustrations
+- Focus on the dish itself — plating, garnish, steam, textures, surrounding ingredients
 - Include: lighting style, table/surface material, background, food styling, color palette
 - The prompt MUST be in English
 - Maximum 200 words
@@ -130,40 +130,40 @@ The website covers: keto diets, fasting (intermittent fasting, prolonged fasting
 
 ARTICLE IMAGE PHILOSOPHY:
 Articles are NOT recipes. They are about research, studies, guides, science, and lifestyle concepts.
-The image should be CONCEPTUAL and EDITORIAL â like a striking magazine cover or feature article hero image.
-Think editorial photography, conceptual still life, or atmospheric mood shots â NOT food plating on a table.
+The image should be CONCEPTUAL and EDITORIAL — like a striking magazine cover or feature article hero image.
+Think editorial photography, conceptual still life, or atmospheric mood shots — NOT food plating on a table.
 
 STYLE APPROACHES (choose the best fit based on the article topic):
 
 For RESEARCH / STUDY articles (comparisons, clinical trials, meta-analyses):
-  â Abstract conceptual imagery: e.g. two contrasting paths, a fork in the road, symbolic objects representing the study's comparison
-  â Scientific editorial: laboratory glassware with colorful liquids, petri dishes with food elements, a scale balancing different foods
-  â Data-inspired: geometric patterns, flowing organic shapes suggesting graphs or trends, clean minimalist compositions
+  - Abstract conceptual imagery: e.g. two contrasting paths, a fork in the road, symbolic objects representing the study's comparison
+  - Scientific editorial: laboratory glassware with colorful liquids, petri dishes with food elements, a scale balancing different foods
+  - Data-inspired: geometric patterns, flowing organic shapes suggesting graphs or trends, clean minimalist compositions
 
 For FASTING articles:
-  â Empty plate on a beautiful surface with dramatic lighting, a single glass of water, an hourglass, sunrise through a window with an empty kitchen
-  â Time-focused: clock elements, transitions from dark to light, dawn/dusk atmosphere
-  â Minimalism and negative space â the emptiness IS the subject
+  - Empty plate on a beautiful surface with dramatic lighting, a single glass of water, an hourglass, sunrise through a window with an empty kitchen
+  - Time-focused: clock elements, transitions from dark to light, dawn/dusk atmosphere
+  - Minimalism and negative space — the emptiness IS the subject
 
 For KETO / LOW-CARB LIFESTYLE articles:
-  â Abundance of healthy fats: avocados, olive oil, nuts â but shot as an artistic arrangement, almost abstract
-  â Macro close-ups: the texture of an avocado half, oil droplets, cross-section of a nut
-  â Lifestyle mood: morning coffee with butter, a calm kitchen scene at golden hour
+  - Abundance of healthy fats: avocados, olive oil, nuts — but shot as an artistic arrangement, almost abstract
+  - Macro close-ups: the texture of an avocado half, oil droplets, cross-section of a nut
+  - Lifestyle mood: morning coffee with butter, a calm kitchen scene at golden hour
 
 For WEIGHT LOSS / BODY COMPOSITION articles:
-  â Symbolic: a measuring tape loosely coiled, a before/after concept with light, transformation imagery
-  â Movement and energy: blurred motion, dynamic lighting, sense of progress
-  â Nature and renewal: fresh morning light, open spaces, sense of freedom
+  - Symbolic: a measuring tape loosely coiled, a before/after concept with light, transformation imagery
+  - Movement and energy: blurred motion, dynamic lighting, sense of progress
+  - Nature and renewal: fresh morning light, open spaces, sense of freedom
 
 For LONGEVITY / HEALTH SCIENCE:
-  â Timeless imagery: hourglasses, sundials, tree rings, flowing water
-  â Vitality: vibrant colors, fresh natural elements, sense of energy and youth
-  â Lab-meets-nature: scientific elements alongside organic, natural materials
+  - Timeless imagery: hourglasses, sundials, tree rings, flowing water
+  - Vitality: vibrant colors, fresh natural elements, sense of energy and youth
+  - Lab-meets-nature: scientific elements alongside organic, natural materials
 
-COMPOSITION â TEXT OVERLAY ZONE:
+COMPOSITION — TEXT OVERLAY ZONE:
 The LEFT ~40% of the image will have a title/text overlay on the website's full-size view.
 Therefore: place the main focal point in the CENTER or RIGHT side of the frame.
-The LEFT side should be kept subdued â darker tones, soft gradients, out-of-focus areas, negative space, or simple textures â so white text remains readable on top of it.
+The LEFT side should be kept subdued — darker tones, soft gradients, out-of-focus areas, negative space, or simple textures — so white text remains readable on top of it.
 Think of it like a magazine spread: the visual impact is right-of-center, and the left provides a calm backdrop for the headline.
 
 RULES:
@@ -190,7 +190,7 @@ export async function generateImagePrompt(
   const settings = await getSettings()
 
   if (!settings.openai_api_key) {
-    throw new Error('OpenAI API key mangler. GÃ¥ til Admin â Indstillinger for at tilfÃ¸je den.')
+    throw new Error('OpenAI API key mangler. Gå til Admin → Indstillinger for at tilføje den.')
   }
 
   // Strip HTML tags for cleaner input
@@ -199,7 +199,7 @@ export async function generateImagePrompt(
 
   const userPrompt = `Content type: ${contentType}
 Title: ${title}
-${categories.length > 0 ? `Categories / Tags (IMPORTANT â use these to determine the cultural setting): ${categories.join(', ')}` : ''}
+${categories.length > 0 ? `Categories / Tags (IMPORTANT — use these to determine the cultural setting): ${categories.join(', ')}` : ''}
 
 Content:
 ${trimmed}
@@ -240,7 +240,7 @@ Generate a detailed image prompt for this ${contentType === 'recipe' ? 'recipe' 
   return prompt
 }
 
-// ââ Image Generation (via proxy-kieai Edge Function) âââââââââââââââââ
+// -- Image Generation (via proxy-kieai Edge Function) --
 
 /**
  * Generates an image via the proxy-kieai Edge Function.
@@ -275,7 +275,7 @@ export async function generateImage(
 
     // Provide helpful messages for common errors
     if (createResponse.status === 401) {
-      throw new Error('Ikke autoriseret. Tjek at du er logget ind som admin og at Kie.ai API key er korrekt konfigureret i Admin â Indstillinger.')
+      throw new Error('Ikke autoriseret. Tjek at du er logget ind som admin og at Kie.ai API key er korrekt konfigureret i Admin → Indstillinger.')
     }
     if (createData?.code === 'KIEAI_CREATE_FAILED') {
       throw new Error(`Kie.ai kunne ikke oprette opgaven: ${errorMsg}. Tjek at din API key er gyldig.`)
@@ -340,7 +340,7 @@ async function pollForResult(
       try {
         result = JSON.parse(resultJson)
       } catch {
-        throw new Error('Kunne ikke lÃ¦se billedgenereringsresultatet')
+        throw new Error('Kunne ikke læse billedgenereringsresultatet')
       }
 
       const imageUrl = result.resultUrls?.[0]
@@ -355,10 +355,10 @@ async function pollForResult(
       throw new Error(`Billedgenerering fejlede: ${failMsg}`)
     }
 
-    // 'waiting', 'pending', or 'processing' â continue polling
+    // 'waiting', 'pending', or 'processing' - continue polling
   }
 
-  throw new Error('Timeout: Billedgenerering tog for lang tid (>75 sekunder). PrÃ¸v igen â serveren kan vÃ¦re overbelastet.')
+  throw new Error('Timeout: Billedgenerering tog for lang tid (>75 sekunder). Prøv igen — serveren kan være overbelastet.')
 }
 
 function sleep(ms: number): Promise<void> {
