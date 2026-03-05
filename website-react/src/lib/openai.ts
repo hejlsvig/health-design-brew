@@ -61,16 +61,28 @@ export async function getSettings(): Promise<AiSettings> {
 
 /** Save a single setting to Supabase */
 export async function saveSetting(key: string, value: string, userId?: string) {
-  const { error } = await supabase
+  const { data, error, status } = await supabase
     .from('admin_settings')
     .upsert(
       { key, value, updated_at: new Date().toISOString(), updated_by: userId || null },
       { onConflict: 'key' }
     )
+    .select('key, value')
 
   if (error) {
-    console.error('[Settings] Save error:', error)
-    throw new Error(error.message)
+    console.error(`[Settings] Save error for "${key}":`, error)
+    throw new Error(`Kunne ikke gemme "${key}": ${error.message}`)
+  }
+
+  // RLS can silently block writes — verify data was actually saved
+  if (!data || data.length === 0) {
+    console.error(`[Settings] Save for "${key}" returned no data (status ${status}). RLS may be blocking writes.`)
+    throw new Error(`Kunne ikke gemme "${key}": Ingen data returneret. Din session kan være udløbet — prøv at logge ind igen.`)
+  }
+
+  // Verify the saved value matches what we sent
+  if (data[0]?.value !== value) {
+    console.warn(`[Settings] Value mismatch for "${key}": sent "${value.substring(0, 10)}...", got "${data[0]?.value?.substring(0, 10)}..."`)
   }
 }
 

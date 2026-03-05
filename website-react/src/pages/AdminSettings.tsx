@@ -233,6 +233,15 @@ export default function AdminSettings() {
     setSaved(false)
 
     try {
+      // Refresh session to ensure auth token is valid before saving
+      const { error: refreshError } = await supabase.auth.refreshSession()
+      if (refreshError) {
+        console.error('[Settings] Session refresh failed:', refreshError)
+        setError('Din session er udløbet. Log venligst ind igen.')
+        setSaving(false)
+        return
+      }
+
       // Only save API key if user actually changed it (not the masked version)
       if (apiKey && !apiKey.startsWith('sk-••••')) {
         if (!apiKey.startsWith('sk-')) {
