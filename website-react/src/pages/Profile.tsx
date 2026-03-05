@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { User, Utensils, Download, Flame, Activity, Scale, Mail, Clock, Heart, X, Shield, Bell, MessageSquare, Loader2, Trash2 } from 'lucide-react'
+import { User, Utensils, Download, Flame, Activity, Scale, Mail, Clock, Heart, X, Shield, Bell, MessageSquare, Loader2, Trash2, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 
@@ -177,6 +177,9 @@ export default function Profile() {
         </div>
       )}
 
+      {/* Set Password */}
+      <PasswordSection />
+
       {/* Consent & Communication Settings */}
       <ConsentManagement user={user} profile={profile} t={t} />
 
@@ -185,6 +188,120 @@ export default function Profile() {
 
       {/* GDPR Actions */}
       <GdprActions user={user} t={t} />
+    </div>
+  )
+}
+
+/* ─── Set Password Component ─── */
+function PasswordSection() {
+  const { updatePassword } = useAuth()
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setSuccess(false)
+
+    if (newPassword.length < 6) {
+      setError('Adgangskoden skal være mindst 6 tegn.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Adgangskoderne matcher ikke.')
+      return
+    }
+
+    setSaving(true)
+    const { error: updateError } = await updatePassword(newPassword)
+
+    if (updateError) {
+      setError(updateError.message)
+    } else {
+      setSuccess(true)
+      setNewPassword('')
+      setConfirmPassword('')
+      setTimeout(() => setSuccess(false), 4000)
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div className="mt-6 rounded-md border border-border bg-card p-6 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <Lock className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="font-serif font-bold text-lg">Adgangskode</h2>
+          <p className="text-sm text-muted-foreground">
+            Opret eller skift din adgangskode for direkte login
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-3 max-w-sm">
+        <div className="space-y-1.5">
+          <label htmlFor="new-password" className="text-sm font-medium">
+            Ny adgangskode
+          </label>
+          <div className="relative">
+            <input
+              id="new-password"
+              type={showPassword ? 'text' : 'password'}
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Mindst 6 tegn"
+              required
+              className="w-full h-10 rounded-md border border-input bg-background px-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="confirm-password" className="text-sm font-medium">
+            Bekræft adgangskode
+          </label>
+          <input
+            id="confirm-password"
+            type={showPassword ? 'text' : 'password'}
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder="Gentag adgangskoden"
+            required
+            className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {success && (
+          <p className="text-sm text-green-600 flex items-center gap-1">
+            <CheckCircle className="h-4 w-4" />
+            Adgangskode opdateret!
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-bold hover:bg-accent/90 transition-colors disabled:opacity-50"
+        >
+          {saving ? 'Gemmer...' : 'Gem adgangskode'}
+        </button>
+      </form>
     </div>
   )
 }

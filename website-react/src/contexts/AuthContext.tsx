@@ -31,6 +31,8 @@ interface AuthContextType {
   isAdmin: boolean
   loading: boolean
   signInWithOtp: (email: string) => Promise<{ error: Error | null }>
+  signInWithPassword: (email: string, password: string) => Promise<{ error: Error | null }>
+  updatePassword: (newPassword: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -152,6 +154,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null }
   }
 
+  const signInWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (error) {
+      try {
+        await supabase.from('consent_log').insert({
+          consent_type: 'login_failed',
+          granted: false,
+          source: 'auth_password',
+          ip_address: null,
+          details: JSON.stringify({
+            email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
+            error: error.message,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent.substring(0, 200),
+          }),
+        })
+      } catch {
+        // Silent — logging must never block UX
+      }
+    }
+
+    return { error: error as Error | null }
+  }
+
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    return { error: error as Error | null }
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setProfile(null)
@@ -166,7 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, isAdmin, loading, signInWithOtp, signOut, refreshProfile }}
+      value={{ user, session, profile, isAdmin, loading, signInWithOtp, signInWithPassword, updatePassword, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

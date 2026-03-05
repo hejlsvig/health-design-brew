@@ -88,7 +88,7 @@ export default function AiImageGenerator({
     }
   }
 
-  // ── Step 4: Accept → process + upload to Supabase ──
+  // ── Step 4: Accept → process + upload via FTP to one.com ──
 
   /**
    * Downloads a remote image via the proxy-image Edge Function (bypasses CORS).
@@ -132,6 +132,46 @@ export default function AiImageGenerator({
     return await directResponse.blob()
   }
 
+  /**
+   * Upload processed image to one.com via the upload-image-ftp Edge Function.
+   * Falls back to direct Kie.ai URL upload if processing fails.
+   */
+  const uploadViaFtp = async (imageUrl: string, _processedBlob: Blob, ext: string): Promise<string> => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const session = (await supabase.auth.getSession()).data.session
+
+    if (!session?.access_token) {
+      throw new Error('Ikke logget ind — log ind igen og prøv igen.')
+    }
+
+    const folder = contentType === 'recipe' ? 'recipes' : 'articles'
+    const filename = `ai-${Date.now()}.${ext}`
+
+    // Strategy 1: Try FTP upload via Edge Function (sends image URL for server-side download)
+    console.log('[AiImageGen] Uploading via FTP Edge Function...')
+    const response = await fetch(`${supabaseUrl}/functions/v1/upload-image-ftp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ url: imageUrl, folder, filename }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
+      throw new Error(errorData.error || `FTP upload failed: ${response.status}`)
+    }
+
+    const result = await response.json()
+    if (!result.publicUrl) {
+      throw new Error('Ingen public URL returneret fra FTP upload')
+    }
+
+    console.log('[AiImageGen] FTP upload success:', result.publicUrl)
+    return result.publicUrl
+  }
+
   const handleAcceptImage = async () => {
     if (!previewUrl) return
 
@@ -148,23 +188,12 @@ export default function AiImageGenerator({
       const options = getProcessingOptions(context)
       const processed = await processImage(file, options)
 
-      // 3. Upload to Supabase
-      const folder = contentType === 'recipe' ? 'recipes' : 'articles'
+      // 3. Upload to one.com via FTP Edge Function
       const ext = processed.format === 'webp' ? 'webp' : 'jpg'
-      const timestamp = Date.now()
-      const filePath = `${folder}/ai-${timestamp}.${ext}`
-
-      const { data, error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, processed.blob, { cacheControl: '3600', upsert: false })
-
-      if (uploadError) throw uploadError
-
-      const { data: urlData } = supabase.storage.from('images').getPublicUrl(data.path)
-      if (!urlData?.publicUrl) throw new Error('Kunne ikke hente offentlig URL for billedet')
+      const publicUrl = await uploadViaFtp(previewUrl, processed.blob, ext)
 
       // 4. Clean up and notify parent
-      onImageGenerated(urlData.publicUrl)
+      onImageGenerated(publicUrl)
 
       // Reset state
       setStep('idle')
