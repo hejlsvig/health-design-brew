@@ -13,7 +13,7 @@ import ImagePreviewWithSafeZone from '@/components/ImagePreviewWithSafeZone'
 import AiImageGenerator from '@/components/AiImageGenerator'
 import SocialShareModal from '@/components/SocialShareModal'
 
-/* ─── types ─── */
+/* âââ types âââ */
 interface Recipe {
   id: string
   slug: string
@@ -33,8 +33,8 @@ interface Recipe {
   servings: number | null
   difficulty: string | null
   image_url: string | null
-  categories: string[]
-  tags: string[]
+  categories: string[] | Record<string, string[]>
+  tags: string[] | Record<string, string[]>
   published_countries: string[]
   status: string
   featured: boolean
@@ -57,7 +57,7 @@ interface Instruction {
   step_text: string
 }
 
-/* (resolveIngredients / resolveInstructions / wrapMultiLang removed — multi-lang editing is now native) */
+/* (resolveIngredients / resolveInstructions / wrapMultiLang removed â multi-lang editing is now native) */
 
 type EditorRecipe = {
   slug: string
@@ -75,8 +75,8 @@ type EditorRecipe = {
   servings: number | null
   difficulty: string
   image_url: string
-  categories: string[]
-  tags: string[]
+  categories: Record<string, string[]>
+  tags: Record<string, string[]>
   published_countries: string[]
   status: string
   featured: boolean
@@ -102,8 +102,8 @@ const EMPTY_RECIPE: EditorRecipe = {
   servings: 1,
   difficulty: 'easy',
   image_url: '',
-  categories: [],
-  tags: [],
+  categories: { da: [], en: [], se: [] },
+  tags: { da: [], en: [], se: [] },
   published_countries: ['dk', 'en', 'se'],
   tips: { da: '', en: '', se: '' },
   status: 'draft',
@@ -175,7 +175,7 @@ export default function AdminRecipes() {
     setLoading(false)
   }
 
-  /* ─── List actions ─── */
+  /* âââ List actions âââ */
 
   const openNew = () => {
     setEditingId(null)
@@ -230,8 +230,8 @@ export default function AdminRecipes() {
       servings: recipe.servings,
       difficulty: recipe.difficulty || 'easy',
       image_url: recipe.image_url || '',
-      categories: recipe.categories || [],
-      tags: recipe.tags || [],
+      categories: normalizeMultiLangArray<string>(recipe.categories as any, []),
+      tags: normalizeMultiLangArray<string>(recipe.tags as any, []),
       published_countries: recipe.published_countries || ['dk', 'en', 'se'],
       tips: normalizeMultiLangString((recipe as any).tips),
       status: recipe.status,
@@ -240,8 +240,10 @@ export default function AdminRecipes() {
       seo_title: recipe.seo_title || { da: '', en: '', se: '' },
       seo_description: recipe.seo_description || { da: '', en: '', se: '' },
     })
-    setTagsInput((recipe.tags || []).join(', '))
-    setCategoriesInput((recipe.categories || []).join(', '))
+    const normCats = normalizeMultiLangArray<string>(recipe.categories as any, [])
+    const normTags = normalizeMultiLangArray<string>(recipe.tags as any, [])
+    setCategoriesInput((normCats['da'] || []).join(', '))
+    setTagsInput((normTags['da'] || []).join(', '))
     setEditorLang('da')
     setError('')
     setView('editor')
@@ -253,16 +255,16 @@ export default function AdminRecipes() {
     setRecipes(prev => prev.filter(r => r.id !== id))
   }
 
-  /* ─── Editor helpers ─── */
+  /* âââ Editor helpers âââ */
 
-  /* ─── Image upload ─── */
+  /* âââ Image upload âââ */
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (uploadingRef.current) return
 
     if (!file.type.startsWith('image/')) { setError(t('admin.errorImageType')); return }
-    if (file.size > 20 * 1024 * 1024) { setError('Billedet skal være under 20 MB'); return }
+    if (file.size > 20 * 1024 * 1024) { setError('Billedet skal vÃ¦re under 20 MB'); return }
 
     uploadingRef.current = true
     setImageProcessing(true)
@@ -315,8 +317,8 @@ export default function AdminRecipes() {
   const generateSlug = (title: string) => {
     return title
       .toLowerCase()
-      .replace(/[æ]/g, 'ae').replace(/[ø]/g, 'oe').replace(/[å]/g, 'aa')
-      .replace(/[ä]/g, 'ae').replace(/[ö]/g, 'oe')
+      .replace(/[Ã¦]/g, 'ae').replace(/[Ã¸]/g, 'oe').replace(/[Ã¥]/g, 'aa')
+      .replace(/[Ã¤]/g, 'ae').replace(/[Ã¶]/g, 'oe')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
   }
@@ -339,11 +341,11 @@ export default function AdminRecipes() {
     return obj?.[editorLang] || ''
   }
 
-  /* ─── Current language helpers ─── */
+  /* âââ Current language helpers âââ */
   const currentIngredients = form.ingredients[editorLang] || [{ full_text: '', name: '' }]
   const currentInstructions = form.instructions[editorLang] || [{ step_number: 1, step_text: '' }]
 
-  /* ─── Ingredient management (language-aware) ─── */
+  /* âââ Ingredient management (language-aware) âââ */
   const updateIngredient = (index: number, field: keyof Ingredient, value: string | number) => {
     setForm(prev => {
       const langData = [...(prev.ingredients[editorLang] || [])]
@@ -381,7 +383,7 @@ export default function AdminRecipes() {
     }))
   }
 
-  /* ─── Instruction management (language-aware) ─── */
+  /* âââ Instruction management (language-aware) âââ */
   const updateInstruction = (index: number, value: string) => {
     setForm(prev => {
       const langData = [...(prev.instructions[editorLang] || [])]
@@ -415,7 +417,7 @@ export default function AdminRecipes() {
     }))
   }
 
-  /* ─── Save ─── */
+  /* âââ Save âââ */
   const handleSave = async () => {
     setError('')
     if (!form.slug) { setError(t('admin.errorSlugRequired')); return }
@@ -423,17 +425,18 @@ export default function AdminRecipes() {
 
     setSaving(true)
     try {
-      const parsedTags = tagsInput.split(',').map(s => s.trim()).filter(Boolean)
-      const parsedCategories = categoriesInput.split(',').map(s => s.trim()).filter(Boolean)
+      // Save current lang's categories/tags into form before building payload
+      const updatedCategories = { ...form.categories, [editorLang]: categoriesInput.split(',').map(s => s.trim()).filter(Boolean) }
+      const updatedTags = { ...form.tags, [editorLang]: tagsInput.split(',').map(s => s.trim()).filter(Boolean) }
 
-      // Clean ingredients per language — remove empty rows
+      // Clean ingredients per language â remove empty rows
       const cleanIngredients: Record<string, Ingredient[]> = {}
       for (const lang of Object.keys(form.ingredients)) {
         const cleaned = (form.ingredients[lang] || []).filter(ing => ing.full_text.trim() || ing.name.trim())
         if (cleaned.length > 0) cleanIngredients[lang] = cleaned
       }
 
-      // Clean instructions per language — remove empty rows
+      // Clean instructions per language â remove empty rows
       const cleanInstructions: Record<string, Instruction[]> = {}
       for (const lang of Object.keys(form.instructions)) {
         const cleaned = (form.instructions[lang] || [])
@@ -442,7 +445,7 @@ export default function AdminRecipes() {
         if (cleaned.length > 0) cleanInstructions[lang] = cleaned
       }
 
-      // Clean tips — only include non-empty languages
+      // Clean tips â only include non-empty languages
       const cleanTips: Record<string, string> = {}
       for (const lang of Object.keys(form.tips)) {
         if (form.tips[lang]?.trim()) cleanTips[lang] = form.tips[lang].trim()
@@ -465,8 +468,8 @@ export default function AdminRecipes() {
         difficulty: form.difficulty,
         image_url: form.image_url || null,
         tips: Object.keys(cleanTips).length > 0 ? cleanTips : null,
-        categories: parsedCategories,
-        tags: parsedTags,
+        categories: updatedCategories,
+        tags: updatedTags,
         published_countries: form.published_countries,
         status: form.status,
         featured: form.featured,
@@ -500,14 +503,14 @@ export default function AdminRecipes() {
     }
   }
 
-  /* ─── Render ─── */
+  /* âââ Render âââ */
 
   if (authLoading || loading) {
     return <div className="container py-20 text-center text-muted-foreground">{t('common.loading')}</div>
   }
   if (!isAdmin) return null
 
-  // ─── Editor View ──────────────────────────────────
+  // âââ Editor View ââââââââââââââââââââââââââââââââââ
   if (view === 'editor') {
     return (
       <div className="container py-8 max-w-4xl">
@@ -533,7 +536,20 @@ export default function AdminRecipes() {
             {LANGS.map(l => (
               <button
                 key={l.code}
-                onClick={() => setEditorLang(l.code)}
+                onClick={() => {
+                  // Save current lang's categories/tags before switching
+                  const curCats = categoriesInput.split(',').map(s => s.trim()).filter(Boolean)
+                  const curTags = tagsInput.split(',').map(s => s.trim()).filter(Boolean)
+                  setForm(prev => ({
+                    ...prev,
+                    categories: { ...prev.categories, [editorLang]: curCats },
+                    tags: { ...prev.tags, [editorLang]: curTags },
+                  }))
+                  // Load new lang's values
+                  setCategoriesInput((form.categories[l.code] || []).join(', '))
+                  setTagsInput((form.tags[l.code] || []).join(', '))
+                  setEditorLang(l.code)
+                }}
                 className={cn(
                   'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
                   editorLang === l.code
@@ -690,7 +706,7 @@ export default function AdminRecipes() {
                   ) : imageUploading ? (
                     <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">{t('admin.uploading')}</span></>
                   ) : (
-                    <><ImagePlus className="h-6 w-6" /><span className="text-sm">{t('admin.clickToUpload')}</span><span className="text-xs">Resizes automatisk — JPG, PNG, WebP</span></>
+                    <><ImagePlus className="h-6 w-6" /><span className="text-sm">{t('admin.clickToUpload')}</span><span className="text-xs">Resizes automatisk â JPG, PNG, WebP</span></>
                   )}
                 </button>
                 <input
@@ -706,7 +722,7 @@ export default function AdminRecipes() {
                   contentType="recipe"
                   title={form.title[editorLang] || form.title.da || ''}
                   content={form.description?.[editorLang] || form.description?.da || ''}
-                  categories={[...form.categories, ...form.tags]}
+                  categories={[...(form.categories[editorLang] || form.categories['da'] || []), ...(form.tags[editorLang] || form.tags['da'] || [])]}
                   aspectRatio="4:3"
                   onImageGenerated={(url) => setForm(prev => ({ ...prev, image_url: url }))}
                 />
@@ -717,7 +733,7 @@ export default function AdminRecipes() {
           {/* Categories + Tags */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">{t('admin.fieldCategories')}</label>
+              <label className="block text-sm font-medium mb-1">{t('admin.fieldCategories')} ({editorLang.toUpperCase()})</label>
               <input
                 type="text"
                 value={categoriesInput}
@@ -728,7 +744,7 @@ export default function AdminRecipes() {
               <p className="text-xs text-muted-foreground mt-1">{t('admin.commaSeparatedHint')}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{t('admin.fieldTags')}</label>
+              <label className="block text-sm font-medium mb-1">{t('admin.fieldTags')} ({editorLang.toUpperCase()})</label>
               <input
                 type="text"
                 value={tagsInput}
@@ -740,7 +756,7 @@ export default function AdminRecipes() {
             </div>
           </div>
 
-          {/* ─── Ingredients ─── */}
+          {/* âââ Ingredients âââ */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="text-sm font-medium">{t('admin.fieldIngredients')} ({editorLang.toUpperCase()})</label>
@@ -789,7 +805,7 @@ export default function AdminRecipes() {
             </div>
           </div>
 
-          {/* ─── Instructions ─── */}
+          {/* âââ Instructions âââ */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="text-sm font-medium">{t('admin.fieldInstructions')} ({editorLang.toUpperCase()})</label>
@@ -820,7 +836,7 @@ export default function AdminRecipes() {
             </div>
           </div>
 
-          {/* ─── Nutrition ─── */}
+          {/* âââ Nutrition âââ */}
           <div>
             <label className="text-sm font-medium block mb-3">{t('admin.fieldNutrition')}</label>
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
@@ -913,7 +929,7 @@ export default function AdminRecipes() {
                     className="inline-flex h-10 items-center gap-2 px-4 rounded-md bg-accent/10 border border-accent/30 text-accent text-sm font-medium hover:bg-accent/20 transition-colors"
                   >
                     <Share2 className="h-4 w-4" />
-                    Del på Social
+                    Del pÃ¥ Social
                   </button>
                 )}
                 <a
@@ -936,8 +952,8 @@ export default function AdminRecipes() {
               contentType: 'recipe',
               title: form.title[editorLang] || form.title.da || '',
               summary: form.description?.[editorLang] || form.description?.da || '',
-              categories: form.categories || [],
-              tags: form.tags || [],
+              categories: form.categories[editorLang] || form.categories['da'] || [],
+              tags: form.tags[editorLang] || form.tags['da'] || [],
               featuredImageUrl: form.image_url || undefined,
               articleId: editingId || undefined,
               url: form.slug ? `${window.location.origin}/recipes?recipe=${form.slug}` : undefined,
@@ -955,7 +971,7 @@ export default function AdminRecipes() {
     )
   }
 
-  // ─── List View ──────────────────────────────────────
+  // âââ List View ââââââââââââââââââââââââââââââââââââââ
   return (
     <div className="container py-8 max-w-5xl">
       <div className="flex items-center justify-between mb-8">
@@ -1000,7 +1016,10 @@ export default function AdminRecipes() {
                         <Star className="h-3 w-3 fill-amber-500" />{t('admin.featured')}
                       </span>
                     )}
-                    {(recipe.categories || []).map(cat => (
+                    {(Array.isArray(recipe.categories)
+                      ? recipe.categories
+                      : (recipe.categories as any)?.['da'] || []
+                    ).map((cat: string) => (
                       <span key={cat} className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/10 text-accent">
                         {cat}
                       </span>
@@ -1010,7 +1029,7 @@ export default function AdminRecipes() {
                     {recipe.title?.da || recipe.title?.en || t('admin.untitled')}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    /{recipe.slug} — {recipe.total_time ? `${recipe.total_time} min` : ''} — {recipe.calories ? `${recipe.calories} kcal` : ''}
+                    /{recipe.slug} â {recipe.total_time ? `${recipe.total_time} min` : ''} â {recipe.calories ? `${recipe.calories} kcal` : ''}
                   </p>
                 </div>
               </div>
