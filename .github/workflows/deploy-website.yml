@@ -10,7 +10,7 @@ on:
     paths:
       - 'website-react/**'
       - '.github/workflows/deploy-website.yml'
-  workflow_dispatch: # Allow manual trigge
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   build-and-deploy:
@@ -46,12 +46,6 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy to SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
-        with:
-          server: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          port: 22
-          local_path: ./website-react/dist/
-          remote_path: ./webroots/by-route/shiftingsource.com_/
-          sftp_only: true
+        run: |
+          sudo apt-get install -y lftp
+          lftp -u ${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }} sftp://${{ secrets.SFTP_HOST }} -e "set sftp:auto-confirm yes; mirror -R --verbose --delete dist/ webroots/by-route/shiftingsource.com_/; quit"
