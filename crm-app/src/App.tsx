@@ -11,6 +11,11 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Leads = lazy(() => import('@/pages/Leads'))
 const LeadDetail = lazy(() => import('@/pages/LeadDetail'))
 const Coaching = lazy(() => import('@/pages/Coaching'))
+const Checkins = lazy(() => import('@/pages/Checkins'))
+const EmailAutomation = lazy(() => import('@/pages/EmailAutomation'))
+const Notes = lazy(() => import('@/pages/Notes'))
+const CrmUsers = lazy(() => import('@/pages/CrmUsers'))
+const CrmSettings = lazy(() => import('@/pages/CrmSettings'))
 const ComingSoon = lazy(() => import('@/pages/ComingSoon'))
 
 const LoadingFallback = (
@@ -34,14 +39,14 @@ export default function App() {
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/:id" element={<LeadDetail />} />
               <Route path="/coaching" element={<Coaching />} />
-              <Route path="/coaching/:id" element={<ComingSoon title="coaching" />} />
-              <Route path="/checkins" element={<ComingSoon title="checkins" />} />
+              <Route path="/coaching/:id" element={<LeadDetail />} />
+              <Route path="/checkins" element={<Checkins />} />
               <Route path="/mealplans" element={<ComingSoon title="mealplans" />} />
-              <Route path="/automation" element={<ComingSoon title="automation" />} />
-              <Route path="/emails" element={<ComingSoon title="emails" />} />
-              <Route path="/notes" element={<ComingSoon title="notes" />} />
-              <Route path="/users" element={<ComingSoon title="users" />} />
-              <Route path="/settings" element={<ComingSoon title="settings" />} />
+              <Route path="/automation" element={<EmailAutomation />} />
+              <Route path="/emails" element={<EmailAutomation />} />
+              <Route path="/notes" element={<Notes />} />
+              <Route path="/users" element={<CrmUsers />} />
+              <Route path="/settings" element={<CrmSettings />} />
             </Route>
           </Routes>
         </Suspense>

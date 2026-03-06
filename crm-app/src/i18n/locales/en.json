@@ -70,6 +70,11 @@
       "profile": "Profile",
       "nutrition": "Nutrition",
       "coaching": "Coaching",
+      "subscription": "Subscription",
+      "emailHistory": "Email History",
+      "mealPlans": "Meal Plans",
+      "favorites": "Favorites",
+      "payment": "Payment",
       "activity": "Activity",
       "consent": "Consent"
     },
@@ -87,6 +92,154 @@
     "completed": "Completed",
     "noClients": "No coaching clients"
   },
+  "subscription": {
+    "noSubscription": "No subscription found",
+    "currentTier": "Current Plan",
+    "changeTier": "Change Plan",
+    "changeStatus": "Change Subscription Status",
+    "cancelAtEnd": "Cancel at period end",
+    "period": "Subscription Period",
+    "periodStart": "Period start",
+    "periodEnd": "Period end",
+    "status": {
+      "active": "Active",
+      "past_due": "Past Due",
+      "cancelled": "Cancelled",
+      "trialing": "Trialing"
+    }
+  },
+  "emailHistory": {
+    "noEmails": "No emails sent",
+    "total": "{{count}} emails total",
+    "sentAt": "Sent",
+    "openedAt": "Opened",
+    "clickedAt": "Clicked",
+    "status": {
+      "queued": "Queued",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "opened": "Opened",
+      "clicked": "Clicked",
+      "bounced": "Bounced",
+      "failed": "Failed"
+    }
+  },
+  "mealPlans": {
+    "noPlans": "No meal plans generated",
+    "total": "{{count}} meal plans total",
+    "days": "days"
+  },
+  "favorites": {
+    "noFavorites": "No favorites saved",
+    "total": "{{count}} favorites total"
+  },
+  "payment": {
+    "noCoaching": "No coaching program associated",
+    "paymentStatus": "Payment Status",
+    "coachingDetails": "Coaching Details",
+    "package": "Package",
+    "coachingStatus": "Coaching Status",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "checkinFrequency": "Check-in Frequency",
+    "remindersEnabled": "Reminders Active",
+    "notes": "Notes",
+    "status": {
+      "none": "None",
+      "pending": "Pending",
+      "active": "Active",
+      "overdue": "Overdue",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    }
+  },
+  "editProfile": {
+    "name": "Name",
+    "email": "Email",
+    "gender": "Gender",
+    "age": "Age",
+    "weight": "Weight",
+    "height": "Height",
+    "activityLevel": "Activity Level",
+    "units": "Units",
+    "profileType": "Profile Type",
+    "language": "Language",
+    "dailyCalories": "Daily Calories",
+    "weightGoal": "Weight Goal",
+    "dietType": "Diet Type",
+    "fastingProtocol": "Fasting Protocol",
+    "mealsPerDay": "Meals Per Day",
+    "prepTime": "Prep Time",
+    "gdprConsent": "GDPR Consent",
+    "marketingConsent": "Marketing Consent",
+    "newsletterConsent": "Newsletter Consent",
+    "coachingConsent": "Coaching Contact Consent"
+  },
+  "checkins": {
+    "title": "Check-ins",
+    "from": "From date",
+    "to": "To date",
+    "filter": "Filter",
+    "totalCheckins": "Total Check-ins",
+    "avgMood": "Avg Mood",
+    "avgEnergy": "Avg Energy",
+    "weightTrend": "Weight Trend",
+    "weightChart": "Weight Trend",
+    "wellnessChart": "Mood & Energy",
+    "recentCheckins": "Recent Check-ins",
+    "noCheckins": "No check-ins found"
+  },
+  "automation": {
+    "title": "Automation",
+    "tabs": {
+      "flows": "Flows",
+      "templates": "Templates"
+    },
+    "noFlows": "No automation flows created",
+    "steps": "steps",
+    "addStep": "Add Step",
+    "selectFlow": "Select a flow to view its steps",
+    "active": "Active",
+    "inactive": "Inactive",
+    "noTemplates": "No email templates found"
+  },
+  "notes": {
+    "title": "Notes",
+    "newNote": "New Note",
+    "titlePlaceholder": "Note title...",
+    "contentPlaceholder": "Write your note...",
+    "search": "Search notes...",
+    "allCategories": "All categories",
+    "noNotes": "No notes found",
+    "categories": {
+      "general": "General",
+      "follow_up": "Follow-up",
+      "meeting": "Meeting",
+      "coaching": "Coaching",
+      "sales": "Sales",
+      "support": "Support"
+    }
+  },
+  "crmUsers": {
+    "title": "CRM Users",
+    "active": "active",
+    "inactive": "inactive",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "actions": "Actions",
+    "noUsers": "No CRM users found"
+  },
+  "crmSettings": {
+    "title": "Settings",
+    "tabs": {
+      "general": "General",
+      "features": "Features",
+      "health": "Health"
+    },
+    "noHealthChecks": "No health checks recorded"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -96,6 +249,8 @@
     "loading": "Loading...",
     "error": "An error occurred",
     "success": "Saved!",
-    "noData": "No data"
+    "noData": "No data",
+    "yes": "Yes",
+    "no": "No"
   }
 }

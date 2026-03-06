@@ -70,6 +70,11 @@
       "profile": "Profil",
       "nutrition": "Näring",
       "coaching": "Coaching",
+      "subscription": "Prenumeration",
+      "emailHistory": "E-posthistorik",
+      "mealPlans": "Kostplaner",
+      "favorites": "Favoriter",
+      "payment": "Betalning",
       "activity": "Aktivitet",
       "consent": "Samtycke"
     },
@@ -87,6 +92,154 @@
     "completed": "Avslutade",
     "noClients": "Inga coachingklienter"
   },
+  "subscription": {
+    "noSubscription": "Ingen prenumeration hittad",
+    "currentTier": "Nuvarande plan",
+    "changeTier": "Ändra plan",
+    "changeStatus": "Ändra prenumerationsstatus",
+    "cancelAtEnd": "Avsluta vid periodens slut",
+    "period": "Prenumerationsperiod",
+    "periodStart": "Period start",
+    "periodEnd": "Period slut",
+    "status": {
+      "active": "Aktiv",
+      "past_due": "Förfallen",
+      "cancelled": "Avbruten",
+      "trialing": "Provperiod"
+    }
+  },
+  "emailHistory": {
+    "noEmails": "Inga e-post skickade",
+    "total": "{{count}} e-post totalt",
+    "sentAt": "Skickad",
+    "openedAt": "Öppnad",
+    "clickedAt": "Klickad",
+    "status": {
+      "queued": "I kö",
+      "sent": "Skickad",
+      "delivered": "Levererad",
+      "opened": "Öppnad",
+      "clicked": "Klickad",
+      "bounced": "Avvisad",
+      "failed": "Misslyckad"
+    }
+  },
+  "mealPlans": {
+    "noPlans": "Inga kostplaner genererade",
+    "total": "{{count}} kostplaner totalt",
+    "days": "dagar"
+  },
+  "favorites": {
+    "noFavorites": "Inga favoriter sparade",
+    "total": "{{count}} favoriter totalt"
+  },
+  "payment": {
+    "noCoaching": "Inget coachingprogram kopplat",
+    "paymentStatus": "Betalningsstatus",
+    "coachingDetails": "Coachingdetaljer",
+    "package": "Paket",
+    "coachingStatus": "Coachingstatus",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum",
+    "checkinFrequency": "Check-in frekvens",
+    "remindersEnabled": "Påminnelser aktiva",
+    "notes": "Anteckningar",
+    "status": {
+      "none": "Ingen",
+      "pending": "Väntande",
+      "active": "Aktiv",
+      "overdue": "Förfallen",
+      "cancelled": "Avbruten",
+      "completed": "Avslutad"
+    }
+  },
+  "editProfile": {
+    "name": "Namn",
+    "email": "E-post",
+    "gender": "Kön",
+    "age": "Ålder",
+    "weight": "Vikt",
+    "height": "Höjd",
+    "activityLevel": "Aktivitetsnivå",
+    "units": "Enheter",
+    "profileType": "Profiltyp",
+    "language": "Språk",
+    "dailyCalories": "Dagliga kalorier",
+    "weightGoal": "Viktmål",
+    "dietType": "Kosttyp",
+    "fastingProtocol": "Fasteprotokoll",
+    "mealsPerDay": "Måltider per dag",
+    "prepTime": "Förberedningstid",
+    "gdprConsent": "GDPR-samtycke",
+    "marketingConsent": "Marknadsföringssamtycke",
+    "newsletterConsent": "Nyhetsbrevsamtycke",
+    "coachingConsent": "Coaching kontaktsamtycke"
+  },
+  "checkins": {
+    "title": "Check-ins",
+    "from": "Från datum",
+    "to": "Till datum",
+    "filter": "Filtrera",
+    "totalCheckins": "Totala check-ins",
+    "avgMood": "Snitt humör",
+    "avgEnergy": "Snitt energi",
+    "weightTrend": "Vikttrend",
+    "weightChart": "Vikttrend",
+    "wellnessChart": "Humör & Energi",
+    "recentCheckins": "Senaste check-ins",
+    "noCheckins": "Inga check-ins hittades"
+  },
+  "automation": {
+    "title": "Automation",
+    "tabs": {
+      "flows": "Flöden",
+      "templates": "Mallar"
+    },
+    "noFlows": "Inga automationsflöden skapade",
+    "steps": "steg",
+    "addStep": "Lägg till steg",
+    "selectFlow": "Välj ett flöde för att se dess steg",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "noTemplates": "Inga e-postmallar hittades"
+  },
+  "notes": {
+    "title": "Anteckningar",
+    "newNote": "Ny anteckning",
+    "titlePlaceholder": "Anteckningstitel...",
+    "contentPlaceholder": "Skriv din anteckning...",
+    "search": "Sök i anteckningar...",
+    "allCategories": "Alla kategorier",
+    "noNotes": "Inga anteckningar hittades",
+    "categories": {
+      "general": "Allmänt",
+      "follow_up": "Uppföljning",
+      "meeting": "Möte",
+      "coaching": "Coaching",
+      "sales": "Försäljning",
+      "support": "Support"
+    }
+  },
+  "crmUsers": {
+    "title": "CRM-användare",
+    "active": "aktiva",
+    "inactive": "inaktiva",
+    "name": "Namn",
+    "email": "E-post",
+    "role": "Roll",
+    "status": "Status",
+    "actions": "Åtgärder",
+    "noUsers": "Inga CRM-användare hittades"
+  },
+  "crmSettings": {
+    "title": "Inställningar",
+    "tabs": {
+      "general": "Allmänt",
+      "features": "Funktioner",
+      "health": "Hälsa"
+    },
+    "noHealthChecks": "Inga hälsokontroller registrerade"
+  },
   "common": {
     "save": "Spara",
     "cancel": "Avbryt",
@@ -96,6 +249,8 @@
     "loading": "Laddar...",
     "error": "Ett fel uppstod",
     "success": "Sparat!",
-    "noData": "Inga data"
+    "noData": "Inga data",
+    "yes": "Ja",
+    "no": "Nej"
   }
 }

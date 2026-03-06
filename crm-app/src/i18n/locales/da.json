@@ -70,6 +70,11 @@
       "profile": "Profil",
       "nutrition": "Ernæring",
       "coaching": "Coaching",
+      "subscription": "Abonnement",
+      "emailHistory": "Email-historik",
+      "mealPlans": "Kostplaner",
+      "favorites": "Favoritter",
+      "payment": "Betaling",
       "activity": "Aktivitet",
       "consent": "Samtykke"
     },
@@ -87,6 +92,154 @@
     "completed": "Afsluttede",
     "noClients": "Ingen coaching-klienter"
   },
+  "subscription": {
+    "noSubscription": "Intet abonnement fundet",
+    "currentTier": "Nuværende plan",
+    "changeTier": "Skift plan",
+    "changeStatus": "Skift abonnementstatus",
+    "cancelAtEnd": "Annuller ved periodens udløb",
+    "period": "Abonnementsperiode",
+    "periodStart": "Periode start",
+    "periodEnd": "Periode slut",
+    "status": {
+      "active": "Aktiv",
+      "past_due": "Forfalden",
+      "cancelled": "Annulleret",
+      "trialing": "Prøveperiode"
+    }
+  },
+  "emailHistory": {
+    "noEmails": "Ingen emails sendt",
+    "total": "{{count}} emails i alt",
+    "sentAt": "Sendt",
+    "openedAt": "Åbnet",
+    "clickedAt": "Klikket",
+    "status": {
+      "queued": "I kø",
+      "sent": "Sendt",
+      "delivered": "Leveret",
+      "opened": "Åbnet",
+      "clicked": "Klikket",
+      "bounced": "Afvist",
+      "failed": "Fejlet"
+    }
+  },
+  "mealPlans": {
+    "noPlans": "Ingen kostplaner genereret",
+    "total": "{{count}} kostplaner i alt",
+    "days": "dage"
+  },
+  "favorites": {
+    "noFavorites": "Ingen favoritter gemt",
+    "total": "{{count}} favoritter i alt"
+  },
+  "payment": {
+    "noCoaching": "Ingen coaching-program tilknyttet",
+    "paymentStatus": "Betalingsstatus",
+    "coachingDetails": "Coaching-detaljer",
+    "package": "Pakke",
+    "coachingStatus": "Coaching-status",
+    "startDate": "Startdato",
+    "endDate": "Slutdato",
+    "checkinFrequency": "Check-in frekvens",
+    "remindersEnabled": "Påmindelser aktive",
+    "notes": "Noter",
+    "status": {
+      "none": "Ingen",
+      "pending": "Afventer",
+      "active": "Aktiv",
+      "overdue": "Forfalden",
+      "cancelled": "Annulleret",
+      "completed": "Afsluttet"
+    }
+  },
+  "editProfile": {
+    "name": "Navn",
+    "email": "Email",
+    "gender": "Køn",
+    "age": "Alder",
+    "weight": "Vægt",
+    "height": "Højde",
+    "activityLevel": "Aktivitetsniveau",
+    "units": "Enheder",
+    "profileType": "Profiltype",
+    "language": "Sprog",
+    "dailyCalories": "Daglige kalorier",
+    "weightGoal": "Vægtmål",
+    "dietType": "Kosttype",
+    "fastingProtocol": "Faste-protokol",
+    "mealsPerDay": "Måltider om dagen",
+    "prepTime": "Tilberedningstid",
+    "gdprConsent": "GDPR samtykke",
+    "marketingConsent": "Marketing samtykke",
+    "newsletterConsent": "Nyhedsbrev samtykke",
+    "coachingConsent": "Coaching kontakt samtykke"
+  },
+  "checkins": {
+    "title": "Check-ins",
+    "from": "Fra dato",
+    "to": "Til dato",
+    "filter": "Filtrer",
+    "totalCheckins": "Check-ins i alt",
+    "avgMood": "Gns. humør",
+    "avgEnergy": "Gns. energi",
+    "weightTrend": "Vægttendens",
+    "weightChart": "Vægttendens",
+    "wellnessChart": "Humør & Energi",
+    "recentCheckins": "Seneste check-ins",
+    "noCheckins": "Ingen check-ins fundet"
+  },
+  "automation": {
+    "title": "Automation",
+    "tabs": {
+      "flows": "Flows",
+      "templates": "Skabeloner"
+    },
+    "noFlows": "Ingen automation flows oprettet",
+    "steps": "trin",
+    "addStep": "Tilføj trin",
+    "selectFlow": "Vælg et flow for at se dets trin",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "noTemplates": "Ingen email-skabeloner fundet"
+  },
+  "notes": {
+    "title": "Noter",
+    "newNote": "Ny note",
+    "titlePlaceholder": "Note-titel...",
+    "contentPlaceholder": "Skriv din note...",
+    "search": "Søg i noter...",
+    "allCategories": "Alle kategorier",
+    "noNotes": "Ingen noter fundet",
+    "categories": {
+      "general": "Generelt",
+      "follow_up": "Opfølgning",
+      "meeting": "Møde",
+      "coaching": "Coaching",
+      "sales": "Salg",
+      "support": "Support"
+    }
+  },
+  "crmUsers": {
+    "title": "CRM-brugere",
+    "active": "aktive",
+    "inactive": "inaktive",
+    "name": "Navn",
+    "email": "Email",
+    "role": "Rolle",
+    "status": "Status",
+    "actions": "Handlinger",
+    "noUsers": "Ingen CRM-brugere fundet"
+  },
+  "crmSettings": {
+    "title": "Indstillinger",
+    "tabs": {
+      "general": "Generelt",
+      "features": "Features",
+      "health": "Sundhed"
+    },
+    "noHealthChecks": "Ingen sundhedstjek registreret"
+  },
   "common": {
     "save": "Gem",
     "cancel": "Annuller",
@@ -96,6 +249,8 @@
     "loading": "Indlæser...",
     "error": "Der opstod en fejl",
     "success": "Gemt!",
-    "noData": "Ingen data"
+    "noData": "Ingen data",
+    "yes": "Ja",
+    "no": "Nej"
   }
 }
