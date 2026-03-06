@@ -1,0 +1,101 @@
+{
+  "app": {
+    "name": "CRM",
+    "loading": "Laddar..."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "coaching": "Coaching",
+    "checkins": "Check-ins",
+    "mealplans": "Kostplaner",
+    "automation": "Automation",
+    "emails": "E-post",
+    "notes": "Anteckningar",
+    "users": "Användare",
+    "settings": "Inställningar",
+    "logout": "Logga ut"
+  },
+  "login": {
+    "title": "Logga in på CRM",
+    "subtitle": "Hantera dina leads och coachingklienter",
+    "email": "E-post",
+    "password": "Lösenord",
+    "magicLink": "Magic Link",
+    "passwordTab": "Lösenord",
+    "sendLink": "Skicka magic link",
+    "signIn": "Logga in",
+    "linkSent": "Kolla din e-post för en inloggningslänk!",
+    "noAccess": "Du har inte tillgång till CRM. Kontakta administratören.",
+    "error": "Inloggningen misslyckades. Kontrollera dina uppgifter."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Välkommen, {{name}}",
+    "totalLeads": "Totala leads",
+    "newThisWeek": "Nya denna vecka",
+    "qualified": "Kvalificerade",
+    "activeCoaching": "Aktiv coaching",
+    "recentLeads": "Senaste leads",
+    "quickActions": "Snabbåtgärder"
+  },
+  "leads": {
+    "title": "Leads",
+    "search": "Sök efter namn eller e-post...",
+    "filterStatus": "Filtrera efter status",
+    "allStatuses": "Alla statusar",
+    "noLeads": "Inga leads hittades",
+    "status": {
+      "new": "Ny",
+      "contacted": "Kontaktad",
+      "qualified": "Kvalificerad",
+      "coaching_active": "Aktiv coaching",
+      "coaching_paused": "Coaching pausad",
+      "coaching_completed": "Coaching avslutad",
+      "inactive": "Inaktiv",
+      "opted_out": "Avregistrerad"
+    },
+    "columns": {
+      "name": "Namn",
+      "email": "E-post",
+      "status": "Status",
+      "score": "Poäng",
+      "source": "Källa",
+      "created": "Skapad",
+      "lastContact": "Senaste kontakt"
+    }
+  },
+  "leadDetail": {
+    "tabs": {
+      "profile": "Profil",
+      "nutrition": "Näring",
+      "coaching": "Coaching",
+      "activity": "Aktivitet",
+      "consent": "Samtycke"
+    },
+    "assignTo": "Tilldela till",
+    "unassigned": "Otilldelad",
+    "addNote": "Lägg till anteckning",
+    "notePlaceholder": "Skriv en anteckning...",
+    "changeStatus": "Ändra status",
+    "noActivity": "Ingen aktivitet ännu"
+  },
+  "coaching": {
+    "title": "Coachingklienter",
+    "active": "Aktiva",
+    "inactive": "Inaktiva",
+    "completed": "Avslutade",
+    "noClients": "Inga coachingklienter"
+  },
+  "common": {
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "delete": "Radera",
+    "edit": "Redigera",
+    "back": "Tillbaka",
+    "loading": "Laddar...",
+    "error": "Ett fel uppstod",
+    "success": "Sparat!",
+    "noData": "Inga data"
+  }
+}

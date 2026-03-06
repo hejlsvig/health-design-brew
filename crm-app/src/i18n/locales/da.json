@@ -1,0 +1,101 @@
+{
+  "app": {
+    "name": "CRM",
+    "loading": "Indlæser..."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "coaching": "Coaching",
+    "checkins": "Check-ins",
+    "mealplans": "Kostplaner",
+    "automation": "Automation",
+    "emails": "Emails",
+    "notes": "Noter",
+    "users": "Brugere",
+    "settings": "Indstillinger",
+    "logout": "Log ud"
+  },
+  "login": {
+    "title": "Log ind på CRM",
+    "subtitle": "Administrer dine leads og coaching-klienter",
+    "email": "Email",
+    "password": "Adgangskode",
+    "magicLink": "Magic Link",
+    "passwordTab": "Adgangskode",
+    "sendLink": "Send magic link",
+    "signIn": "Log ind",
+    "linkSent": "Tjek din email for login-link!",
+    "noAccess": "Du har ikke adgang til CRM. Kontakt administrator.",
+    "error": "Login fejlede. Tjek dine oplysninger."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Velkommen, {{name}}",
+    "totalLeads": "Leads i alt",
+    "newThisWeek": "Nye denne uge",
+    "qualified": "Kvalificerede",
+    "activeCoaching": "Aktiv coaching",
+    "recentLeads": "Seneste leads",
+    "quickActions": "Hurtig adgang"
+  },
+  "leads": {
+    "title": "Leads",
+    "search": "Søg efter navn eller email...",
+    "filterStatus": "Filtrer efter status",
+    "allStatuses": "Alle statusser",
+    "noLeads": "Ingen leads fundet",
+    "status": {
+      "new": "Ny",
+      "contacted": "Kontaktet",
+      "qualified": "Kvalificeret",
+      "coaching_active": "Aktiv coaching",
+      "coaching_paused": "Coaching pauseret",
+      "coaching_completed": "Coaching afsluttet",
+      "inactive": "Inaktiv",
+      "opted_out": "Fravalgt"
+    },
+    "columns": {
+      "name": "Navn",
+      "email": "Email",
+      "status": "Status",
+      "score": "Score",
+      "source": "Kilde",
+      "created": "Oprettet",
+      "lastContact": "Seneste kontakt"
+    }
+  },
+  "leadDetail": {
+    "tabs": {
+      "profile": "Profil",
+      "nutrition": "Ernæring",
+      "coaching": "Coaching",
+      "activity": "Aktivitet",
+      "consent": "Samtykke"
+    },
+    "assignTo": "Tildel til",
+    "unassigned": "Ikke tildelt",
+    "addNote": "Tilføj note",
+    "notePlaceholder": "Skriv en note...",
+    "changeStatus": "Skift status",
+    "noActivity": "Ingen aktivitet endnu"
+  },
+  "coaching": {
+    "title": "Coaching-klienter",
+    "active": "Aktive",
+    "inactive": "Inaktive",
+    "completed": "Afsluttede",
+    "noClients": "Ingen coaching-klienter"
+  },
+  "common": {
+    "save": "Gem",
+    "cancel": "Annuller",
+    "delete": "Slet",
+    "edit": "Rediger",
+    "back": "Tilbage",
+    "loading": "Indlæser...",
+    "error": "Der opstod en fejl",
+    "success": "Gemt!",
+    "noData": "Ingen data"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "app": {
+    "name": "CRM",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "coaching": "Coaching",
+    "checkins": "Check-ins",
+    "mealplans": "Meal Plans",
+    "automation": "Automation",
+    "emails": "Emails",
+    "notes": "Notes",
+    "users": "Users",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "login": {
+    "title": "Sign in to CRM",
+    "subtitle": "Manage your leads and coaching clients",
+    "email": "Email",
+    "password": "Password",
+    "magicLink": "Magic Link",
+    "passwordTab": "Password",
+    "sendLink": "Send magic link",
+    "signIn": "Sign in",
+    "linkSent": "Check your email for a login link!",
+    "noAccess": "You don't have CRM access. Contact your administrator.",
+    "error": "Login failed. Check your credentials."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}",
+    "totalLeads": "Total Leads",
+    "newThisWeek": "New This Week",
+    "qualified": "Qualified",
+    "activeCoaching": "Active Coaching",
+    "recentLeads": "Recent Leads",
+    "quickActions": "Quick Actions"
+  },
+  "leads": {
+    "title": "Leads",
+    "search": "Search by name or email...",
+    "filterStatus": "Filter by status",
+    "allStatuses": "All statuses",
+    "noLeads": "No leads found",
+    "status": {
+      "new": "New",
+      "contacted": "Contacted",
+      "qualified": "Qualified",
+      "coaching_active": "Active Coaching",
+      "coaching_paused": "Coaching Paused",
+      "coaching_completed": "Coaching Completed",
+      "inactive": "Inactive",
+      "opted_out": "Opted Out"
+    },
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "status": "Status",
+      "score": "Score",
+      "source": "Source",
+      "created": "Created",
+      "lastContact": "Last Contact"
+    }
+  },
+  "leadDetail": {
+    "tabs": {
+      "profile": "Profile",
+      "nutrition": "Nutrition",
+      "coaching": "Coaching",
+      "activity": "Activity",
+      "consent": "Consent"
+    },
+    "assignTo": "Assign to",
+    "unassigned": "Unassigned",
+    "addNote": "Add note",
+    "notePlaceholder": "Write a note...",
+    "changeStatus": "Change status",
+    "noActivity": "No activity yet"
+  },
+  "coaching": {
+    "title": "Coaching Clients",
+    "active": "Active",
+    "inactive": "Inactive",
+    "completed": "Completed",
+    "noClients": "No coaching clients"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Saved!",
+    "noData": "No data"
+  }
+}

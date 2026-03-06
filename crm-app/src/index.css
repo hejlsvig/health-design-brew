@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Nunito+Sans:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* CRM Theme — Professional dark sidebar with clean content area */
+  --crm-primary: 220 60% 50%;
+  --crm-primary-foreground: 0 0% 100%;
+  --crm-accent: 25 65% 50%;
+  --crm-accent-foreground: 0 0% 100%;
+  --crm-background: 220 15% 97%;
+  --crm-foreground: 220 20% 20%;
+  --crm-muted: 220 10% 92%;
+  --crm-muted-foreground: 220 10% 50%;
+  --crm-border: 220 10% 88%;
+  --crm-card: 0 0% 100%;
+  --crm-card-foreground: 220 20% 20%;
+  --crm-sidebar: 220 25% 16%;
+  --crm-sidebar-foreground: 220 10% 80%;
+  --crm-sidebar-active: 220 60% 50%;
+  --crm-success: 142 60% 45%;
+  --crm-warning: 38 92% 50%;
+  --crm-danger: 0 72% 51%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Nunito Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: hsl(var(--crm-background));
+  color: hsl(var(--crm-foreground));
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--crm-border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--crm-muted-foreground));
+}
