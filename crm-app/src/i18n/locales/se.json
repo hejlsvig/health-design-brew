@@ -201,7 +201,16 @@
     "selectFlow": "Välj ett flöde för att se dess steg",
     "active": "Aktiv",
     "inactive": "Inaktiv",
-    "noTemplates": "Inga e-postmallar hittades"
+    "noTemplates": "Inga e-postmallar hittades",
+    "newTemplate": "Ny mall",
+    "editTemplate": "Redigera mall",
+    "saveTemplate": "Spara mall",
+    "templateName": "Mallnamn",
+    "templateType": "E-posttyp",
+    "variables": "Variabler",
+    "addVariable": "Lägg till variabel",
+    "subject": "Ämne",
+    "body": "Innehåll"
   },
   "notes": {
     "title": "Anteckningar",

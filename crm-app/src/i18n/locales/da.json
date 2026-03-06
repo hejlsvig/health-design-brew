@@ -201,7 +201,16 @@
     "selectFlow": "Vælg et flow for at se dets trin",
     "active": "Aktiv",
     "inactive": "Inaktiv",
-    "noTemplates": "Ingen email-skabeloner fundet"
+    "noTemplates": "Ingen email-skabeloner fundet",
+    "newTemplate": "Ny skabelon",
+    "editTemplate": "Rediger skabelon",
+    "saveTemplate": "Gem skabelon",
+    "templateName": "Skabelon-navn",
+    "templateType": "Email-type",
+    "variables": "Variabler",
+    "addVariable": "Tilføj variabel",
+    "subject": "Emne",
+    "body": "Indhold"
   },
   "notes": {
     "title": "Noter",

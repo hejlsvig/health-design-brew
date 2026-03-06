@@ -201,7 +201,16 @@
     "selectFlow": "Select a flow to view its steps",
     "active": "Active",
     "inactive": "Inactive",
-    "noTemplates": "No email templates found"
+    "noTemplates": "No email templates found",
+    "newTemplate": "New Template",
+    "editTemplate": "Edit Template",
+    "saveTemplate": "Save Template",
+    "templateName": "Template Name",
+    "templateType": "Email Type",
+    "variables": "Variables",
+    "addVariable": "Add Variable",
+    "subject": "Subject",
+    "body": "Body"
   },
   "notes": {
     "title": "Notes",
