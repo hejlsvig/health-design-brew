@@ -821,5 +821,18 @@
     "imageTooLarge": "Image is too large (max 10 MB).",
     "imageUploadError": "Could not upload the image. Please try again.",
     "errorGeneric": "Something went wrong. Please try again."
+  },
+  "upgrade": {
+    "title": "Upgrade to {{tier}}",
+    "description": "{{feature}} requires the {{tier}} plan. Upgrade to unlock this and more features.",
+    "cta": "Upgrade to {{tier}}",
+    "modalTitle": "Choose Your Plan",
+    "modalSubtitle": "Unlock more features with a paid plan",
+    "current": "Current",
+    "currentPlan": "Current Plan",
+    "free": "Free",
+    "perMonth": "per month",
+    "upgradeTo": "Upgrade to {{tier}}",
+    "stripeNote": "Secure payment via Stripe. You can cancel anytime."
   }
 }

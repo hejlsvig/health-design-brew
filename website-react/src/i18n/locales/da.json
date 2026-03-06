@@ -813,5 +813,18 @@
     "imageTooLarge": "Billedet er for stort (maks 10 MB).",
     "imageUploadError": "Kunne ikke uploade billedet. Prøv igen.",
     "errorGeneric": "Noget gik galt. Prøv igen."
+  },
+  "upgrade": {
+    "title": "Opgrader til {{tier}}",
+    "description": "{{feature}} kræver {{tier}}-planen. Opgrader for at låse dette og flere funktioner op.",
+    "cta": "Opgrader til {{tier}}",
+    "modalTitle": "Vælg din plan",
+    "modalSubtitle": "Lås flere funktioner op med en betalt plan",
+    "current": "Nuværende",
+    "currentPlan": "Nuværende plan",
+    "free": "Gratis",
+    "perMonth": "pr. måned",
+    "upgradeTo": "Opgrader til {{tier}}",
+    "stripeNote": "Sikker betaling via Stripe. Du kan opsige når som helst."
   }
 }

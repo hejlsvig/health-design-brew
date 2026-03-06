@@ -820,5 +820,18 @@
     "imageTooLarge": "Bilden är för stor (max 10 MB).",
     "imageUploadError": "Kunde inte ladda upp bilden. Försök igen.",
     "errorGeneric": "Något gick fel. Försök igen."
+  },
+  "upgrade": {
+    "title": "Uppgradera till {{tier}}",
+    "description": "{{feature}} kräver {{tier}}-planen. Uppgradera för att låsa upp denna och fler funktioner.",
+    "cta": "Uppgradera till {{tier}}",
+    "modalTitle": "Välj din plan",
+    "modalSubtitle": "Lås upp fler funktioner med en betald plan",
+    "current": "Nuvarande",
+    "currentPlan": "Nuvarande plan",
+    "free": "Gratis",
+    "perMonth": "per månad",
+    "upgradeTo": "Uppgradera till {{tier}}",
+    "stripeNote": "Säker betalning via Stripe. Du kan avsluta när som helst."
   }
 }
