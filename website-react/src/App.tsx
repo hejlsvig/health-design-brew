@@ -32,6 +32,7 @@ const AdminTerms = lazy(() => import('@/pages/AdminTerms'))
 const AdminCRM = lazy(() => import('@/pages/AdminCRM'))
 const AdminCRMDetail = lazy(() => import('@/pages/AdminCRMDetail'))
 const AdminSocialPublisher = lazy(() => import('@/pages/AdminSocialPublisher'))
+const CheckIn = lazy(() => import('@/pages/CheckIn'))
 
 const AdminFallback = (
   <div className="container py-20 text-center text-muted-foreground">Loading…</div>
@@ -46,6 +47,11 @@ export default function App() {
       <AuthProvider>
       <SubscriptionProvider>
         <Routes>
+          {/* Check-in form: standalone without Layout (no navbar/footer) */}
+          <Route
+            path="/checkin"
+            element={<Suspense fallback={AdminFallback}><CheckIn /></Suspense>}
+          />
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/calculator" element={<Calculator />} />

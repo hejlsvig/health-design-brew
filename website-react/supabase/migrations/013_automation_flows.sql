@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS automation_flows (
   )),
   trigger_config JSONB DEFAULT '{}',
   enabled BOOLEAN DEFAULT false,
-  created_by UUID REFERENCES crm_users(id),
+  created_by UUID,  -- no FK: crm_users may not exist yet
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS automation_flow_runs (
   flow_id UUID NOT NULL REFERENCES automation_flows(id) ON DELETE CASCADE,
   target_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   status TEXT DEFAULT 'pending' CHECK (status IN (
-    'pending', 'running', 'completed', 'failed', 'skipped'
+    'pending', 'running', 'completed', 'failed', 'skipped', 'paused'
   )),
   current_step_id UUID,
   started_at TIMESTAMPTZ DEFAULT now(),
@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_flow_runs_user ON automation_flow_runs(target_use
 CREATE TABLE IF NOT EXISTS crm_notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  created_by UUID NOT NULL REFERENCES crm_users(id),
+  created_by UUID,  -- no FK: crm_users may not exist yet
   title TEXT,
   content TEXT NOT NULL,
   category TEXT DEFAULT 'general' CHECK (category IN (

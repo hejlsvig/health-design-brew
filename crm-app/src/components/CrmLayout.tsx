@@ -1,11 +1,14 @@
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useSidebar } from '@/contexts/SidebarContext'
 import { CrmSidebar } from './CrmSidebar'
 import { CrmTopbar } from './CrmTopbar'
+import { cn } from '@/lib/utils'
 
 export function CrmLayout() {
   const { user, crmUser, loading } = useAuth()
+  const { collapsed } = useSidebar()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -27,7 +30,12 @@ export function CrmLayout() {
   return (
     <div className="min-h-screen flex bg-background">
       <CrmSidebar />
-      <div className="flex-1 flex flex-col min-h-screen ml-64">
+      <div
+        className={cn(
+          'flex-1 flex flex-col min-h-screen transition-[margin] duration-200',
+          collapsed ? 'ml-16' : 'ml-64'
+        )}
+      >
         <CrmTopbar />
         <main className="flex-1 p-6 overflow-auto">
           <Outlet />
