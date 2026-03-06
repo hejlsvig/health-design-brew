@@ -193,7 +193,8 @@
     "title": "Automation",
     "tabs": {
       "flows": "Flows",
-      "templates": "Templates"
+      "templates": "Templates",
+      "history": "History"
     },
     "noFlows": "No automation flows created",
     "steps": "steps",
@@ -210,7 +211,15 @@
     "variables": "Variables",
     "addVariable": "Add Variable",
     "subject": "Subject",
-    "body": "Body"
+    "body": "Body",
+    "runFlow": "Run Flow",
+    "targetUser": "Target User",
+    "searchUser": "Search user (email or name)...",
+    "run": "Run",
+    "dryRun": "Dry Run",
+    "recentRuns": "Recent Runs",
+    "noRuns": "No runs yet",
+    "refresh": "Refresh"
   },
   "notes": {
     "title": "Notes",

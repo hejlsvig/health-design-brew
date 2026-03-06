@@ -193,7 +193,8 @@
     "title": "Automation",
     "tabs": {
       "flows": "Flows",
-      "templates": "Skabeloner"
+      "templates": "Skabeloner",
+      "history": "Historik"
     },
     "noFlows": "Ingen automation flows oprettet",
     "steps": "trin",
@@ -210,7 +211,15 @@
     "variables": "Variabler",
     "addVariable": "Tilføj variabel",
     "subject": "Emne",
-    "body": "Indhold"
+    "body": "Indhold",
+    "runFlow": "Kør flow",
+    "targetUser": "Målbruger",
+    "searchUser": "Søg bruger (email eller navn)...",
+    "run": "Kør",
+    "dryRun": "Test-kør",
+    "recentRuns": "Seneste kørsler",
+    "noRuns": "Ingen kørsler endnu",
+    "refresh": "Opdater"
   },
   "notes": {
     "title": "Noter",

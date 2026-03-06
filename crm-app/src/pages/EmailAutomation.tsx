@@ -3,17 +3,22 @@ import { useTranslation } from 'react-i18next'
 import {
   fetchFlows, fetchFlowWithSteps, toggleFlow, deleteFlow,
   addStep, updateStep, deleteStep,
-  type AutomationFlow, type FlowWithSteps, type AutomationStep, type NodeType,
+  fetchFlowRuns, fetchRecentRuns,
+  runFlow, testFlow,
+  type AutomationFlow, type FlowWithSteps, type AutomationStep, type AutomationRun, type NodeType,
   NODE_TYPE_CONFIG, TRIGGER_TYPE_LABELS,
 } from '@/lib/automation'
 import {
   fetchEmailTemplates, createEmailTemplate, updateEmailTemplate,
   type EmailTemplate,
 } from '@/lib/emails'
+import { supabase } from '@/lib/supabase'
 import {
   Loader2, Zap, Plus, Trash2, ChevronDown, ChevronRight,
   ToggleLeft, ToggleRight, ArrowDown, Settings2, X,
   Mail, Eye, Code, Save, Globe, Tag,
+  Play, FlaskConical, History, CheckCircle2, XCircle, Clock, Pause, AlertTriangle,
+  User,
 } from 'lucide-react'
 
 const LANGUAGES = ['da', 'en', 'se'] as const
@@ -22,7 +27,7 @@ const EMAIL_TYPES = ['onboarding', 'coaching', 'reminder', 'engagement', 'upsell
 
 export default function EmailAutomation() {
   const { t } = useTranslation()
-  const [tab, setTab] = useState<'flows' | 'templates'>('flows')
+  const [tab, setTab] = useState<'flows' | 'templates' | 'history'>('flows')
   const [flows, setFlows] = useState<AutomationFlow[]>([])
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +40,16 @@ export default function EmailAutomation() {
   const [templateView, setTemplateView] = useState<'edit' | 'preview'>('edit')
   const [saving, setSaving] = useState(false)
 
+  // Run state
+  const [running, setRunning] = useState(false)
+  const [runResult, setRunResult] = useState<{ status: string; log: Record<string, unknown>[] } | null>(null)
+  const [recentRuns, setRecentRuns] = useState<(AutomationRun & { flow?: { name: string } })[]>([])
+  const [flowRuns, setFlowRuns] = useState<AutomationRun[]>([])
+  const [targetUserId, setTargetUserId] = useState('')
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [userSearchResults, setUserSearchResults] = useState<{ id: string; email: string; first_name: string | null }[]>([])
+  const [showUserSearch, setShowUserSearch] = useState(false)
+
   useEffect(() => {
     loadData()
   }, [])
@@ -42,9 +57,14 @@ export default function EmailAutomation() {
   async function loadData() {
     setLoading(true)
     try {
-      const [f, tmpl] = await Promise.all([fetchFlows(), fetchEmailTemplates()])
+      const [f, tmpl, runs] = await Promise.all([
+        fetchFlows(),
+        fetchEmailTemplates(),
+        fetchRecentRuns(20),
+      ])
       setFlows(f)
       setTemplates(tmpl)
+      setRecentRuns(runs)
     } catch (err) {
       console.error('Load automation data error:', err)
     } finally {
@@ -52,12 +72,73 @@ export default function EmailAutomation() {
     }
   }
 
+  // ─── User search for target selection ───
+
+  async function handleUserSearch(query: string) {
+    setUserSearchQuery(query)
+    if (query.length < 2) {
+      setUserSearchResults([])
+      return
+    }
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, email, first_name')
+        .or(`email.ilike.%${query}%,first_name.ilike.%${query}%`)
+        .limit(5)
+      setUserSearchResults(data || [])
+    } catch (err) {
+      console.error('User search error:', err)
+    }
+  }
+
+  function selectTargetUser(userId: string, email: string) {
+    setTargetUserId(userId)
+    setUserSearchQuery(email)
+    setUserSearchResults([])
+    setShowUserSearch(false)
+  }
+
+  // ─── Run / Test handlers ───
+
+  async function handleRunFlow(dryRun = false) {
+    if (!selectedFlow || !targetUserId) return
+    setRunning(true)
+    setRunResult(null)
+    try {
+      const result = dryRun
+        ? await testFlow(selectedFlow.id, targetUserId)
+        : await runFlow(selectedFlow.id, targetUserId)
+      setRunResult({
+        status: result.status || (result.error ? 'failed' : 'completed'),
+        log: result.log || [{ message: result.error || 'No log returned' }],
+      })
+      // Refresh runs
+      const [recent, flowSpecific] = await Promise.all([
+        fetchRecentRuns(20),
+        fetchFlowRuns(selectedFlow.id),
+      ])
+      setRecentRuns(recent)
+      setFlowRuns(flowSpecific)
+    } catch (err) {
+      setRunResult({ status: 'failed', log: [{ message: String(err) }] })
+    } finally {
+      setRunning(false)
+    }
+  }
+
+
   // ─── Flow handlers ───
 
   async function handleSelectFlow(flow: AutomationFlow) {
     try {
-      const full = await fetchFlowWithSteps(flow.id)
+      const [full, runs] = await Promise.all([
+        fetchFlowWithSteps(flow.id),
+        fetchFlowRuns(flow.id),
+      ])
       setSelectedFlow(full)
+      setFlowRuns(runs)
+      setRunResult(null)
     } catch (err) {
       console.error('Load flow error:', err)
     }
@@ -234,15 +315,19 @@ export default function EmailAutomation() {
 
       {/* Tab bar */}
       <div className="flex border-b border-border mb-6">
-        {(['flows', 'templates'] as const).map((key) => (
+        {(['flows', 'templates', 'history'] as const).map((key) => (
           <button
             key={key}
-            onClick={() => { setTab(key); setEditingTemplate(null) }}
+            onClick={() => { setTab(key); setEditingTemplate(null); setRunResult(null) }}
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               tab === key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {t(`automation.tabs.${key}`)}
+            {key === 'history' ? (
+              <span className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" />{t('automation.tabs.history')}</span>
+            ) : (
+              t(`automation.tabs.${key}`)
+            )}
           </button>
         ))}
       </div>
@@ -336,12 +421,142 @@ export default function EmailAutomation() {
                   <Plus className="w-4 h-4" />
                   {t('automation.addStep')}
                 </button>
+
+                {/* ─── Run / Test Controls ─── */}
+                <div className="mt-6 pt-4 border-t border-border space-y-3">
+                  <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Play className="w-4 h-4" />
+                    {t('automation.runFlow')}
+                  </h3>
+
+                  {/* User selector */}
+                  <div className="relative">
+                    <label className="text-xs text-muted-foreground">{t('automation.targetUser')}</label>
+                    <div className="relative mt-1">
+                      <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={userSearchQuery}
+                        onChange={(e) => { handleUserSearch(e.target.value); setShowUserSearch(true) }}
+                        onFocus={() => setShowUserSearch(true)}
+                        placeholder={t('automation.searchUser')}
+                        className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-background text-sm"
+                      />
+                    </div>
+                    {showUserSearch && userSearchResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                        {userSearchResults.map((u) => (
+                          <button
+                            key={u.id}
+                            onClick={() => selectTargetUser(u.id, u.email)}
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                          >
+                            <span className="font-medium">{u.first_name || 'Unknown'}</span>
+                            <span className="text-muted-foreground ml-2">{u.email}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Run + Test buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleRunFlow(false)}
+                      disabled={running || !targetUserId}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                      {t('automation.run')}
+                    </button>
+                    <button
+                      onClick={() => handleRunFlow(true)}
+                      disabled={running || !targetUserId}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
+                      {t('automation.dryRun')}
+                    </button>
+                  </div>
+
+                  {/* Run result */}
+                  {runResult && (
+                    <div className={`p-3 rounded-lg border ${
+                      runResult.status === 'completed' ? 'border-green-200 bg-green-50' :
+                      runResult.status === 'failed' ? 'border-red-200 bg-red-50' :
+                      runResult.status === 'paused' ? 'border-purple-200 bg-purple-50' :
+                      'border-amber-200 bg-amber-50'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <RunStatusIcon status={runResult.status} />
+                        <span className="text-sm font-medium capitalize">{runResult.status}</span>
+                      </div>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {runResult.log.map((entry, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs">
+                            <span className="text-muted-foreground font-mono flex-shrink-0">
+                              {(entry.step_order as number) ? `#${entry.step_order}` : '→'}
+                            </span>
+                            <span className={entry.success === false ? 'text-red-600' : 'text-foreground'}>
+                              {String(entry.message || entry.label || JSON.stringify(entry))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Flow runs history */}
+                  {flowRuns.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-muted-foreground mb-2">{t('automation.recentRuns')}</p>
+                      <div className="space-y-1 max-h-36 overflow-y-auto">
+                        {flowRuns.slice(0, 10).map((run) => (
+                          <div key={run.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-muted/50 text-xs">
+                            <RunStatusIcon status={run.status} />
+                            <span className="flex-1 truncate">{run.target_user_id?.slice(0, 8)}...</span>
+                            <span className="text-muted-foreground">
+                              {new Date(run.started_at).toLocaleDateString('da-DK', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                 <Settings2 className="w-12 h-12 mb-3" />
                 <p className="text-sm">{t('automation.selectFlow')}</p>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ HISTORY TAB ═══ */}
+      {tab === 'history' && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-sm text-muted-foreground">
+              {recentRuns.length} {t('automation.recentRuns').toLowerCase()}
+            </p>
+            <button
+              onClick={async () => { const runs = await fetchRecentRuns(50); setRecentRuns(runs) }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <History className="w-3.5 h-3.5" />
+              {t('automation.refresh')}
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {recentRuns.map((run) => (
+              <RunCard key={run.id} run={run} flowName={run.flow?.name} />
+            ))}
+            {recentRuns.length === 0 && (
+              <p className="text-center text-muted-foreground py-12">{t('automation.noRuns')}</p>
             )}
           </div>
         </div>
@@ -574,6 +789,94 @@ export default function EmailAutomation() {
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Run Status Icon ───
+
+function RunStatusIcon({ status }: { status: string }) {
+  switch (status) {
+    case 'completed':
+      return <CheckCircle2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+    case 'failed':
+      return <XCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+    case 'running':
+      return <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin flex-shrink-0" />
+    case 'paused':
+      return <Pause className="w-3.5 h-3.5 text-purple-600 flex-shrink-0" />
+    case 'skipped':
+      return <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+    default:
+      return <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+  }
+}
+
+// ─── Run Card (for history) ───
+
+function RunCard({ run, flowName }: { run: AutomationRun; flowName?: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const logEntries = (run.log || []) as Record<string, unknown>[]
+
+  return (
+    <div
+      className={`p-3 rounded-lg border transition-all cursor-pointer ${
+        run.status === 'completed' ? 'border-green-200 bg-green-50/50' :
+        run.status === 'failed' ? 'border-red-200 bg-red-50/50' :
+        run.status === 'paused' ? 'border-purple-200 bg-purple-50/50' :
+        'border-border bg-card'
+      }`}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <div className="flex items-center gap-3">
+        <RunStatusIcon status={run.status} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground">{flowName || 'Unknown Flow'}</p>
+          <p className="text-xs text-muted-foreground">
+            {run.target_user_id?.slice(0, 8)}... •{' '}
+            {new Date(run.started_at).toLocaleDateString('da-DK', {
+              day: '2-digit', month: 'short', year: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            })}
+          </p>
+        </div>
+        <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+          run.status === 'completed' ? 'bg-green-100 text-green-700' :
+          run.status === 'failed' ? 'bg-red-100 text-red-700' :
+          run.status === 'paused' ? 'bg-purple-100 text-purple-700' :
+          'bg-gray-100 text-gray-600'
+        }`}>
+          {run.status}
+        </span>
+        {expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+      </div>
+
+      {run.error_message && (
+        <p className="text-xs text-red-600 mt-1.5">{run.error_message}</p>
+      )}
+
+      {expanded && logEntries.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-border/50 space-y-1">
+          {logEntries.map((entry, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs">
+              <span className="text-muted-foreground font-mono flex-shrink-0 w-6 text-right">
+                {(entry.step_order as number) || i + 1}
+              </span>
+              <span className={`${entry.node_type ? `px-1 py-0.5 rounded text-[10px] uppercase font-medium ${
+                entry.node_type === 'action' ? 'bg-green-100 text-green-700' :
+                entry.node_type === 'condition' ? 'bg-amber-100 text-amber-700' :
+                entry.node_type === 'delay' ? 'bg-purple-100 text-purple-700' :
+                'bg-blue-100 text-blue-700'
+              }` : ''}`}>
+                {String(entry.node_type || '')}
+              </span>
+              <span className={entry.success === false ? 'text-red-600' : 'text-foreground'}>
+                {String(entry.message || '')}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

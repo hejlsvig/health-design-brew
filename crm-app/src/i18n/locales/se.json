@@ -193,7 +193,8 @@
     "title": "Automation",
     "tabs": {
       "flows": "Flöden",
-      "templates": "Mallar"
+      "templates": "Mallar",
+      "history": "Historik"
     },
     "noFlows": "Inga automationsflöden skapade",
     "steps": "steg",
@@ -210,7 +211,15 @@
     "variables": "Variabler",
     "addVariable": "Lägg till variabel",
     "subject": "Ämne",
-    "body": "Innehåll"
+    "body": "Innehåll",
+    "runFlow": "Kör flöde",
+    "targetUser": "Målanvändare",
+    "searchUser": "Sök användare (e-post eller namn)...",
+    "run": "Kör",
+    "dryRun": "Testkör",
+    "recentRuns": "Senaste körningar",
+    "noRuns": "Inga körningar ännu",
+    "refresh": "Uppdatera"
   },
   "notes": {
     "title": "Anteckningar",

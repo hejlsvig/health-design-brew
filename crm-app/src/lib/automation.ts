@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 
 export type TriggerType = 'on_signup' | 'on_coaching_activate' | 'on_checkin_missed' | 'on_tier_change' | 'on_date' | 'manual'
 export type NodeType = 'trigger' | 'condition' | 'action' | 'delay' | 'branch'
-export type RunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+export type RunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'paused'
 
 export interface AutomationFlow {
   id: string
@@ -208,4 +208,61 @@ export const TRIGGER_TYPE_LABELS: Record<TriggerType, string> = {
   on_tier_change: 'Tier Changed',
   on_date: 'Scheduled Date',
   manual: 'Manual Trigger',
+}
+
+// ─── Automation Engine (calls Edge Function) ───
+
+interface RunResult {
+  success: boolean
+  run_id?: string
+  status?: string
+  log?: Record<string, unknown>[]
+  error?: string
+  dry_run?: boolean
+}
+
+interface TriggerResult {
+  success: boolean
+  results?: Record<string, unknown>[]
+  error?: string
+}
+
+/** Execute a single flow for a specific user */
+export async function runFlow(flowId: string, userId: string): Promise<RunResult> {
+  const { data, error } = await supabase.functions.invoke('run-automation', {
+    body: { action: 'run', flow_id: flowId, user_id: userId },
+  })
+
+  if (error) return { success: false, error: error.message }
+  return data as RunResult
+}
+
+/** Dry-run a flow (logs only, no emails sent) */
+export async function testFlow(flowId: string, userId: string): Promise<RunResult> {
+  const { data, error } = await supabase.functions.invoke('run-automation', {
+    body: { action: 'test', flow_id: flowId, user_id: userId },
+  })
+
+  if (error) return { success: false, error: error.message }
+  return data as RunResult
+}
+
+/** Fire all enabled flows matching a trigger type */
+export async function fireTriggeredFlows(triggerType: TriggerType, userId: string): Promise<TriggerResult> {
+  const { data, error } = await supabase.functions.invoke('run-automation', {
+    body: { action: 'trigger', trigger_type: triggerType, user_id: userId },
+  })
+
+  if (error) return { success: false, error: error.message }
+  return data as TriggerResult
+}
+
+/** Resume all paused runs whose delay has expired */
+export async function resumePausedRuns(): Promise<{ success: boolean; resumed?: number; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('run-automation', {
+    body: { action: 'resume' },
+  })
+
+  if (error) return { success: false, error: error.message }
+  return data as { success: boolean; resumed?: number }
 }
