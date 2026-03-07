@@ -217,17 +217,22 @@ function PasswordSection() {
     }
 
     setSaving(true)
-    const { error: updateError } = await updatePassword(newPassword)
+    try {
+      const { error: updateError } = await updatePassword(newPassword)
 
-    if (updateError) {
-      setError(updateError.message)
-    } else {
-      setSuccess(true)
-      setNewPassword('')
-      setConfirmPassword('')
-      setTimeout(() => setSuccess(false), 4000)
+      if (updateError) {
+        setError(updateError.message)
+      } else {
+        setSuccess(true)
+        setNewPassword('')
+        setConfirmPassword('')
+        setTimeout(() => setSuccess(false), 4000)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Der opstod en fejl. Prøv igen.')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   return (

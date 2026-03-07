@@ -180,8 +180,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    return { error: error as Error | null }
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      return { error: error as Error | null }
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error('Password update failed') }
+    }
   }
 
   const signOut = async () => {
