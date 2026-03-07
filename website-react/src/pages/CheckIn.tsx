@@ -2,6 +2,7 @@
  * Public check-in form — accessible via /checkin?token=xxx
  * No authentication required. Token-validated via RPC functions.
  * Multi-language support (da/en/se).
+ * Uses the Shifting Source design system (charcoal, sage, accent amber, DM Serif + Nunito Sans).
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -42,15 +43,15 @@ function SliderField({ label, icon: Icon, value, onChange, min = 1, max = 10 }: 
 }) {
   return (
     <div>
-      <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-        <Icon size={16} className="text-amber-500" /> {label}
+      <label className="flex items-center gap-2 text-sm font-medium text-charcoal-foreground/80 mb-2">
+        <Icon size={16} className="text-accent" /> {label}
       </label>
       <div className="flex items-center gap-3">
         <input
           type="range" min={min} max={max} value={value} onChange={e => onChange(+e.target.value)}
-          className="flex-1 accent-amber-500 h-2 rounded-full"
+          className="flex-1 accent-accent h-2 rounded-full"
         />
-        <span className="text-lg font-semibold text-white w-8 text-center">{value}</span>
+        <span className="text-lg font-semibold text-charcoal-foreground w-8 text-center">{value}</span>
       </div>
     </div>
   )
@@ -63,8 +64,8 @@ function RadioGroup({ label, icon: Icon, options, value, onChange }: {
 }) {
   return (
     <div>
-      <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-        <Icon size={16} className="text-amber-500" /> {label}
+      <label className="flex items-center gap-2 text-sm font-medium text-charcoal-foreground/80 mb-2">
+        <Icon size={16} className="text-accent" /> {label}
       </label>
       <div className="flex flex-wrap gap-2">
         {options.map(o => (
@@ -72,8 +73,8 @@ function RadioGroup({ label, icon: Icon, options, value, onChange }: {
             key={o.value} type="button" onClick={() => onChange(o.value)}
             className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
               value === o.value
-                ? 'bg-amber-500 text-gray-900 font-semibold'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-accent text-white font-semibold'
+                : 'bg-charcoal/80 text-charcoal-foreground/70 border border-sage/20 hover:border-sage/40'
             }`}
           >
             {o.label}
@@ -88,9 +89,9 @@ function SectionCard({ title, icon: Icon, children }: {
   title: string; icon: React.ElementType; children: React.ReactNode
 }) {
   return (
-    <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-5 space-y-4">
-      <h3 className="flex items-center gap-2 text-white font-semibold">
-        <Icon size={18} className="text-amber-500" /> {title}
+    <div className="bg-charcoal/40 border border-sage/15 rounded-xl p-5 space-y-4">
+      <h3 className="flex items-center gap-2 text-charcoal-foreground font-semibold">
+        <Icon size={18} className="text-accent" /> {title}
       </h3>
       {children}
     </div>
@@ -100,7 +101,7 @@ function SectionCard({ title, icon: Icon, children }: {
 function WeightTrend({ current, previous }: { current: number | null; previous: number | null }) {
   if (current == null || previous == null) return null
   const diff = current - previous
-  if (Math.abs(diff) < 0.05) return <Minus size={14} className="text-gray-400" />
+  if (Math.abs(diff) < 0.05) return <Minus size={14} className="text-sage" />
   return diff < 0
     ? <TrendingDown size={14} className="text-green-400" />
     : <TrendingUp size={14} className="text-red-400" />
@@ -114,32 +115,32 @@ function HistoryCard({ entry, lang, t, prevWeight }: {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="bg-gray-800/40 border border-gray-700 rounded-lg overflow-hidden">
+    <div className="bg-charcoal/30 border border-sage/15 rounded-lg overflow-hidden">
       <button
         type="button" onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-700/30 transition-colors"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-charcoal/50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <span className="bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-1 rounded">
+          <span className="bg-accent/20 text-accent text-xs font-bold px-2 py-1 rounded">
             {t('checkin.week')} {entry.week_number ?? '—'}
           </span>
-          <span className="text-gray-400 text-sm">{formatDate(entry.created_at, lang)}</span>
+          <span className="text-charcoal-foreground/50 text-sm">{formatDate(entry.created_at, lang)}</span>
         </div>
         <div className="flex items-center gap-4">
           {entry.weight != null && (
-            <span className="flex items-center gap-1 text-sm text-gray-300">
+            <span className="flex items-center gap-1 text-sm text-charcoal-foreground/70">
               <Scale size={14} /> {entry.weight} kg
               <WeightTrend current={entry.weight} previous={prevWeight} />
             </span>
           )}
           {entry.mood != null && (
-            <span className="text-sm text-gray-400">😊 {entry.mood}/10</span>
+            <span className="text-sm text-charcoal-foreground/50">😊 {entry.mood}/10</span>
           )}
-          {open ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+          {open ? <ChevronUp size={16} className="text-sage" /> : <ChevronDown size={16} className="text-sage" />}
         </div>
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-1 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm border-t border-gray-700">
+        <div className="px-4 pb-4 pt-1 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm border-t border-sage/15">
           {entry.energy != null && <Stat label={t('checkin.energy')} value={`${entry.energy}/10`} />}
           {entry.hunger && <Stat label={t('checkin.hunger')} value={t(`checkin.opt.${entry.hunger}`)} />}
           {entry.cravings && <Stat label={t('checkin.cravings')} value={t(`checkin.opt.${entry.cravings}`)} />}
@@ -152,20 +153,20 @@ function HistoryCard({ entry, lang, t, prevWeight }: {
           {entry.stress_factors && <Stat label={t('checkin.stress')} value={entry.stress_factors} />}
           {entry.weekly_win && (
             <div className="col-span-full">
-              <span className="text-gray-400">{t('checkin.weeklyWin')}:</span>{' '}
-              <span className="text-gray-200">{entry.weekly_win}</span>
+              <span className="text-charcoal-foreground/50">{t('checkin.weeklyWin')}:</span>{' '}
+              <span className="text-charcoal-foreground/80">{entry.weekly_win}</span>
             </div>
           )}
           {entry.deviations && (
             <div className="col-span-full">
-              <span className="text-gray-400">{t('checkin.deviations')}:</span>{' '}
-              <span className="text-gray-200">{entry.deviations}</span>
+              <span className="text-charcoal-foreground/50">{t('checkin.deviations')}:</span>{' '}
+              <span className="text-charcoal-foreground/80">{entry.deviations}</span>
             </div>
           )}
           {entry.notes && (
             <div className="col-span-full">
-              <span className="text-gray-400">{t('checkin.notes')}:</span>{' '}
-              <span className="text-gray-200">{entry.notes}</span>
+              <span className="text-charcoal-foreground/50">{t('checkin.notes')}:</span>{' '}
+              <span className="text-charcoal-foreground/80">{entry.notes}</span>
             </div>
           )}
         </div>
@@ -177,8 +178,8 @@ function HistoryCard({ entry, lang, t, prevWeight }: {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-gray-500 text-xs">{label}</span>
-      <p className="text-gray-200">{value}</p>
+      <span className="text-charcoal-foreground/40 text-xs">{label}</span>
+      <p className="text-charcoal-foreground/80">{value}</p>
     </div>
   )
 }
@@ -281,19 +282,19 @@ export default function CheckIn() {
   /* ─── Error / Loading states ─── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <Loader2 className="animate-spin text-amber-500" size={40} />
+      <div className="min-h-screen bg-charcoal flex items-center justify-center">
+        <Loader2 className="animate-spin text-accent" size={40} />
       </div>
     )
   }
 
   if (error === 'missing_token' || error === 'invalid_token') {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-8 text-center max-w-md">
-          <AlertTriangle size={48} className="text-amber-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-white mb-2">{t('checkin.errorTitle')}</h1>
-          <p className="text-gray-400">{t(`checkin.error.${error}`)}</p>
+      <div className="min-h-screen bg-charcoal flex items-center justify-center px-4">
+        <div className="bg-charcoal/60 border border-sage/20 rounded-xl p-8 text-center max-w-md">
+          <AlertTriangle size={48} className="text-accent mx-auto mb-4" />
+          <h1 className="text-xl font-serif font-bold text-charcoal-foreground mb-2">{t('checkin.errorTitle')}</h1>
+          <p className="text-charcoal-foreground/60">{t(`checkin.error.${error}`)}</p>
         </div>
       </div>
     )
@@ -306,14 +307,14 @@ export default function CheckIn() {
   /* ─── Success state ─── */
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-8 text-center max-w-md">
+      <div className="min-h-screen bg-charcoal flex items-center justify-center px-4">
+        <div className="bg-charcoal/60 border border-sage/20 rounded-xl p-8 text-center max-w-md">
           <CheckCircle2 size={56} className="text-green-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">{t('checkin.successTitle')}</h1>
-          <p className="text-gray-400 mb-6">{t('checkin.successMsg')}</p>
+          <h1 className="text-2xl font-serif font-bold text-charcoal-foreground mb-2">{t('checkin.successTitle')}</h1>
+          <p className="text-charcoal-foreground/60 mb-6">{t('checkin.successMsg')}</p>
           <button
             onClick={() => { setSubmitted(false); setForm({ ...EMPTY_FORM }) }}
-            className="text-amber-400 hover:text-amber-300 underline text-sm"
+            className="text-accent hover:text-accent/80 underline text-sm"
           >
             {t('checkin.submitAnother')}
           </button>
@@ -324,24 +325,24 @@ export default function CheckIn() {
 
   /* ─── Main form ─── */
   return (
-    <div className="min-h-screen bg-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-charcoal py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('checkin.title')}</h1>
-          <p className="text-gray-400">{t('checkin.subtitle')}</p>
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal-foreground">{t('checkin.title')}</h1>
+          <p className="text-charcoal-foreground/60 font-sans">{t('checkin.subtitle')}</p>
         </div>
 
         {/* Client info bar */}
-        <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-charcoal/40 border border-sage/15 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-white font-semibold">{client.profile.full_name}</p>
-            <p className="text-gray-400 text-sm">
+            <p className="text-charcoal-foreground font-semibold">{client.profile.full_name}</p>
+            <p className="text-charcoal-foreground/50 text-sm">
               {t('checkin.week')} {weeksOnProgram} · {client.coaching_package ?? t('checkin.standard')}
             </p>
           </div>
-          <div className="flex gap-4 text-sm text-gray-400">
+          <div className="flex gap-4 text-sm text-charcoal-foreground/50">
             {client.profile.start_weight != null && (
               <span>{t('checkin.startWeight')}: {client.profile.start_weight} kg</span>
             )}
@@ -357,12 +358,12 @@ export default function CheckIn() {
           {/* 1. Weight & Wellness */}
           <SectionCard title={t('checkin.section.weightWellness')} icon={Scale}>
             <div>
-              <label className="text-sm text-gray-300 mb-1 block">{t('checkin.currentWeight')} (kg)</label>
+              <label className="text-sm text-charcoal-foreground/70 mb-1 block">{t('checkin.currentWeight')} (kg)</label>
               <input
                 type="number" step="0.1" min="30" max="300"
                 value={form.weight ?? ''}
                 onChange={e => set('weight')(e.target.value ? +e.target.value : null)}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                className="w-full bg-charcoal/80 border border-sage/20 rounded-lg px-3 py-2 text-charcoal-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none"
                 placeholder="0.0"
               />
             </div>
@@ -379,12 +380,12 @@ export default function CheckIn() {
           {/* 3. Sleep */}
           <SectionCard title={t('checkin.section.sleep')} icon={Moon}>
             <div>
-              <label className="text-sm text-gray-300 mb-1 block">{t('checkin.sleepHours')}</label>
+              <label className="text-sm text-charcoal-foreground/70 mb-1 block">{t('checkin.sleepHours')}</label>
               <input
                 type="number" step="0.5" min="0" max="16"
                 value={form.sleep_hours ?? ''}
                 onChange={e => set('sleep_hours')(e.target.value ? +e.target.value : null)}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                className="w-full bg-charcoal/80 border border-sage/20 rounded-lg px-3 py-2 text-charcoal-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none"
                 placeholder="7.5"
               />
             </div>
@@ -404,12 +405,12 @@ export default function CheckIn() {
           {/* 6. Fasting */}
           <SectionCard title={t('checkin.section.fasting')} icon={Timer}>
             <div>
-              <label className="text-sm text-gray-300 mb-1 block">{t('checkin.fastingHours')}</label>
+              <label className="text-sm text-charcoal-foreground/70 mb-1 block">{t('checkin.fastingHours')}</label>
               <input
                 type="number" step="1" min="0" max="48"
                 value={form.fasting_hours ?? ''}
                 onChange={e => set('fasting_hours')(e.target.value ? +e.target.value : null)}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                className="w-full bg-charcoal/80 border border-sage/20 rounded-lg px-3 py-2 text-charcoal-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none"
                 placeholder="16"
               />
             </div>
@@ -426,7 +427,7 @@ export default function CheckIn() {
             <textarea
               value={form.weekly_win} onChange={e => set('weekly_win')(e.target.value)}
               rows={3} placeholder={t('checkin.weeklyWinPlaceholder')}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none resize-none"
+              className="w-full bg-charcoal/80 border border-sage/20 rounded-lg px-3 py-2 text-charcoal-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none resize-none"
             />
           </SectionCard>
 
@@ -435,7 +436,7 @@ export default function CheckIn() {
             <textarea
               value={form.deviations} onChange={e => set('deviations')(e.target.value)}
               rows={3} placeholder={t('checkin.deviationsPlaceholder')}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none resize-none"
+              className="w-full bg-charcoal/80 border border-sage/20 rounded-lg px-3 py-2 text-charcoal-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none resize-none"
             />
           </SectionCard>
 
@@ -444,7 +445,7 @@ export default function CheckIn() {
             <textarea
               value={form.notes} onChange={e => set('notes')(e.target.value)}
               rows={3} placeholder={t('checkin.notesPlaceholder')}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none resize-none"
+              className="w-full bg-charcoal/80 border border-sage/20 rounded-lg px-3 py-2 text-charcoal-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none resize-none"
             />
           </SectionCard>
 
@@ -458,7 +459,7 @@ export default function CheckIn() {
           {/* Submit */}
           <button
             type="submit" disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-gray-900 font-bold py-3 rounded-xl transition-colors text-lg"
+            className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors text-lg"
           >
             {submitting ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
             {t('checkin.submit')}
@@ -470,7 +471,7 @@ export default function CheckIn() {
           <div className="space-y-3">
             <button
               type="button" onClick={() => setShowHistory(!showHistory)}
-              className="flex items-center gap-2 text-amber-400 hover:text-amber-300 font-semibold"
+              className="flex items-center gap-2 text-accent hover:text-accent/80 font-semibold"
             >
               {showHistory ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               {t('checkin.history')} ({history.length})
@@ -489,7 +490,7 @@ export default function CheckIn() {
         )}
 
         {/* Footer */}
-        <p className="text-center text-gray-600 text-xs pb-4">
+        <p className="text-center text-charcoal-foreground/30 text-xs pb-4 font-sans">
           Powered by Shifting Source
         </p>
       </div>
