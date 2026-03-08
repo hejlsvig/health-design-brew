@@ -9,9 +9,10 @@ export interface AiSettings {
   openai_api_key: string
   ai_model: string
   kieai_api_key: string
-  ftp_host: string
-  ftp_username: string
-  ftp_password: string
+  sftp_host: string
+  sftp_port: string
+  sftp_username: string
+  sftp_password: string
   chat_system_prompt_da: string
   chat_system_prompt_en: string
   chat_system_prompt_se: string
@@ -83,7 +84,7 @@ export async function getSettings(): Promise<AiSettings> {
 
   if (error) {
     console.error('[Settings] Fetch error:', error)
-    return { openai_api_key: '', ai_model: 'gpt-4.1', kieai_api_key: '', ftp_host: '', ftp_username: '', ftp_password: '', chat_system_prompt_da: '', chat_system_prompt_en: '', chat_system_prompt_se: '' }
+    return { openai_api_key: '', ai_model: 'gpt-4.1', kieai_api_key: '', sftp_host: '', sftp_port: '22', sftp_username: '', sftp_password: '', chat_system_prompt_da: '', chat_system_prompt_en: '', chat_system_prompt_se: '' }
   }
 
   const map: Record<string, string> = {}
@@ -95,9 +96,10 @@ export async function getSettings(): Promise<AiSettings> {
     openai_api_key: map['openai_api_key'] || '',
     ai_model: map['ai_model'] || 'gpt-5.2-chat-latest',
     kieai_api_key: map['kieai_api_key'] || '',
-    ftp_host: map['ftp_host'] || '',
-    ftp_username: map['ftp_username'] || '',
-    ftp_password: map['ftp_password'] || '',
+    sftp_host: map['sftp_host'] || '',
+    sftp_port: map['sftp_port'] || '22',
+    sftp_username: map['sftp_username'] || '',
+    sftp_password: map['sftp_password'] || '',
     chat_system_prompt_da: map['chat_system_prompt_da'] || '',
     chat_system_prompt_en: map['chat_system_prompt_en'] || '',
     chat_system_prompt_se: map['chat_system_prompt_se'] || '',

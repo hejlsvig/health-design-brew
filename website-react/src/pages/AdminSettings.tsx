@@ -79,12 +79,13 @@ export default function AdminSettings() {
   const [showKieaiKey, setShowKieaiKey] = useState(false)
   const [hasExistingKieaiKey, setHasExistingKieaiKey] = useState(false)
 
-  // FTP
-  const [ftpHost, setFtpHost] = useState('')
-  const [ftpUsername, setFtpUsername] = useState('')
-  const [ftpPassword, setFtpPassword] = useState('')
-  const [showFtpPassword, setShowFtpPassword] = useState(false)
-  const [hasExistingFtpPassword, setHasExistingFtpPassword] = useState(false)
+  // SFTP
+  const [sftpHost, setSftpHost] = useState('')
+  const [sftpPort, setSftpPort] = useState('22')
+  const [sftpUsername, setSftpUsername] = useState('')
+  const [sftpPassword, setSftpPassword] = useState('')
+  const [showSftpPassword, setShowSftpPassword] = useState(false)
+  const [hasExistingSftpPassword, setHasExistingSftpPassword] = useState(false)
 
   // AI Prompts
   const [chatPromptDa, setChatPromptDa] = useState('')
@@ -163,11 +164,12 @@ export default function AdminSettings() {
         setKieaiKey('••••••••' + s.kieai_api_key.slice(-4))
         setHasExistingKieaiKey(true)
       }
-      if (s.ftp_host) setFtpHost(s.ftp_host)
-      if (s.ftp_username) setFtpUsername(s.ftp_username)
-      if (s.ftp_password) {
-        setFtpPassword('••••••••' + s.ftp_password.slice(-4))
-        setHasExistingFtpPassword(true)
+      if (s.sftp_host) setSftpHost(s.sftp_host)
+      if (s.sftp_port) setSftpPort(s.sftp_port)
+      if (s.sftp_username) setSftpUsername(s.sftp_username)
+      if (s.sftp_password) {
+        setSftpPassword('••••••••' + s.sftp_password.slice(-4))
+        setHasExistingSftpPassword(true)
       }
 
       // AI Prompts
@@ -330,13 +332,14 @@ export default function AdminSettings() {
     await saveSetting('health_check_enabled', healthCheckEnabled ? 'true' : 'false', user?.id)
   }, [securityFrameOptions, securityReferrerPolicy, rateLimitMax, rateLimitWindow, cspExtraDomains, adminNotificationEmail, healthCheckEnabled, user?.id])
 
-  const saveFtp = useCallback(async () => {
-    if (ftpHost) await saveSetting('ftp_host', ftpHost, user?.id)
-    if (ftpUsername) await saveSetting('ftp_username', ftpUsername, user?.id)
-    if (ftpPassword && !ftpPassword.startsWith('••••')) {
-      await saveSetting('ftp_password', ftpPassword, user?.id)
+  const saveSftp = useCallback(async () => {
+    if (sftpHost) await saveSetting('sftp_host', sftpHost, user?.id)
+    if (sftpPort) await saveSetting('sftp_port', sftpPort, user?.id)
+    if (sftpUsername) await saveSetting('sftp_username', sftpUsername, user?.id)
+    if (sftpPassword && !sftpPassword.startsWith('••••')) {
+      await saveSetting('sftp_password', sftpPassword, user?.id)
     }
-  }, [ftpHost, ftpUsername, ftpPassword, user?.id])
+  }, [sftpHost, sftpPort, sftpUsername, sftpPassword, user?.id])
 
   if (authLoading || loading) {
     return (
@@ -1159,22 +1162,32 @@ export default function AdminSettings() {
               <div className="flex items-center gap-2">
                 <Server className="h-5 w-5 text-accent" />
                 <h2 className="font-serif text-lg font-bold text-foreground">
-                  {t('admin.ftpSettings', 'FTP / Medieserver')}
+                  {t('admin.sftpSettings', 'SFTP / Medieserver')}
                 </h2>
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {t('admin.ftpDescription', 'FTP-adgang til din medieserver (f.eks. one.com) til upload af billeder og andre mediefiler.')}
+                {t('admin.sftpDescription', 'SFTP-adgang til din medieserver (f.eks. one.com) til upload af billeder og andre mediefiler. Bruges til AI-genererede billeder.')}
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
+                <div>
                   <label className="block text-sm font-medium mb-1.5">Host</label>
                   <input
                     type="text"
-                    value={ftpHost}
-                    onChange={e => setFtpHost(e.target.value)}
-                    placeholder="ftp.example.com"
+                    value={sftpHost}
+                    onChange={e => setSftpHost(e.target.value)}
+                    placeholder="ssh.example.com"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Port</label>
+                  <input
+                    type="text"
+                    value={sftpPort}
+                    onChange={e => setSftpPort(e.target.value)}
+                    placeholder="22"
                     className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
@@ -1182,9 +1195,9 @@ export default function AdminSettings() {
                   <label className="block text-sm font-medium mb-1.5">Brugernavn</label>
                   <input
                     type="text"
-                    value={ftpUsername}
-                    onChange={e => setFtpUsername(e.target.value)}
-                    placeholder="ftp-user"
+                    value={sftpUsername}
+                    onChange={e => setSftpUsername(e.target.value)}
+                    placeholder="sftp-user"
                     className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
@@ -1192,25 +1205,25 @@ export default function AdminSettings() {
                   <label className="block text-sm font-medium mb-1.5">Adgangskode</label>
                   <div className="relative">
                     <input
-                      type={showFtpPassword ? 'text' : 'password'}
-                      value={ftpPassword}
-                      onChange={e => { setFtpPassword(e.target.value); setHasExistingFtpPassword(false) }}
-                      onFocus={() => { if (hasExistingFtpPassword) { setFtpPassword(''); setHasExistingFtpPassword(false) } }}
+                      type={showSftpPassword ? 'text' : 'password'}
+                      value={sftpPassword}
+                      onChange={e => { setSftpPassword(e.target.value); setHasExistingSftpPassword(false) }}
+                      onFocus={() => { if (hasExistingSftpPassword) { setSftpPassword(''); setHasExistingSftpPassword(false) } }}
                       placeholder="••••••••"
                       className="w-full h-10 rounded-md border border-input bg-background px-3 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowFtpPassword(!showFtpPassword)}
+                      onClick={() => setShowSftpPassword(!showSftpPassword)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      {showFtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showSftpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
               </div>
 
-              <SectionSaveButton onSave={saveFtp} label="Gem FTP-indstillinger" />
+              <SectionSaveButton onSave={saveSftp} label="Gem SFTP-indstillinger" />
             </section>
           </>
         )}

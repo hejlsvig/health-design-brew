@@ -1,8 +1,8 @@
 /**
  * Supabase Edge Function: upload-image-ftp
  *
- * Downloads an image from a URL and uploads it to one.com via FTP.
- * Uses passive mode FTP with Deno.connect() for TCP connections.
+ * Downloads an image from a URL and uploads it to one.com via SFTP.
+ * Uses npm:ssh2-sftp-client (pure JS, no native dependencies).
  *
  * Request body:
  *   { url: string, folder: "articles" | "recipes", filename?: string }
@@ -10,167 +10,18 @@
  * Returns:
  *   { publicUrl: string, path: string }
  *
- * FTP credentials are read from admin_settings (ftp_host, ftp_username, ftp_password).
+ * SFTP credentials are read from admin_settings:
+ *   sftp_host, sftp_username, sftp_password (falls back to ftp_* keys for backwards compat)
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import SftpClient from 'npm:ssh2-sftp-client@11'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
-
-// ── Minimal FTP Client ──────────────────────────────────────────────
-
-class FtpClient {
-  private conn!: Deno.Conn
-  private encoder = new TextEncoder()
-  private decoder = new TextDecoder()
-
-  async connect(host: string, port = 21): Promise<string> {
-    this.conn = await Deno.connect({ hostname: host, port })
-    return await this.readResponse()
-  }
-
-  async command(cmd: string): Promise<string> {
-    await this.conn.write(this.encoder.encode(cmd + '\r\n'))
-    return await this.readResponse()
-  }
-
-  async login(user: string, pass: string): Promise<void> {
-    const userResp = await this.command(`USER ${user}`)
-    if (!userResp.startsWith('331') && !userResp.startsWith('230')) {
-      throw new Error(`FTP USER failed: ${userResp}`)
-    }
-    if (userResp.startsWith('230')) return // Already logged in
-
-    const passResp = await this.command(`PASS ${pass}`)
-    if (!passResp.startsWith('230')) {
-      throw new Error(`FTP PASS failed: ${passResp}`)
-    }
-  }
-
-  async setBinary(): Promise<void> {
-    const resp = await this.command('TYPE I')
-    if (!resp.startsWith('200')) {
-      throw new Error(`FTP TYPE failed: ${resp}`)
-    }
-  }
-
-  /**
-   * Enter passive mode and return { host, port } for the data connection.
-   */
-  async pasv(): Promise<{ host: string; port: number }> {
-    const resp = await this.command('PASV')
-    if (!resp.startsWith('227')) {
-      throw new Error(`FTP PASV failed: ${resp}`)
-    }
-
-    // Parse "227 Entering Passive Mode (h1,h2,h3,h4,p1,p2)"
-    const match = resp.match(/\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/)
-    if (!match) throw new Error(`Could not parse PASV response: ${resp}`)
-
-    const host = `${match[1]}.${match[2]}.${match[3]}.${match[4]}`
-    const port = parseInt(match[5]) * 256 + parseInt(match[6])
-    return { host, port }
-  }
-
-  /**
-   * Ensure directory exists (create if needed). Non-recursive — creates one level.
-   */
-  async ensureDir(dir: string): Promise<void> {
-    // Try to CWD into it; if it fails, MKD then CWD
-    const cwdResp = await this.command(`CWD ${dir}`)
-    if (cwdResp.startsWith('250')) {
-      // Go back to root after check
-      await this.command('CWD /')
-      return
-    }
-    // Try to create
-    const mkdResp = await this.command(`MKD ${dir}`)
-    // 257 = created, 550 = already exists (some servers)
-    if (!mkdResp.startsWith('257') && !mkdResp.startsWith('550')) {
-      console.warn(`[upload-image-ftp] MKD warning: ${mkdResp}`)
-    }
-    await this.command('CWD /')
-  }
-
-  /**
-   * Upload a file in passive mode.
-   */
-  async upload(remotePath: string, data: Uint8Array): Promise<void> {
-    const { host, port } = await this.pasv()
-
-    // Open data connection
-    const dataConn = await Deno.connect({ hostname: host, port })
-
-    // Send STOR command on control connection
-    const storResp = await this.command(`STOR ${remotePath}`)
-    if (!storResp.startsWith('150') && !storResp.startsWith('125')) {
-      dataConn.close()
-      throw new Error(`FTP STOR failed: ${storResp}`)
-    }
-
-    // Write data in chunks to avoid memory issues
-    const CHUNK_SIZE = 65536
-    for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-      const chunk = data.subarray(i, Math.min(i + CHUNK_SIZE, data.length))
-      await dataConn.write(chunk)
-    }
-
-    // Close data connection to signal end of transfer
-    dataConn.close()
-
-    // Read transfer complete response
-    const doneResp = await this.readResponse()
-    if (!doneResp.startsWith('226') && !doneResp.startsWith('250')) {
-      throw new Error(`FTP transfer not confirmed: ${doneResp}`)
-    }
-  }
-
-  async quit(): Promise<void> {
-    try {
-      await this.command('QUIT')
-    } catch {
-      // Ignore errors on quit
-    }
-    try {
-      this.conn.close()
-    } catch {
-      // Ignore
-    }
-  }
-
-  /**
-   * Read FTP response lines until we get a complete response.
-   * FTP responses end with "NNN text\r\n" (3-digit code + space).
-   * Multi-line responses use "NNN-" prefix until final "NNN " line.
-   */
-  private async readResponse(): Promise<string> {
-    const buffer = new Uint8Array(4096)
-    let result = ''
-    const maxAttempts = 20
-
-    for (let i = 0; i < maxAttempts; i++) {
-      const n = await this.conn.read(buffer)
-      if (n === null) break
-      result += this.decoder.decode(buffer.subarray(0, n))
-
-      // Check if we have a complete response
-      const lines = result.split('\r\n').filter(l => l.length > 0)
-      if (lines.length === 0) continue
-
-      const lastLine = lines[lines.length - 1]
-      // Complete response: 3 digits followed by a space
-      if (/^\d{3} /.test(lastLine)) {
-        return result.trim()
-      }
-    }
-
-    return result.trim()
-  }
 }
 
 // ── Helper: Get settings from admin_settings ──
@@ -179,7 +30,11 @@ async function getSettings(supabaseClient: any): Promise<Record<string, string>>
   const { data, error } = await supabaseClient
     .from('admin_settings')
     .select('key, value')
-    .in('key', ['ftp_host', 'ftp_username', 'ftp_password', 'site_url'])
+    .in('key', [
+      'sftp_host', 'sftp_username', 'sftp_password', 'sftp_port',
+      'ftp_host', 'ftp_username', 'ftp_password', // backwards compat
+      'site_url',
+    ])
 
   if (error) throw new Error(`Failed to fetch settings: ${error.message}`)
 
@@ -230,19 +85,17 @@ serve(async (req) => {
 
     // Verify user is admin
     const token = authHeader.replace('Bearer ', '')
-    console.log(`[upload-image-ftp] Verifying token (length: ${token.length})`)
-
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
 
     if (authError || !user) {
-      console.error('[upload-image-ftp] Auth error:', authError?.message || 'No user returned')
+      console.error('[upload-sftp] Auth error:', authError?.message || 'No user returned')
       return new Response(
         JSON.stringify({ error: `Autentificering fejlede: ${authError?.message || 'Ugyldig eller udløbet token'}. Log ud og ind igen.` }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    console.log(`[upload-image-ftp] User verified: ${user.id} (${user.email})`)
+    console.log(`[upload-sftp] User verified: ${user.id} (${user.email})`)
 
     const { data: crmUser, error: crmError } = await supabaseClient
       .from('crm_users')
@@ -251,7 +104,7 @@ serve(async (req) => {
       .single()
 
     if (crmError) {
-      console.error('[upload-image-ftp] crm_users lookup error:', crmError.message)
+      console.error('[upload-sftp] crm_users lookup error:', crmError.message)
       return new Response(
         JSON.stringify({ error: `Bruger ikke fundet i CRM-systemet. Kontakt admin. (${crmError.message})` }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -259,28 +112,29 @@ serve(async (req) => {
     }
 
     if (!crmUser || crmUser.role !== 'admin' || !crmUser.active) {
-      console.error(`[upload-image-ftp] Access denied: role=${crmUser?.role}, active=${crmUser?.active}`)
+      console.error(`[upload-sftp] Access denied: role=${crmUser?.role}, active=${crmUser?.active}`)
       return new Response(
         JSON.stringify({ error: `Adgang nægtet — kræver admin-rolle. Din rolle: ${crmUser?.role || 'ukendt'}` }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    // Get FTP settings
+    // Get SFTP settings (with fallback to ftp_* keys for backwards compat)
     const settings = await getSettings(supabaseClient)
-    const ftpHost = settings.ftp_host
-    const ftpUser = settings.ftp_username
-    const ftpPass = settings.ftp_password
+    const sftpHost = settings.sftp_host || settings.ftp_host
+    const sftpUser = settings.sftp_username || settings.ftp_username
+    const sftpPass = settings.sftp_password || settings.ftp_password
+    const sftpPort = parseInt(settings.sftp_port || '22', 10)
     const siteUrl = settings.site_url || 'https://shiftingsource.com'
 
-    if (!ftpHost || !ftpUser || !ftpPass) {
+    if (!sftpHost || !sftpUser || !sftpPass) {
       return new Response(
-        JSON.stringify({ error: 'FTP credentials not configured. Set ftp_host, ftp_username, ftp_password in Settings.' }),
+        JSON.stringify({ error: 'SFTP-credentials ikke konfigureret. Sæt sftp_host, sftp_username, sftp_password i Admin → Settings.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    console.log(`[upload-image-ftp] Downloading image from: ${url}`)
+    console.log(`[upload-sftp] Downloading image from: ${url}`)
 
     // Download image
     const imgResponse = await fetch(url, {
@@ -290,12 +144,12 @@ serve(async (req) => {
 
     if (!imgResponse.ok) {
       return new Response(
-        JSON.stringify({ error: `Failed to download image: ${imgResponse.status}` }),
+        JSON.stringify({ error: `Kunne ikke downloade billede: ${imgResponse.status}` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    const imageData = new Uint8Array(await imgResponse.arrayBuffer())
+    const imageBuffer = Buffer.from(await imgResponse.arrayBuffer())
     const contentType = imgResponse.headers.get('Content-Type') || 'image/png'
 
     // Determine file extension from content type
@@ -304,32 +158,52 @@ serve(async (req) => {
     else if (contentType.includes('jpeg') || contentType.includes('jpg')) ext = 'jpg'
     else if (contentType.includes('png')) ext = 'png'
 
-    // Build remote path
+    // Build remote path — one.com uses webroots/by-route/domain_/ structure
     const finalFilename = filename || `ai-${Date.now()}.${ext}`
-    const remotePath = `/www/images/${folder}/${finalFilename}`
+    const webRoot = 'webroots/by-route/shiftingsource.com_'
+    const remotePath = `/${webRoot}/images/${folder}/${finalFilename}`
 
-    console.log(`[upload-image-ftp] Uploading ${imageData.length} bytes to ${remotePath} via FTP`)
+    console.log(`[upload-sftp] Uploading ${imageBuffer.length} bytes to ${remotePath} via SFTP (${sftpHost}:${sftpPort})`)
 
-    // Upload via FTP
-    const ftp = new FtpClient()
+    // Upload via SFTP
+    const sftp = new SftpClient()
 
     try {
-      await ftp.connect(ftpHost)
-      await ftp.login(ftpUser, ftpPass)
-      await ftp.setBinary()
+      await sftp.connect({
+        host: sftpHost,
+        port: sftpPort,
+        username: sftpUser,
+        password: sftpPass,
+        readyTimeout: 10000,
+        retries: 1,
+      })
 
       // Ensure directory structure exists
-      await ftp.ensureDir('/www/images')
-      await ftp.ensureDir(`/www/images/${folder}`)
+      const imagesDir = `/${webRoot}/images`
+      const folderDir = `/${webRoot}/images/${folder}`
 
-      // Upload the file
-      await ftp.upload(remotePath, imageData)
-      await ftp.quit()
-    } catch (ftpErr: any) {
-      console.error('[upload-image-ftp] FTP error:', ftpErr)
-      try { await ftp.quit() } catch { /* ignore */ }
+      const imagesDirExists = await sftp.exists(imagesDir)
+      if (!imagesDirExists) {
+        console.log(`[upload-sftp] Creating directory: ${imagesDir}`)
+        await sftp.mkdir(imagesDir, true)
+      }
+
+      const folderDirExists = await sftp.exists(folderDir)
+      if (!folderDirExists) {
+        console.log(`[upload-sftp] Creating directory: ${folderDir}`)
+        await sftp.mkdir(folderDir, true)
+      }
+
+      // Upload the file from buffer
+      await sftp.put(imageBuffer, remotePath)
+      await sftp.end()
+
+      console.log(`[upload-sftp] SFTP upload complete`)
+    } catch (sftpErr: any) {
+      console.error('[upload-sftp] SFTP error:', sftpErr)
+      try { await sftp.end() } catch { /* ignore */ }
       return new Response(
-        JSON.stringify({ error: `FTP upload failed: ${ftpErr.message}` }),
+        JSON.stringify({ error: `SFTP upload fejlede: ${sftpErr.message}` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -337,7 +211,7 @@ serve(async (req) => {
     // Build public URL
     const publicUrl = `${siteUrl.replace(/\/$/, '')}/images/${folder}/${finalFilename}`
 
-    console.log(`[upload-image-ftp] Upload complete: ${publicUrl}`)
+    console.log(`[upload-sftp] Upload complete: ${publicUrl}`)
 
     return new Response(
       JSON.stringify({ publicUrl, path: remotePath }),
@@ -345,7 +219,7 @@ serve(async (req) => {
     )
 
   } catch (err: any) {
-    console.error('[upload-image-ftp] Error:', err)
+    console.error('[upload-sftp] Error:', err)
     return new Response(
       JSON.stringify({ error: err.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
