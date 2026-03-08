@@ -328,6 +328,21 @@ export default function AdminBlog() {
     setAiError('')
     setAiFetching(true)
     try {
+      // Check if an article with this source URL already exists
+      const { data: existingArticles } = await supabase
+        .from('articles')
+        .select('id, slug, title, status')
+        .eq('source_url', aiSourceUrl.trim())
+        .limit(1)
+
+      if (existingArticles && existingArticles.length > 0) {
+        const existing = existingArticles[0]
+        const existingTitle = (existing.title as any)?.da || (existing.title as any)?.en || existing.slug
+        setAiError(`Denne kilde er allerede brugt i artiklen "${existingTitle}" (${existing.status}). Du kan redigere den eksisterende artikel i stedet.`)
+        setAiFetching(false)
+        return
+      }
+
       const result = await fetchUrlContent(aiSourceUrl)
       setAiSourceText(result.text)
       if (result.textLength > 60000) {
@@ -454,7 +469,12 @@ export default function AdminBlog() {
 
       if (result.error) {
         console.error('[AdminBlog] Save error:', result.error)
-        setError(result.error.message)
+        // Provide user-friendly error for duplicate slug
+        if (result.error.message?.includes('duplicate') || result.error.code === '23505') {
+          setError(`En artikel med slug "${form.slug}" findes allerede. Ret slug'en og prøv igen.`)
+        } else {
+          setError(result.error.message)
+        }
         setSaving(false)
         savingRef.current = false
         return

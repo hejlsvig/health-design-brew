@@ -230,24 +230,38 @@ serve(async (req) => {
 
     // Verify user is admin
     const token = authHeader.replace('Bearer ', '')
+    console.log(`[upload-image-ftp] Verifying token (length: ${token.length})`)
+
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
 
     if (authError || !user) {
+      console.error('[upload-image-ftp] Auth error:', authError?.message || 'No user returned')
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
+        JSON.stringify({ error: `Autentificering fejlede: ${authError?.message || 'Ugyldig eller udløbet token'}. Log ud og ind igen.` }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    const { data: crmUser } = await supabaseClient
+    console.log(`[upload-image-ftp] User verified: ${user.id} (${user.email})`)
+
+    const { data: crmUser, error: crmError } = await supabaseClient
       .from('crm_users')
       .select('role, active')
       .eq('id', user.id)
       .single()
 
-    if (!crmUser || crmUser.role !== 'admin' || !crmUser.active) {
+    if (crmError) {
+      console.error('[upload-image-ftp] crm_users lookup error:', crmError.message)
       return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
+        JSON.stringify({ error: `Bruger ikke fundet i CRM-systemet. Kontakt admin. (${crmError.message})` }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    if (!crmUser || crmUser.role !== 'admin' || !crmUser.active) {
+      console.error(`[upload-image-ftp] Access denied: role=${crmUser?.role}, active=${crmUser?.active}`)
+      return new Response(
+        JSON.stringify({ error: `Adgang nægtet — kræver admin-rolle. Din rolle: ${crmUser?.role || 'ukendt'}` }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }

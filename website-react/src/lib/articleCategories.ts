@@ -14,6 +14,7 @@ export const ARTICLE_CATEGORIES = [
   'inflammation',
   'exercise_movement',
   'longevity',
+  'womens_health',
 ] as const
 
 export type ArticleCategory = (typeof ARTICLE_CATEGORIES)[number]
@@ -23,13 +24,14 @@ const CATEGORY_LABELS: Record<ArticleCategory, Record<string, string>> = {
   keto:              { da: 'Keto',                  en: 'Keto',                 se: 'Keto' },
   fasting:           { da: 'Faste',                 en: 'Fasting',              se: 'Fasta' },
   metabolic_health:  { da: 'Metabolisk Sundhed',    en: 'Metabolic Health',     se: 'Metabolisk Hälsa' },
-  gut_biome:         { da: 'Gut Biome',             en: 'Gut Biome',            se: 'Tarmflora' },
+  gut_biome:         { da: 'Tarmflora',             en: 'Gut Health',           se: 'Tarmflora' },
   sleep_recovery:    { da: 'Søvn & Restitution',    en: 'Sleep & Recovery',     se: 'Sömn & Återhämtning' },
   hormones:          { da: 'Hormoner',              en: 'Hormones',             se: 'Hormoner' },
   mental_health:     { da: 'Mental Sundhed',        en: 'Mental Health',        se: 'Mental Hälsa' },
   inflammation:      { da: 'Inflammation',          en: 'Inflammation',         se: 'Inflammation' },
   exercise_movement: { da: 'Træning & Bevægelse',   en: 'Exercise & Movement',  se: 'Träning & Rörelse' },
-  longevity:         { da: 'Longevity',             en: 'Longevity',            se: 'Livslängd' },
+  longevity:         { da: 'Livslængde',            en: 'Longevity',            se: 'Livslängd' },
+  womens_health:     { da: 'Kvinders Sundhed',      en: "Women's Health",       se: 'Kvinnors Hälsa' },
 }
 
 /** Get the localized label for a category slug */

@@ -144,23 +144,44 @@ export default function AiImageGenerator({
       throw new Error('Ikke logget ind — log ind igen og prøv igen.')
     }
 
+    // Verify token is still valid before making the request
+    const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+    if (userError || !currentUser) {
+      // Token expired — try to refresh
+      const { data: refreshData } = await supabase.auth.refreshSession()
+      if (!refreshData.session) {
+        throw new Error('Din session er udløbet. Log ud og ind igen.')
+      }
+    }
+
+    // Get fresh session after potential refresh
+    const freshSession = (await supabase.auth.getSession()).data.session
+    const token = freshSession?.access_token || session.access_token
+
     const folder = contentType === 'recipe' ? 'recipes' : 'articles'
     const filename = `ai-${Date.now()}.${ext}`
 
-    // Strategy 1: Try FTP upload via Edge Function (sends image URL for server-side download)
+    // Upload via FTP Edge Function (sends image URL for server-side download)
     console.log('[AiImageGen] Uploading via FTP Edge Function...')
     const response = await fetch(`${supabaseUrl}/functions/v1/upload-image-ftp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ url: imageUrl, folder, filename }),
     })
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
-      throw new Error(errorData.error || `FTP upload failed: ${response.status}`)
+      const errorMsg = errorData.error || `FTP upload failed: ${response.status}`
+      if (response.status === 401) {
+        throw new Error('Autentificering fejlede — din session kan være udløbet. Prøv at logge ud og ind igen.')
+      }
+      if (response.status === 403) {
+        throw new Error('Adgang nægtet — du skal være admin for at uploade billeder.')
+      }
+      throw new Error(errorMsg)
     }
 
     const result = await response.json()
