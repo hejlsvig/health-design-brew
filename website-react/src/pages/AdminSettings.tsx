@@ -3,9 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Settings, Key, Cpu, Save, Loader2, Check, ArrowLeft, Eye, EyeOff, Image, Server, MessageSquare, RotateCcw, Share2, Instagram, Youtube, Facebook, FileText, ImageIcon, ExternalLink, Sparkles, Shield, Globe, Search, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Mail, Bell } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { getSettings, saveSetting, AVAILABLE_MODELS } from '@/lib/openai'
+import { getSettings, saveSetting, AVAILABLE_MODELS, DEFAULT_ARTICLE_PROMPT } from '@/lib/openai'
 import { supabase } from '@/lib/supabase'
 import { DEFAULT_PROMPTS } from '@/lib/chatai'
+import { DEFAULT_IMAGE_PROMPT_RECIPE, DEFAULT_IMAGE_PROMPT_ARTICLE } from '@/lib/kieai'
 import { cn } from '@/lib/utils'
 
 /** Reusable save button for individual sections */
@@ -92,7 +93,8 @@ export default function AdminSettings() {
   const [promptTab, setPromptTab] = useState<'da' | 'en' | 'se'>('da')
   const [promptSection, setPromptSection] = useState<'chat' | 'article' | 'image'>('chat')
   const [articlePrompt, setArticlePrompt] = useState('')
-  const [imagePrompt, setImagePrompt] = useState('')
+  const [imagePromptRecipe, setImagePromptRecipe] = useState('')
+  const [imagePromptArticle, setImagePromptArticle] = useState('')
 
   // Social media
   const [socialInstagram, setSocialInstagram] = useState('')
@@ -175,7 +177,8 @@ export default function AdminSettings() {
 
       // Article & image prompts
       setArticlePrompt(s.article_system_prompt || '')
-      setImagePrompt(s.image_generation_prompt || '')
+      setImagePromptRecipe(s.image_prompt_recipe || '')
+      setImagePromptArticle(s.image_prompt_article || '')
 
       // Social media
       setSocialInstagram(s.social_instagram || '')
@@ -288,8 +291,9 @@ export default function AdminSettings() {
     await saveSetting('chat_system_prompt_en', chatPromptEn, user?.id)
     await saveSetting('chat_system_prompt_se', chatPromptSe, user?.id)
     await saveSetting('article_system_prompt', articlePrompt, user?.id)
-    await saveSetting('image_generation_prompt', imagePrompt, user?.id)
-  }, [chatPromptDa, chatPromptEn, chatPromptSe, articlePrompt, imagePrompt, user?.id])
+    await saveSetting('image_prompt_recipe', imagePromptRecipe, user?.id)
+    await saveSetting('image_prompt_article', imagePromptArticle, user?.id)
+  }, [chatPromptDa, chatPromptEn, chatPromptSe, articlePrompt, imagePromptRecipe, imagePromptArticle, user?.id])
 
   const saveSocial = useCallback(async () => {
     await saveSetting('social_instagram', socialInstagram, user?.id)
@@ -612,7 +616,14 @@ export default function AdminSettings() {
 
               {/* Article Generation Prompt */}
               {promptSection === 'article' && (
-                <div>
+                <div className="space-y-3">
+                  <div className="rounded-md bg-sage/10 border border-sage/20 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Denne prompt bruges når du genererer artikler</strong> fra kildetekst (Admin → Blog → Ny artikel).
+                      Den instruerer AI'en i skrivestil, output-format (JSON med da/en/se), og kategorisering.
+                      {!articlePrompt && ' Standard-prompten vises nedenfor — rediger den gerne.'}
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-sm font-medium flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5" />
@@ -627,44 +638,79 @@ export default function AdminSettings() {
                     </button>
                   </div>
                   <textarea
-                    value={articlePrompt}
-                    onChange={e => setArticlePrompt(e.target.value)}
-                    placeholder="Du er en professionel sundheds- og ernæringsskribent for Shifting Source..."
-                    rows={10}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[150px]"
+                    value={articlePrompt || DEFAULT_ARTICLE_PROMPT}
+                    onChange={e => setArticlePrompt(e.target.value === DEFAULT_ARTICLE_PROMPT ? '' : e.target.value)}
+                    rows={12}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[200px]"
                   />
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    Bruges til AI-generering af artikler fra kildetekst. Tomt felt = bruger standard-prompt.
+                  <p className="text-xs text-muted-foreground">
+                    {articlePrompt ? '✏️ Brugertilpasset prompt aktiv' : '📋 Viser standard-prompt — rediger for at tilpasse'}
                   </p>
                 </div>
               )}
 
-              {/* Image Generation Prompt */}
+              {/* Image Generation Prompts (separate for recipes and articles) */}
               {promptSection === 'image' && (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-medium flex items-center gap-1.5">
-                      <ImageIcon className="h-3.5 w-3.5" />
-                      Billedgenerering Prompt-skabelon
-                    </label>
-                    <button
-                      onClick={() => setImagePrompt('')}
-                      className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      Nulstil til standard
-                    </button>
+                <div className="space-y-5">
+                  <div className="rounded-md bg-sage/10 border border-sage/20 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Billed-prompts bruges til AI-billedgenerering</strong> (Kie.ai / Nanobanana Pro).
+                      Der er to separate prompts — én for <strong>opskriftsbilleder</strong> (madfotografi) og én for <strong>artikelbilleder</strong> (editorial/konceptuelt).
+                      Prompten instruerer OpenAI i at generere en visuel beskrivelse, som derefter sendes til billed-AI'en.
+                    </p>
                   </div>
-                  <textarea
-                    value={imagePrompt}
-                    onChange={e => setImagePrompt(e.target.value)}
-                    placeholder="Generer et appetitligt, professionelt madfotografi i naturligt lys..."
-                    rows={8}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[120px]"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    Prompt-skabelon for AI-billedgenerering (Kie.ai). Brug {'{{title}}'} for artiklens titel og {'{{description}}'} for beskrivelse.
-                  </p>
+
+                  {/* Recipe Image Prompt */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-medium flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-accent" />
+                        🍽️ Opskrifter — Billed-prompt
+                      </label>
+                      <button
+                        onClick={() => setImagePromptRecipe('')}
+                        className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Nulstil
+                      </button>
+                    </div>
+                    <textarea
+                      value={imagePromptRecipe || DEFAULT_IMAGE_PROMPT_RECIPE}
+                      onChange={e => setImagePromptRecipe(e.target.value === DEFAULT_IMAGE_PROMPT_RECIPE ? '' : e.target.value)}
+                      rows={10}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[150px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {imagePromptRecipe ? '✏️ Brugertilpasset' : '📋 Standard-prompt'} — Professionelt madfotografi med kulturel kontekst
+                    </p>
+                  </div>
+
+                  {/* Article Image Prompt */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-medium flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                        📰 Artikler — Billed-prompt
+                      </label>
+                      <button
+                        onClick={() => setImagePromptArticle('')}
+                        className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Nulstil
+                      </button>
+                    </div>
+                    <textarea
+                      value={imagePromptArticle || DEFAULT_IMAGE_PROMPT_ARTICLE}
+                      onChange={e => setImagePromptArticle(e.target.value === DEFAULT_IMAGE_PROMPT_ARTICLE ? '' : e.target.value)}
+                      rows={10}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[150px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {imagePromptArticle ? '✏️ Brugertilpasset' : '📋 Standard-prompt'} — Editorial/konceptuel fotografi til forskningsartikler
+                    </p>
+                  </div>
                 </div>
               )}
 

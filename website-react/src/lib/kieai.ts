@@ -89,7 +89,8 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 // -- Image Prompt Generation (via OpenAI) --
 
-const IMAGE_PROMPT_SYSTEM_RECIPE = `You are a professional food photography director. Based on the recipe content provided, create a detailed image prompt for AI image generation.
+/** Default image prompt for recipes — used when admin_settings.image_prompt_recipe is empty */
+export const DEFAULT_IMAGE_PROMPT_RECIPE = `You are a professional food photography director. Based on the recipe content provided, create a detailed image prompt for AI image generation.
 
 CRITICAL — CULTURAL CONTEXT PRIORITY:
 The "Categories / Tags" field is THE most important signal for the cultural setting and styling.
@@ -124,7 +125,8 @@ RULES:
 
 Return ONLY the image prompt text, nothing else.`
 
-const IMAGE_PROMPT_SYSTEM_ARTICLE = `You are an editorial art director for a premium health & science magazine. Based on the article content provided, create a detailed image prompt for AI image generation.
+/** Default image prompt for articles — used when admin_settings.image_prompt_article is empty */
+export const DEFAULT_IMAGE_PROMPT_ARTICLE = `You are an editorial art director for a premium health & science magazine. Based on the article content provided, create a detailed image prompt for AI image generation.
 
 The website covers: keto diets, fasting (intermittent fasting, prolonged fasting), metabolic health, weight loss research, and longevity science.
 
@@ -219,7 +221,9 @@ Generate a detailed image prompt for this ${contentType === 'recipe' ? 'recipe' 
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: contentType === 'recipe' ? IMAGE_PROMPT_SYSTEM_RECIPE : IMAGE_PROMPT_SYSTEM_ARTICLE },
+        { role: 'system', content: contentType === 'recipe'
+          ? (settings.image_prompt_recipe || DEFAULT_IMAGE_PROMPT_RECIPE)
+          : (settings.image_prompt_article || DEFAULT_IMAGE_PROMPT_ARTICLE) },
         { role: 'user', content: userPrompt },
       ],
       max_completion_tokens: 500,
