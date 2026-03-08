@@ -70,7 +70,10 @@ OTHER RULES:
 - "seo_title": optimized for search (50-60 chars)
 - "seo_description": 120-155 chars
 - Write each language NATIVELY — do NOT just translate word-for-word. Each version should read naturally.
-- Languages: Danish (da), English (en), Swedish (se)`
+- Languages: Danish (da), English (en), Swedish (se)
+- NEVER start the article with a link to the source. Source links are displayed separately at the bottom of the page by the website.
+- NEVER use time-sensitive words like "new", "ny", "recent", "just published", "newly released", "denne uge", "i dag" etc. The article should be evergreen and read naturally years after publication.
+- Do NOT reference the source study/article in the opening line (e.g. "A new study published in..."). Instead, lead with the topic or finding itself.`
 
 /** Fetch all admin settings from Supabase */
 export async function getSettings(): Promise<AiSettings> {
