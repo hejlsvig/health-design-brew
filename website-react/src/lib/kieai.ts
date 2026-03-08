@@ -126,52 +126,58 @@ RULES:
 Return ONLY the image prompt text, nothing else.`
 
 /** Default image prompt for articles — used when admin_settings.image_prompt_article is empty */
-export const DEFAULT_IMAGE_PROMPT_ARTICLE = `You are an editorial art director for a premium health & science magazine. Based on the article content provided, create a detailed image prompt for AI image generation.
+export const DEFAULT_IMAGE_PROMPT_ARTICLE = `You are an editorial art director for a premium health & wellness magazine. Based on the article content provided, create a detailed image prompt for AI image generation.
 
 The website covers: keto diets, fasting (intermittent fasting, prolonged fasting), metabolic health, weight loss research, and longevity science.
 
 ARTICLE IMAGE PHILOSOPHY:
 Articles are NOT recipes. They are about research, studies, guides, science, and lifestyle concepts.
-The image should be CONCEPTUAL and EDITORIAL — like a striking magazine cover or feature article hero image.
-Think editorial photography, conceptual still life, or atmospheric mood shots — NOT food plating on a table.
+The image should be CONCEPTUAL and EDITORIAL — like a beautiful magazine feature image.
+Think warm editorial photography, bright conceptual still life, or inviting lifestyle shots — NOT food plating on a table.
+
+OVERALL MOOD & LIGHTING:
+- Prefer BRIGHT, WARM, and INVITING imagery — think morning light, golden hour, natural daylight
+- Avoid dark, moody, or dramatic lighting unless the topic specifically calls for it
+- Use soft natural light, warm tones (amber, golden, sage green), and clean backgrounds
+- The feel should be optimistic, healthy, and approachable — like a premium wellness brand
 
 STYLE APPROACHES (choose the best fit based on the article topic):
 
 For RESEARCH / STUDY articles (comparisons, clinical trials, meta-analyses):
-  - Abstract conceptual imagery: e.g. two contrasting paths, a fork in the road, symbolic objects representing the study's comparison
+  - Clean conceptual imagery: e.g. two contrasting paths, symbolic objects representing the study's comparison
   - Scientific editorial: laboratory glassware with colorful liquids, petri dishes with food elements, a scale balancing different foods
-  - Data-inspired: geometric patterns, flowing organic shapes suggesting graphs or trends, clean minimalist compositions
+  - Data-inspired: geometric patterns, flowing organic shapes, clean minimalist compositions with bright backgrounds
 
 For FASTING articles:
-  - Empty plate on a beautiful surface with dramatic lighting, a single glass of water, an hourglass, sunrise through a window with an empty kitchen
-  - Time-focused: clock elements, transitions from dark to light, dawn/dusk atmosphere
-  - Minimalism and negative space — the emptiness IS the subject
+  - Empty plate on a beautiful sunlit surface, a single glass of water, an hourglass in morning light, sunrise through a window
+  - Time-focused: clock elements, transitions from dawn to morning, bright airy atmosphere
+  - Minimalism and negative space with warm tones — the emptiness feels peaceful, not stark
 
 For KETO / LOW-CARB LIFESTYLE articles:
-  - Abundance of healthy fats: avocados, olive oil, nuts — but shot as an artistic arrangement, almost abstract
-  - Macro close-ups: the texture of an avocado half, oil droplets, cross-section of a nut
-  - Lifestyle mood: morning coffee with butter, a calm kitchen scene at golden hour
+  - Abundance of healthy fats: avocados, olive oil, nuts — shot as an artistic arrangement with natural light
+  - Macro close-ups: the texture of an avocado half, oil droplets catching light, cross-section of a nut
+  - Lifestyle mood: morning coffee with butter, a bright calm kitchen scene at golden hour
 
 For WEIGHT LOSS / BODY COMPOSITION articles:
-  - Symbolic: a measuring tape loosely coiled, a before/after concept with light, transformation imagery
-  - Movement and energy: blurred motion, dynamic lighting, sense of progress
-  - Nature and renewal: fresh morning light, open spaces, sense of freedom
+  - Symbolic: a measuring tape loosely coiled, transformation imagery with light
+  - Movement and energy: sense of progress, vitality, open bright spaces
+  - Nature and renewal: fresh morning light, open landscapes, sense of freedom
 
 For LONGEVITY / HEALTH SCIENCE:
-  - Timeless imagery: hourglasses, sundials, tree rings, flowing water
+  - Timeless imagery: hourglasses in sunlight, tree rings, flowing water
   - Vitality: vibrant colors, fresh natural elements, sense of energy and youth
-  - Lab-meets-nature: scientific elements alongside organic, natural materials
+  - Lab-meets-nature: scientific elements alongside organic, natural materials in bright settings
 
 COMPOSITION — TEXT OVERLAY ZONE:
 The LEFT ~40% of the image will have a title/text overlay on the website's full-size view.
 Therefore: place the main focal point in the CENTER or RIGHT side of the frame.
-The LEFT side should be kept subdued — darker tones, soft gradients, out-of-focus areas, negative space, or simple textures — so white text remains readable on top of it.
-Think of it like a magazine spread: the visual impact is right-of-center, and the left provides a calm backdrop for the headline.
+The LEFT side should be kept clean — soft gradients, out-of-focus areas, gentle negative space, or light simple textures — so text remains readable on top of it.
+Think of it like a magazine spread: the visual impact is right-of-center, and the left provides a calm light backdrop for the headline.
 
 RULES:
 - NEVER make it look like a recipe photo with food plated on a table
-- Think magazine editorial, conceptual art, or atmospheric photography
-- Use dramatic or intentional lighting (not just "bright kitchen light")
+- Think magazine editorial, conceptual art, or warm lifestyle photography
+- Prefer natural light and warm tones over dramatic or moody lighting
 - Embrace negative space, unusual angles, macro photography, or abstract composition
 - The prompt MUST be in English
 - Maximum 200 words

@@ -286,14 +286,23 @@ export default function AdminSettings() {
     }
   }, [kieaiKey, user?.id])
 
-  const savePrompts = useCallback(async () => {
+  const saveChatPrompts = useCallback(async () => {
     await saveSetting('chat_system_prompt_da', chatPromptDa, user?.id)
     await saveSetting('chat_system_prompt_en', chatPromptEn, user?.id)
     await saveSetting('chat_system_prompt_se', chatPromptSe, user?.id)
+  }, [chatPromptDa, chatPromptEn, chatPromptSe, user?.id])
+
+  const saveArticlePrompt = useCallback(async () => {
     await saveSetting('article_system_prompt', articlePrompt, user?.id)
+  }, [articlePrompt, user?.id])
+
+  const saveImagePromptRecipe = useCallback(async () => {
     await saveSetting('image_prompt_recipe', imagePromptRecipe, user?.id)
+  }, [imagePromptRecipe, user?.id])
+
+  const saveImagePromptArticle = useCallback(async () => {
     await saveSetting('image_prompt_article', imagePromptArticle, user?.id)
-  }, [chatPromptDa, chatPromptEn, chatPromptSe, articlePrompt, imagePromptRecipe, imagePromptArticle, user?.id])
+  }, [imagePromptArticle, user?.id])
 
   const saveSocial = useCallback(async () => {
     await saveSetting('social_instagram', socialInstagram, user?.id)
@@ -563,6 +572,11 @@ export default function AdminSettings() {
               {/* Chat Prompts (with language tabs) */}
               {promptSection === 'chat' && (
                 <div className="space-y-4">
+                  <div className="rounded-md bg-sage/10 border border-sage/20 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Chat-prompts bruges af AI-assistenten</strong> på hjemmesiden. Der er én prompt per sprog.
+                    </p>
+                  </div>
                   <div className="flex gap-1 bg-sage/5 rounded-md p-1">
                     {(['da', 'en', 'se'] as const).map(lng => (
                       <button
@@ -582,8 +596,7 @@ export default function AdminSettings() {
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-sm font-medium flex items-center gap-1.5">
-                        <MessageSquare className="h-3.5 w-3.5" />
+                      <label className="text-sm font-medium">
                         Chat System Prompt ({promptTab.toUpperCase()})
                       </label>
                       <button
@@ -611,6 +624,7 @@ export default function AdminSettings() {
                       Definerer chat-assistentens rolle, begrænsninger og tone. Chatten er begrænset til keto/faste-emner og hjemmesidens indhold.
                     </p>
                   </div>
+                  <SectionSaveButton onSave={saveChatPrompts} label="Gem chat-prompts" />
                 </div>
               )}
 
@@ -625,8 +639,7 @@ export default function AdminSettings() {
                     </p>
                   </div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-medium flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5" />
+                    <label className="text-sm font-medium">
                       Artikelgenerering System Prompt
                     </label>
                     <button
@@ -644,8 +657,9 @@ export default function AdminSettings() {
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[200px]"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {articlePrompt ? '✏️ Brugertilpasset prompt aktiv' : '📋 Viser standard-prompt — rediger for at tilpasse'}
+                    {articlePrompt ? 'Brugertilpasset prompt aktiv' : 'Viser standard-prompt — rediger for at tilpasse'}
                   </p>
+                  <SectionSaveButton onSave={saveArticlePrompt} label="Gem artikel-prompt" />
                 </div>
               )}
 
@@ -663,9 +677,8 @@ export default function AdminSettings() {
                   {/* Recipe Image Prompt */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-sm font-medium flex items-center gap-1.5">
-                        <ImageIcon className="h-3.5 w-3.5 text-accent" />
-                        🍽️ Opskrifter — Billed-prompt
+                      <label className="text-sm font-medium">
+                        Opskrifter — Billed-prompt
                       </label>
                       <button
                         onClick={() => setImagePromptRecipe('')}
@@ -682,16 +695,16 @@ export default function AdminSettings() {
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[150px]"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      {imagePromptRecipe ? '✏️ Brugertilpasset' : '📋 Standard-prompt'} — Professionelt madfotografi med kulturel kontekst
+                      {imagePromptRecipe ? 'Brugertilpasset' : 'Standard-prompt'} — Professionelt madfotografi med kulturel kontekst
                     </p>
+                    <SectionSaveButton onSave={saveImagePromptRecipe} label="Gem opskrift-prompt" />
                   </div>
 
                   {/* Article Image Prompt */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-sm font-medium flex items-center gap-1.5">
-                        <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                        📰 Artikler — Billed-prompt
+                      <label className="text-sm font-medium">
+                        Artikler — Billed-prompt
                       </label>
                       <button
                         onClick={() => setImagePromptArticle('')}
@@ -708,13 +721,12 @@ export default function AdminSettings() {
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[150px]"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      {imagePromptArticle ? '✏️ Brugertilpasset' : '📋 Standard-prompt'} — Editorial/konceptuel fotografi til forskningsartikler
+                      {imagePromptArticle ? 'Brugertilpasset' : 'Standard-prompt'} — Editorial/konceptuel fotografi til forskningsartikler
                     </p>
+                    <SectionSaveButton onSave={saveImagePromptArticle} label="Gem artikel billed-prompt" />
                   </div>
                 </div>
               )}
-
-              <SectionSaveButton onSave={savePrompts} label="Gem prompts" />
             </section>
           </>
         )}
