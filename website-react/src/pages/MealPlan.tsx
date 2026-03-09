@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { ChevronRight, ChevronLeft, Check, Loader2, Download } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -16,16 +17,32 @@ const TOTAL_STEPS = 4
 export default function MealPlan() {
   const { t, i18n } = useTranslation()
   const { user, profile } = useAuth()
+  const [searchParams] = useSearchParams()
   const [currentStep, setCurrentStep] = useState(0)
   const [state, setState] = useState<CalculatorState>(() => {
     const allIds = getCategories().flatMap(cat => getIngredients(cat).map(ing => ing.id))
-    const lang = (i18n.language || 'da') as 'da' | 'se' | 'en'
-    const units = lang === 'en' ? 'imperial' : 'metric'
+    const lang = (searchParams.get('lang') || i18n.language || 'da') as 'da' | 'se' | 'en'
+    const units = (searchParams.get('units') as 'metric' | 'imperial') || (lang === 'en' ? 'imperial' : 'metric')
+
+    // Read TDEE data from URL params (passed from Calculator)
+    const urlGender = searchParams.get('gender') as 'male' | 'female' | null
+    const urlAge = searchParams.get('age') ? parseInt(searchParams.get('age')!) : ''
+    const urlWeight = searchParams.get('weight') ? parseFloat(searchParams.get('weight')!) : ''
+    const urlHeight = searchParams.get('height') ? parseFloat(searchParams.get('height')!) : ''
+    const urlActivity = searchParams.get('activity') ? parseFloat(searchParams.get('activity')!) as 1.2 | 1.375 | 1.55 | 1.725 | 1.9 : ''
+    const urlGoal = searchParams.get('goal') ? parseFloat(searchParams.get('goal')!) : -0.5
+
     return {
       ...INITIAL_STATE,
       language: lang,
       units,
       selectedIngredients: allIds,
+      ...(urlGender ? { gender: urlGender } : {}),
+      ...(urlAge ? { age: urlAge } : {}),
+      ...(urlWeight ? { weight: urlWeight } : {}),
+      ...(urlHeight ? { height: urlHeight } : {}),
+      ...(urlActivity ? { activityLevel: urlActivity } : {}),
+      weightGoal: urlGoal,
     }
   })
   const [submitting, setSubmitting] = useState(false)
@@ -35,9 +52,13 @@ export default function MealPlan() {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([
     'meat', 'fish', 'dairy', 'vegetables', 'nuts', 'fats', 'herbs',
   ])
-  const [manualCalories, setManualCalories] = useState<number | ''>('')
+  const [manualCalories, setManualCalories] = useState<number | ''>(() => {
+    // Initialize from URL params (Calculator passes calories)
+    const urlCalories = searchParams.get('calories')
+    return urlCalories ? parseInt(urlCalories) : ''
+  })
 
-  // Load user data if logged in
+  // Load user data if logged in (overrides URL params)
   useEffect(() => {
     if (user && profile) {
       setState(prev => ({
@@ -614,7 +635,7 @@ export default function MealPlan() {
                       onClick={() => setState(prev => ({ ...prev, daysPerWeek: day as any }))}
                       className={cardBtn(state.daysPerWeek === day)}
                     >
-                      {day} {day === 1 ? 'dag' : 'dage'}
+                      {day} {day === 1 ? t('calculator.day') || 'dag' : t('calculator.days') || 'dage'}
                     </button>
                   ))}
                 </div>

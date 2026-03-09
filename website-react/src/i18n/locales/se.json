@@ -231,7 +231,9 @@
       "mixed": "Blandat"
     },
     "generating": "Genererar...",
-    "generate": "Generera kostplan"
+    "generate": "Generera kostplan",
+    "day": "dag",
+    "days": "dagar"
   },
   "ingredients": {
     "categories": {

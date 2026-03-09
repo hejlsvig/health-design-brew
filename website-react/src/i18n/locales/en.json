@@ -231,7 +231,9 @@
       "mixed": "Mixed"
     },
     "generating": "Generating...",
-    "generate": "Generate meal plan"
+    "generate": "Generate meal plan",
+    "day": "day",
+    "days": "days"
   },
   "ingredients": {
     "categories": {

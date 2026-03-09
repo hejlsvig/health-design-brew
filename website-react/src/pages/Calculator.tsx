@@ -339,8 +339,8 @@ export default function Calculator() {
             )}
           </div>
 
-          {/* Meal Plan CTA — Link to /meal-plan */}
-          <Link to="/meal-plan" className="block">
+          {/* Meal Plan CTA — Link to /meal-plan with calculated data */}
+          <Link to={`/meal-plan?calories=${results.dailyCalories}&gender=${state.gender}&age=${state.age}&weight=${results.weightKg.toFixed(1)}&height=${convertHeightToCm(state.height as number, state.units).toFixed(0)}&activity=${state.activityLevel}&goal=${state.weightGoal}&units=${state.units}&lang=${state.language}`} className="block">
             <div className="bg-gradient-to-br from-accent/10 to-primary/10 rounded-xl border-2 border-accent/20 p-8 text-center hover:border-accent/40 transition-all cursor-pointer">
               <UtensilsCrossed size={40} className="mx-auto text-accent mb-4" />
               <h3 className="font-serif text-2xl font-bold text-primary mb-2">
