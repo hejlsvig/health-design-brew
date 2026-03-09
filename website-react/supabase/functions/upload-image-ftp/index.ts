@@ -243,7 +243,15 @@ serve(async (req) => {
         throw new Error(`Kunne ikke finde webroot. Root dirs logged above. Home: ${homeDir}`)
       }
 
-      console.log(`[upload-sftp] Using webroot: ${webRoot}`)
+      // Resolve symlinks to real path — mkdir fails on symlink paths
+      try {
+        const resolvedRoot = await sftp.realPath(webRoot)
+        console.log(`[upload-sftp] Using webroot: ${webRoot} → resolved: ${resolvedRoot}`)
+        webRoot = resolvedRoot
+      } catch (e: any) {
+        console.log(`[upload-sftp] realPath failed (using original): ${e.message}`)
+        console.log(`[upload-sftp] Using webroot: ${webRoot}`)
+      }
 
       // Ensure images/folder directory exists
       const imagesDir = `${webRoot}/images`
