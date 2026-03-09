@@ -182,13 +182,13 @@ serve(async (req) => {
       console.log(`[upload-sftp] Home directory: ${homeDir}`)
 
       // Try common one.com path structures
+      // one.com SSH users land in /customers/.../users/username/ with a 'dist' folder as webroot
       let webRoot = ''
       const candidates = [
+        `${homeDir}/dist`,
         `${homeDir}/webroots/by-route/shiftingsource.com_`,
         `${homeDir}/www`,
         `${homeDir}/public_html`,
-        'webroots/by-route/shiftingsource.com_',
-        '/webroots/by-route/shiftingsource.com_',
       ]
 
       for (const candidate of candidates) {
