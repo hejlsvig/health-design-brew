@@ -643,7 +643,7 @@ export default function MealPlan() {
 
               {/* Calorie Info */}
               {!user && !profile?.daily_calories && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
                   <p className="text-sm text-charcoal mb-3 font-bold">
                     {t('calculator.mealPlan.calorieInfo') || 'Daglige kalorier (valgfrit)'}
                   </p>
