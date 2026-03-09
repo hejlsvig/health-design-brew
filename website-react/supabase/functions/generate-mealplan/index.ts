@@ -18,7 +18,6 @@
  * }
  */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -44,7 +43,7 @@ async function getSetting(supabase: ReturnType<typeof createClient>, key: string
   return data?.value || null
 }
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -52,13 +51,25 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? supabaseServiceKey
 
-    // Verify caller has a valid key (anon key or user token)
+    // 1. Verify authentication — any authenticated user
     const authHeader = req.headers.get('Authorization') || ''
     if (!authHeader) {
       return jsonResponse({ error: 'Manglende autorisering' }, 401)
     }
+
+    // Create a user-scoped client to verify the JWT
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser()
+    if (authError || !user) {
+      return jsonResponse({ error: 'Ikke autoriseret — log ind for at generere en kostplan' }, 401)
+    }
+
+    // 2. Create service-role client for reading admin_settings (behind RLS)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Parse request body
     const body = await req.json()
@@ -251,7 +262,20 @@ Lav ALLE ${num_days} dage med komplette opskrifter.${
       return jsonResponse({ error: 'Tom respons fra OpenAI' }, 502)
     }
 
-    console.log(`[generate-mealplan] Done in ${elapsed}s, tokens: ${JSON.stringify(data.usage)}`)
+    // Save the generated meal plan to the user's profile
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          latest_meal_plan: mealPlanText,
+          meal_plan_generated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+    } catch (saveErr) {
+      console.warn('[generate-mealplan] Failed to save to profile:', saveErr)
+    }
+
+    console.log(`[generate-mealplan] Done in ${elapsed}s, user=${user.email}, tokens: ${JSON.stringify(data.usage)}`)
 
     return jsonResponse({
       mealPlan: mealPlanText,
