@@ -182,13 +182,30 @@ serve(async (req) => {
       console.log(`[upload-sftp] Home directory: ${homeDir}`)
 
       // Try common one.com path structures
-      // one.com SSH users land in /customers/.../users/username/ with a 'dist' folder as webroot
+      // one.com SSH users land in /customers/.../users/username/
+      // The actual webroot is at /customers/.../webroots/by-route/domain_/
+      // CI/CD deploys to webroots/by-route/shiftingsource.com_/ from the main SFTP user
       let webRoot = ''
+
+      // Extract customer base path from homeDir
+      // e.g. /customers/e/6/4/cfp79ddbq/users/cfp79ddbq_ssh → /customers/e/6/4/cfp79ddbq
+      const usersIndex = homeDir.indexOf('/users/')
+      const customerBase = usersIndex > 0 ? homeDir.substring(0, usersIndex) : ''
+
       const candidates = [
-        `${homeDir}/dist`,
+        // Priority 1: actual webroot (navigate up from SSH user home)
+        ...(customerBase ? [
+          `${customerBase}/webroots/by-route/shiftingsource.com_`,
+          `${customerBase}/webroots/by-route`,
+        ] : []),
+        // Priority 2: relative paths from home
+        `${homeDir}/../../webroots/by-route/shiftingsource.com_`,
+        // Priority 3: common webroot paths in home dir
         `${homeDir}/webroots/by-route/shiftingsource.com_`,
         `${homeDir}/www`,
         `${homeDir}/public_html`,
+        // Priority 4: dist (SSH user home — NOT the actual webroot on one.com)
+        `${homeDir}/dist`,
       ]
 
       for (const candidate of candidates) {
@@ -205,7 +222,19 @@ serve(async (req) => {
         const homeList = await sftp.list(homeDir)
         const dirs = homeList.filter((f: any) => f.type === 'd').map((f: any) => f.name)
         console.log(`[upload-sftp] Directories in home: ${dirs.join(', ')}`)
-        throw new Error(`Kunne ikke finde webroot-mappen. Home: ${homeDir}, Mapper: ${dirs.join(', ')}`)
+
+        // Also try listing parent dirs for more info
+        if (customerBase) {
+          try {
+            const baseList = await sftp.list(customerBase)
+            const baseDirs = baseList.filter((f: any) => f.type === 'd').map((f: any) => f.name)
+            console.log(`[upload-sftp] Directories in customer base (${customerBase}): ${baseDirs.join(', ')}`)
+          } catch (e: any) {
+            console.log(`[upload-sftp] Cannot list customer base: ${e.message}`)
+          }
+        }
+
+        throw new Error(`Kunne ikke finde webroot-mappen. Home: ${homeDir}, CustomerBase: ${customerBase || 'N/A'}, HomeDirs: ${dirs.join(', ')}`)
       }
 
       console.log(`[upload-sftp] Using webroot: ${webRoot}`)
