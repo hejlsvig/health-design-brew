@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Settings, Key, Cpu, Save, Loader2, Check, ArrowLeft, Eye, EyeOff, Image, Server, MessageSquare, RotateCcw, Share2, Instagram, Youtube, Facebook, FileText, ImageIcon, ExternalLink, Sparkles, Shield, Globe, Search, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Mail, Bell } from 'lucide-react'
+import { Settings, Key, Cpu, Save, Loader2, Check, ArrowLeft, Eye, EyeOff, Image, Server, MessageSquare, RotateCcw, Share2, Instagram, Youtube, Facebook, FileText, ImageIcon, ExternalLink, Sparkles, Shield, Globe, Search, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Mail, Bell, UtensilsCrossed } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSettings, saveSetting, AVAILABLE_MODELS, DEFAULT_ARTICLE_PROMPT } from '@/lib/openai'
 import { supabase } from '@/lib/supabase'
@@ -92,8 +92,9 @@ export default function AdminSettings() {
   const [chatPromptEn, setChatPromptEn] = useState('')
   const [chatPromptSe, setChatPromptSe] = useState('')
   const [promptTab, setPromptTab] = useState<'da' | 'en' | 'se'>('da')
-  const [promptSection, setPromptSection] = useState<'chat' | 'article' | 'image'>('chat')
+  const [promptSection, setPromptSection] = useState<'chat' | 'article' | 'image' | 'mealplan'>('chat')
   const [articlePrompt, setArticlePrompt] = useState('')
+  const [mealPlanPrompt, setMealPlanPrompt] = useState('')
   const [imagePromptRecipe, setImagePromptRecipe] = useState('')
   const [imagePromptArticle, setImagePromptArticle] = useState('')
 
@@ -181,6 +182,7 @@ export default function AdminSettings() {
       setArticlePrompt(s.article_system_prompt || '')
       setImagePromptRecipe(s.image_prompt_recipe || '')
       setImagePromptArticle(s.image_prompt_article || '')
+      setMealPlanPrompt(s.mealplan_system_prompt || '')
 
       // Social media
       setSocialInstagram(s.social_instagram || '')
@@ -305,6 +307,10 @@ export default function AdminSettings() {
   const saveImagePromptArticle = useCallback(async () => {
     await saveSetting('image_prompt_article', imagePromptArticle, user?.id)
   }, [imagePromptArticle, user?.id])
+
+  const saveMealPlanPrompt = useCallback(async () => {
+    await saveSetting('mealplan_system_prompt', mealPlanPrompt, user?.id)
+  }, [mealPlanPrompt, user?.id])
 
   const saveSocial = useCallback(async () => {
     await saveSetting('social_instagram', socialInstagram, user?.id)
@@ -559,6 +565,18 @@ export default function AdminSettings() {
                   Artikler
                 </button>
                 <button
+                  onClick={() => setPromptSection('mealplan')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                    promptSection === 'mealplan'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-sage/20'
+                  )}
+                >
+                  <UtensilsCrossed className="h-3.5 w-3.5" />
+                  Kostplaner
+                </button>
+                <button
                   onClick={() => setPromptSection('image')}
                   className={cn(
                     'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
@@ -728,6 +746,42 @@ export default function AdminSettings() {
                     </p>
                     <SectionSaveButton onSave={saveImagePromptArticle} label="Gem artikel billed-prompt" />
                   </div>
+                </div>
+              )}
+
+              {/* Meal Plan Prompt */}
+              {promptSection === 'mealplan' && (
+                <div className="space-y-3">
+                  <div className="rounded-md bg-sage/10 border border-sage/20 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Denne prompt bruges ved generering af kostplaner</strong> fra beregneren.
+                      Den instruerer AI&apos;en i kostplanens format, struktur og detaljeniveau.
+                      Klientens profildata (kalorier, måltider, præferencer) indsættes automatisk.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-medium">
+                      Kostplan System Prompt
+                    </label>
+                    <button
+                      onClick={() => setMealPlanPrompt('')}
+                      className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Nulstil til standard
+                    </button>
+                  </div>
+                  <textarea
+                    value={mealPlanPrompt}
+                    onChange={e => setMealPlanPrompt(e.target.value)}
+                    placeholder="Standard-prompten bruges hvis feltet er tomt..."
+                    rows={14}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[250px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {mealPlanPrompt ? 'Brugertilpasset prompt aktiv' : 'Standard-prompt bruges — tilføj din egen for at tilpasse'}
+                  </p>
+                  <SectionSaveButton onSave={saveMealPlanPrompt} label="Gem kostplan-prompt" />
                 </div>
               )}
             </section>

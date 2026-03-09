@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, ChevronLeft, Check, UtensilsCrossed, Calculator as CalcIcon, Save } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check, UtensilsCrossed, Calculator as CalcIcon, Save, Loader2, Download } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import {
@@ -43,6 +43,9 @@ export default function Calculator() {
     }
   })
   const [submitting, setSubmitting] = useState(false)
+  const [generatedMealPlan, setGeneratedMealPlan] = useState<string | null>(null)
+  const [mealPlanError, setMealPlanError] = useState<string | null>(null)
+  const mealPlanRef = useRef<HTMLDivElement>(null)
   const [expandedCategories, setExpandedCategories] = useState<string[]>([
     'meat', 'fish', 'dairy', 'vegetables', 'nuts', 'fats', 'herbs',
   ])
@@ -172,7 +175,7 @@ export default function Calculator() {
     }
   }
 
-  // Full submit with meal plan data + email
+  // Full submit with meal plan data + email → generate meal plan via Edge Function
   const handleSubmit = async () => {
     if (!validateStep(state, 7)) {
       alert(t('calculator.errors.completionRequired') || 'Please complete all required fields')
@@ -180,9 +183,25 @@ export default function Calculator() {
     }
 
     setSubmitting(true)
+    setMealPlanError(null)
+    setGeneratedMealPlan(null)
+
     try {
       const heightCm = state.height ? convertHeightToCm(state.height as number, state.units) : null
       const weightKg = state.weight ? convertWeightToKg(state.weight as number, state.units) : null
+
+      // Map prep_time values to DB-compatible values
+      const prepTimeMap: Record<string, string> = {
+        quick: 'quick',
+        medium: 'medium',
+        long: 'long',
+        mix: 'mix',
+      }
+
+      // Map activity level number back to string for DB
+      const activityLevelStr = state.activityLevel
+        ? ({ 1.2: 'sedentary', 1.375: 'light', 1.55: 'moderate', 1.725: 'active', 1.9: 'very_active' } as Record<number, string>)[state.activityLevel as number]
+        : null
 
       const profileData: Record<string, unknown> = {
         email: state.email,
@@ -193,12 +212,10 @@ export default function Calculator() {
         height: heightCm,
         units: state.units || 'metric',
         language: state.language,
-        activity_level: state.activityLevel
-          ? { 1.2: 'sedentary', 1.375: 'light', 1.55: 'moderate', 1.725: 'active', 1.9: 'very_active' }[state.activityLevel]
-          : null,
+        activity_level: activityLevelStr,
         weight_goal: state.weightGoal,
         meals_per_day: state.mealsPerDay || null,
-        prep_time: state.prepTime || null,
+        prep_time: state.prepTime ? (prepTimeMap[state.prepTime] || state.prepTime) : null,
         selected_ingredients: state.selectedIngredients,
         gdpr_consent: state.gdprConsent,
         marketing_consent: state.gdprConsent,
@@ -212,6 +229,7 @@ export default function Calculator() {
         profileData.daily_calories = results.dailyCalories
       }
 
+      // 1. Save profile data
       if (user) {
         const { error } = await supabase
           .from('profiles')
@@ -233,22 +251,95 @@ export default function Calculator() {
             tdee: results ? Math.round(results.tdee) : null,
             bmr: results ? Math.round(results.bmr) : null,
           },
-        }).then(() => {}, () => {}) // Ignore if table not ready yet
+        }).then(() => {}, () => {})
+      } else {
+        // Not logged in: send Magic Link so they can access their data
+        const { error: signUpError } = await supabase.auth.signInWithOtp({
+          email: state.email,
+          options: {
+            data: { name: state.name },
+            emailRedirectTo: `${window.location.origin}/profile`,
+          },
+        })
+
+        if (signUpError) {
+          console.error('Error sending magic link:', signUpError)
+        }
       }
 
-      alert(t('calculator.success.submitted') || 'Your calculation has been saved!')
+      // 2. Generate meal plan via Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hllprmlkuchhfmexzpad.supabase.co'
+      const { data: { session } } = await supabase.auth.getSession()
 
+      // Build excluded ingredients list from deselected ingredients
       const allIds = getCategories().flatMap(cat => getIngredients(cat).map(ing => ing.id))
-      setState({ ...INITIAL_STATE, selectedIngredients: allIds })
-      setCurrentStep(0)
-      setPhase('calorie')
-      setShowResults(false)
-    } catch (error) {
+      const deselected = allIds.filter(id => !state.selectedIngredients.includes(id))
+
+      const mealPlanBody = {
+        name: state.name || 'Klient',
+        language: state.language || 'da',
+        gender: state.gender || 'female',
+        age: state.age || 30,
+        weight: weightKg || 70,
+        height: heightCm || 170,
+        activity: activityLevelStr || 'moderate',
+        daily_calories: results?.dailyCalories || 1800,
+        meals_per_day: state.mealsPerDay || 3,
+        num_days: state.daysPerWeek || 7,
+        prep_time: state.prepTime || 'medium',
+        leftovers: state.leftoversStrategy === 'batch' || state.leftoversStrategy === 'mixed',
+        leftovers_strategy: state.leftoversStrategy || 'daily',
+        excluded_ingredients: deselected.length > 0 ? JSON.stringify(deselected) : '',
+        diet_type: 'Custom Keto',
+        budget: state.budget || 'medium',
+        health_anti_inflammatory: state.healthPreferences?.antiInflammatory || false,
+        health_avoid_processed: state.healthPreferences?.avoidProcessed || false,
+        weight_goal: state.weightGoal ?? 0,
+        units: state.units || 'metric',
+      }
+
+      const resp = await fetch(`${supabaseUrl}/functions/v1/generate-mealplan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+        },
+        body: JSON.stringify(mealPlanBody),
+      })
+
+      const respData = await resp.json()
+
+      if (!resp.ok || respData.error) {
+        throw new Error(respData.error || `Fejl ved generering: ${resp.status}`)
+      }
+
+      setGeneratedMealPlan(respData.mealPlan)
+
+      // Scroll to meal plan result
+      setTimeout(() => {
+        mealPlanRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 200)
+    } catch (error: unknown) {
       console.error('Error submitting calculator:', error)
-      alert(t('calculator.errors.submitFailed') || 'Failed to submit calculator')
+      const msg = error instanceof Error ? error.message : 'Failed to generate meal plan'
+      setMealPlanError(msg)
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // Simple markdown-to-HTML converter for the meal plan display
+  const renderMealPlanHTML = (markdown: string): string => {
+    return markdown
+      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-charcoal mt-4 mb-1">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-serif font-bold text-charcoal mt-6 mb-2 border-b border-gray-200 pb-1">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-serif font-bold text-charcoal mt-6 mb-3">$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-sm">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 list-decimal text-sm">$2</li>')
+      .replace(/^---$/gm, '<hr class="my-4 border-gray-200" />')
+      .replace(/\n{2,}/g, '</p><p class="text-sm text-charcoal/80 mb-2">')
+      .replace(/^(?!<[h|l|u|o|s|p|d])(.*\S.*)$/gm, '<p class="text-sm text-charcoal/80 mb-1">$1</p>')
   }
 
   const toggleCategory = (category: string) => {
@@ -1233,44 +1324,143 @@ export default function Calculator() {
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex gap-4 justify-between">
-          <button
-            onClick={handleBack}
-            disabled={currentStep === 0}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 font-sans font-bold transition-all ${
-              currentStep === 0
-                ? 'border-gray-300 text-gray-300 cursor-not-allowed'
-                : 'border-charcoal text-charcoal hover:bg-charcoal hover:text-white'
-            }`}
-          >
-            <ChevronLeft size={20} />
-            {t('calculator.back')}
-          </button>
+        {!generatedMealPlan && (
+          <div className="flex gap-4 justify-between">
+            <button
+              onClick={handleBack}
+              disabled={currentStep === 0 || submitting}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 font-sans font-bold transition-all ${
+                currentStep === 0 || submitting
+                  ? 'border-gray-300 text-gray-300 cursor-not-allowed'
+                  : 'border-charcoal text-charcoal hover:bg-charcoal hover:text-white'
+              }`}
+            >
+              <ChevronLeft size={20} />
+              {t('calculator.back')}
+            </button>
 
-          <button
-            onClick={handleNext}
-            disabled={!validateStep(state, currentStep) || submitting}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 font-sans font-bold transition-all ${
-              !validateStep(state, currentStep) || submitting
-                ? 'border-gray-300 text-gray-300 cursor-not-allowed'
-                : phase === 'mealplan'
-                  ? 'border-accent bg-accent text-white hover:bg-accent/90'
-                  : 'border-primary bg-primary text-white hover:bg-primary/90'
-            }`}
-          >
-            {currentStep === 7 ? (
-              <>
-                {submitting ? t('calculator.submitting') : t('calculator.submit')}
-                {!submitting && <Check size={20} />}
-              </>
-            ) : (
-              <>
-                {t('calculator.next')}
-                <ChevronRight size={20} />
-              </>
-            )}
-          </button>
-        </div>
+            <button
+              onClick={handleNext}
+              disabled={!validateStep(state, currentStep) || submitting}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 font-sans font-bold transition-all ${
+                !validateStep(state, currentStep) || submitting
+                  ? 'border-gray-300 text-gray-300 cursor-not-allowed'
+                  : phase === 'mealplan'
+                    ? 'border-accent bg-accent text-white hover:bg-accent/90'
+                    : 'border-primary bg-primary text-white hover:bg-primary/90'
+              }`}
+            >
+              {currentStep === 7 ? (
+                <>
+                  {submitting ? (
+                    <><Loader2 size={20} className="animate-spin" />{t('calculator.generating', 'Genererer madplan...')}</>
+                  ) : (
+                    <>{t('calculator.submit')}<Check size={20} /></>
+                  )}
+                </>
+              ) : (
+                <>
+                  {t('calculator.next')}
+                  <ChevronRight size={20} />
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Loading indicator while generating */}
+        {submitting && (
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <Loader2 size={40} className="animate-spin text-accent" />
+            <p className="text-lg font-serif font-bold text-charcoal">
+              {t('calculator.generating', 'Genererer din personlige madplan...')}
+            </p>
+            <p className="text-sm text-charcoal/60 font-sans">
+              {t('calculator.generatingDesc', 'Dette kan tage 30-60 sekunder. AI\'en laver en skræddersyet kostplan til dig.')}
+            </p>
+          </div>
+        )}
+
+        {/* Meal Plan Error */}
+        {mealPlanError && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-700 font-bold mb-2">{t('calculator.mealPlanError', 'Kunne ikke generere madplan')}</p>
+            <p className="text-sm text-red-600">{mealPlanError}</p>
+            <button
+              onClick={() => { setMealPlanError(null); handleSubmit() }}
+              className="mt-4 px-6 py-2 bg-accent text-white rounded-lg font-bold hover:bg-accent/90 transition-colors"
+            >
+              {t('calculator.tryAgain', 'Prøv igen')}
+            </button>
+          </div>
+        )}
+
+        {/* Generated Meal Plan Result */}
+        {generatedMealPlan && (
+          <div ref={mealPlanRef} className="mt-8">
+            <div className="bg-white border-2 border-accent/30 rounded-xl shadow-lg overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-accent/10 to-sage/10 px-6 py-4 border-b border-accent/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <UtensilsCrossed size={24} className="text-accent" />
+                    <h2 className="text-xl font-serif font-bold text-charcoal">
+                      {t('calculator.yourMealPlan', 'Din Personlige Madplan')}
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([generatedMealPlan], { type: 'text/markdown' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `madplan_${state.name || 'keto'}_${state.daysPerWeek || 7}dage.md`
+                      a.click()
+                      URL.revokeObjectURL(url)
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent/90 transition-colors"
+                  >
+                    <Download size={16} />
+                    {t('calculator.downloadMealPlan', 'Download')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Meal plan content */}
+              <div
+                className="px-6 py-6 prose prose-sm max-w-none [&_h1]:text-2xl [&_h1]:font-serif [&_h1]:font-bold [&_h1]:text-charcoal [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-xl [&_h2]:font-serif [&_h2]:font-bold [&_h2]:text-charcoal [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-gray-200 [&_h2]:pb-1 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-charcoal [&_h3]:mt-4 [&_h3]:mb-1 [&_p]:text-sm [&_p]:text-charcoal/80 [&_p]:mb-1 [&_li]:text-sm [&_li]:text-charcoal/80 [&_strong]:text-charcoal [&_hr]:my-4 [&_hr]:border-gray-200"
+                dangerouslySetInnerHTML={{ __html: renderMealPlanHTML(generatedMealPlan) }}
+              />
+
+              {/* Footer actions */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    setGeneratedMealPlan(null)
+                    setMealPlanError(null)
+                  }}
+                  className="px-6 py-2 border-2 border-charcoal text-charcoal rounded-lg font-bold hover:bg-charcoal hover:text-white transition-colors"
+                >
+                  {t('calculator.newMealPlan', 'Lav en ny madplan')}
+                </button>
+                <button
+                  onClick={() => {
+                    const allIds = getCategories().flatMap(cat => getIngredients(cat).map(ing => ing.id))
+                    setState({ ...INITIAL_STATE, selectedIngredients: allIds })
+                    setCurrentStep(0)
+                    setPhase('calorie')
+                    setShowResults(false)
+                    setGeneratedMealPlan(null)
+                    setMealPlanError(null)
+                  }}
+                  className="px-6 py-2 border-2 border-accent bg-accent text-white rounded-lg font-bold hover:bg-accent/90 transition-colors"
+                >
+                  {t('calculator.startOver', 'Start forfra')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
