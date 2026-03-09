@@ -202,13 +202,23 @@ export default function MealPlan() {
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hllprmlkuchhfmexzpad.supabase.co'
-      const { data: { session } } = await supabase.auth.getSession()
+
+      // Ensure we have a valid session before calling the Edge Function
+      let { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        // Try refreshing
+        const { data: refreshData } = await supabase.auth.refreshSession()
+        session = refreshData.session
+      }
+      if (!session?.access_token) {
+        throw new Error('Din session er udløbet. Log ud og ind igen for at generere en kostplan.')
+      }
 
       const resp = await fetch(`${supabaseUrl}/functions/v1/generate-mealplan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(mealPlanBody),
       })
