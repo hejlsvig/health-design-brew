@@ -40,6 +40,26 @@ export default function AiImageGenerator({
   const [uploading, setUploading] = useState(false)
   const abortRef = useRef(false)
 
+  // ── Auth pre-check: verify session BEFORE spending money on AI ──
+
+  const verifyAuth = async (): Promise<boolean> => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) {
+        // Try refreshing the session
+        const { data: refreshData } = await supabase.auth.refreshSession()
+        if (!refreshData.session) {
+          setError('Din session er udløbet. Log ud og ind igen før du genererer billeder.')
+          return false
+        }
+      }
+      return true
+    } catch {
+      setError('Kunne ikke verificere din session. Log ud og ind igen.')
+      return false
+    }
+  }
+
   // ── Step 1: Generate prompt via OpenAI ──
 
   const handleGeneratePrompt = async () => {
@@ -49,6 +69,11 @@ export default function AiImageGenerator({
     }
 
     setError('')
+
+    // ★ Verify auth BEFORE generating (costs money)
+    const isAuthenticated = await verifyAuth()
+    if (!isAuthenticated) return
+
     setStep('generating-prompt')
     abortRef.current = false
 
@@ -73,6 +98,11 @@ export default function AiImageGenerator({
     }
 
     setError('')
+
+    // ★ Verify auth again before image generation (costs money)
+    const isAuthenticated = await verifyAuth()
+    if (!isAuthenticated) return
+
     setStep('generating-image')
     abortRef.current = false
 
