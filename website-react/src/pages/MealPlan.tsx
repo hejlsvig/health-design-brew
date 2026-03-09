@@ -152,18 +152,26 @@ export default function MealPlan() {
           console.error('Error saving profile:', error)
         }
       } else {
-        // Not logged in: send Magic Link
+        // Not logged in: send Magic Link to create account/sign in
         const { error: signUpError } = await supabase.auth.signInWithOtp({
           email: state.email,
           options: {
             data: { name: state.name },
-            emailRedirectTo: `${window.location.origin}/profile`,
+            emailRedirectTo: `${window.location.origin}/meal-plan`,
           },
         })
 
         if (signUpError) {
           console.error('Error sending magic link:', signUpError)
+          throw new Error(t('calculator.errors.magicLinkFailed') || 'Kunne ikke sende login-link. Prøv igen.')
         }
+
+        // User needs to verify email first — can't generate meal plan without auth
+        setMealPlanError(null)
+        setGeneratedMealPlan(null)
+        setSubmitting(false)
+        alert(t('calculator.mealPlan.checkEmail') || 'Vi har sendt dig et login-link på email. Klik på linket for at logge ind, og generer derefter din kostplan.')
+        return
       }
 
       // Build excluded ingredients list from deselected ingredients
