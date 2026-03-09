@@ -130,7 +130,7 @@
         "surplus": "Overskud"
       },
       "4": {
-        "title": "Måltider & Præferencer",
+        "title": "Måltider og tidsbudget",
         "subtitle": "Hvordan kan du lide at spise og tilberede mad?",
         "mealsPerDay": "Hvor mange måltider pr. dag?",
         "meal1": "Et Måltid",
@@ -148,17 +148,22 @@
         "budgetMixed": "Fleksibelt"
       },
       "5": {
-        "title": "Dine Ingredienser",
+        "title": "Ingredienser og sundhedspræferencer",
         "subtitle": "Hvilke fødevarer kan du lide at spise?",
         "healthPreferences": "Sundhedspræferencer",
-        "antiInflammatory": "Fokus på antiinflammatoriske fødevarer",
-        "avoidProcessed": "Undgå forarbejdede fødevarer"
+        "antiInflammatory": "Fokus på anti-inflammatoriske ingredienser",
+        "avoidProcessed": "Undgå bearbejdede ingredienser",
+        "instruction": "Vælg de ingredienser du gerne vil have med. Alle ingredienser er valgt som standard.",
+        "ingredients": "Ingredienser",
+        "mealsPerDay": "Hvor mange måltider per dag?",
+        "prepTime": "Hvor meget tid har du til tilberedning?",
+        "budget": "Hvad er dit budget?"
       },
       "6": {
-        "title": "Dit Skema",
+        "title": "Varighed og rester",
         "subtitle": "Hvordan og hvor ofte vil du tilberede måltider?",
-        "daysPerWeek": "Hvor mange dage pr. uge tilbereder du mad?",
-        "leftoversStrategy": "Hvordan foretrækker du at håndtere rester?",
+        "daysPerWeek": "Hvor mange dage skal kostplanen dække?",
+        "leftoversStrategy": "Hvordan vil du håndtere rester?",
         "daily": {
           "title": "Daglig Madlavning",
           "desc": "Tilbered friske måltider hver dag"
@@ -173,22 +178,60 @@
         }
       },
       "7": {
-        "title": "Klar til at Komme Igang?",
+        "title": "Bekræftelse",
         "subtitle": "Få din personaliserede madplan leveret til din email",
-        "email": "Email-adresse",
-        "name": "Fulde Navn",
-        "namePlaceholder": "Indtast dit navn",
-        "gdprConsent": "Jeg accepterer at modtage personaliserede anbefalinger og opdateringer. Jeg kan afmelde mig når som helst."
+        "email": "Email",
+        "name": "Navn",
+        "namePlaceholder": "Dit navn",
+        "gdprConsent": "Jeg accepterer at modtage min personaliserede kostplan via email. Jeg forstår, at mine data behandles i henhold til vores privatlivspolitik.",
+        "emailPlaceholder": "din@email.com"
       }
     },
     "errors": {
-      "completionRequired": "Udfyld venligst alle påkrævede felter",
+      "completionRequired": "Udfyld alle påkrævede felter",
       "saveFailed": "Kunne ikke gemme dine data",
-      "submitFailed": "Kunne ikke indsende kalkulatoren"
+      "submitFailed": "Kunne ikke indsende kalkulatoren",
+      "magicLinkFailed": "Kunne ikke sende login-link. Prøv igen.",
+      "generationFailed": "Fejl ved generering"
     },
     "success": {
       "submitted": "Vi sender dig en personlig madplan til din email adresse!"
-    }
+    },
+    "mealPlan": {
+      "createTitle": "Opret din kostplan",
+      "createSubtitle": "Få personaliserede måltider baseret på dine præferencer",
+      "title": "Din personaliserede kostplan",
+      "subtitle": "Baseret på dine præferencer",
+      "download": "Download kostplan",
+      "createNew": "Lav ny kostplan",
+      "calorieInfo": "Daglige kalorier (valgfrit)",
+      "calorieNote": "Hvis du ikke har en kalorie-beregning, kan du indtaste daglige kalorier her. Vi bruger 1800 kcal som standard.",
+      "checkEmail": "Vi har sendt dig et login-link på email. Klik på linket for at logge ind, og generer derefter din kostplan."
+    },
+    "mealOptions": {
+      "one": "1 måltid",
+      "two": "2 måltider",
+      "three": "3 måltider"
+    },
+    "prepOptions": {
+      "quick": "Hurtig (< 20 min)",
+      "medium": "Moderat (20-45 min)",
+      "long": "Klassisk (> 45 min)",
+      "mix": "Blandet"
+    },
+    "budgetOptions": {
+      "cheap": "Budget-venlig",
+      "medium": "Moderat",
+      "expensive": "Premium",
+      "mixed": "Blandet"
+    },
+    "leftoversOptions": {
+      "daily": "Hver dag (ny tilberedning)",
+      "batch": "Batch-tilberedning (lagring)",
+      "mixed": "Blandet"
+    },
+    "generating": "Genererer...",
+    "generate": "Generér kostplan"
   },
   "ingredients": {
     "categories": {

@@ -148,17 +148,22 @@
         "budgetMixed": "Flexible"
       },
       "5": {
-        "title": "Your Ingredients",
+        "title": "Ingredients & Health Preferences",
         "subtitle": "What foods do you like to eat?",
         "healthPreferences": "Health Preferences",
-        "antiInflammatory": "Focus on anti-inflammatory foods",
-        "avoidProcessed": "Avoid processed foods"
+        "antiInflammatory": "Focus on anti-inflammatory ingredients",
+        "avoidProcessed": "Avoid processed ingredients",
+        "instruction": "Select the ingredients you'd like to include. All ingredients are selected by default.",
+        "ingredients": "Ingredients",
+        "mealsPerDay": "How many meals per day?",
+        "prepTime": "How much time do you have for meal prep?",
+        "budget": "What's your food budget?"
       },
       "6": {
-        "title": "Your Schedule",
+        "title": "Duration & Leftovers",
         "subtitle": "How often and how do you want to prepare meals?",
-        "daysPerWeek": "How many days per week do you meal prep?",
-        "leftoversStrategy": "How do you prefer to handle leftovers?",
+        "daysPerWeek": "How many days should the meal plan cover?",
+        "leftoversStrategy": "How do you want to handle leftovers?",
         "daily": {
           "title": "Daily Cooking",
           "desc": "Cook fresh meals each day"
@@ -173,22 +178,60 @@
         }
       },
       "7": {
-        "title": "Ready to Get Started?",
+        "title": "Confirmation",
         "subtitle": "Get your personalized meal plan delivered to your email",
-        "email": "Email Address",
-        "name": "Full Name",
-        "namePlaceholder": "Enter your name",
-        "gdprConsent": "I agree to receive personalized recommendations and updates. I can unsubscribe anytime."
+        "email": "Email",
+        "name": "Name",
+        "namePlaceholder": "Your name",
+        "gdprConsent": "I agree to receive my personalized meal plan by email. I understand that my data is processed in accordance with our privacy policy.",
+        "emailPlaceholder": "your@email.com"
       }
     },
     "errors": {
       "completionRequired": "Please complete all required fields",
       "saveFailed": "Failed to save your data",
-      "submitFailed": "Failed to submit the calculator"
+      "submitFailed": "Failed to submit the calculator",
+      "magicLinkFailed": "Could not send login link. Please try again.",
+      "generationFailed": "Generation failed"
     },
     "success": {
       "submitted": "We will send you a personalized meal plan to your email address!"
-    }
+    },
+    "mealPlan": {
+      "createTitle": "Create your meal plan",
+      "createSubtitle": "Get personalized meals based on your preferences",
+      "title": "Your personalized meal plan",
+      "subtitle": "Based on your preferences",
+      "download": "Download meal plan",
+      "createNew": "Create new meal plan",
+      "calorieInfo": "Daily calories (optional)",
+      "calorieNote": "If you don't have a calorie calculation, you can enter daily calories here. We use 1800 kcal as default.",
+      "checkEmail": "We've sent you a login link by email. Click the link to log in, then generate your meal plan."
+    },
+    "mealOptions": {
+      "one": "1 meal",
+      "two": "2 meals",
+      "three": "3 meals"
+    },
+    "prepOptions": {
+      "quick": "Quick (< 20 min)",
+      "medium": "Moderate (20-45 min)",
+      "long": "Classic (> 45 min)",
+      "mix": "Mixed"
+    },
+    "budgetOptions": {
+      "cheap": "Budget-friendly",
+      "medium": "Moderate",
+      "expensive": "Premium",
+      "mixed": "Mixed"
+    },
+    "leftoversOptions": {
+      "daily": "Daily (fresh cooking)",
+      "batch": "Batch cooking (meal prep)",
+      "mixed": "Mixed"
+    },
+    "generating": "Generating...",
+    "generate": "Generate meal plan"
   },
   "ingredients": {
     "categories": {

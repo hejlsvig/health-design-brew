@@ -130,7 +130,7 @@
         "surplus": "Överskott"
       },
       "4": {
-        "title": "Måltider & Preferenser",
+        "title": "Måltider och preferenser",
         "subtitle": "Hur gillar du att äta och laga mat?",
         "mealsPerDay": "Hur många måltider per dag?",
         "meal1": "En Måltid",
@@ -148,17 +148,22 @@
         "budgetMixed": "Flexibel"
       },
       "5": {
-        "title": "Dina Ingredienser",
+        "title": "Ingredienser och hälsopreferenser",
         "subtitle": "Vilka livsmedel gillar du att äta?",
         "healthPreferences": "Hälsopreferenser",
-        "antiInflammatory": "Fokusera på antiinflammatoriska livsmedel",
-        "avoidProcessed": "Undvik bearbetade livsmedel"
+        "antiInflammatory": "Fokus på antiinflammatoriska ingredienser",
+        "avoidProcessed": "Undvik bearbetade ingredienser",
+        "instruction": "Välj de ingredienser du vill ha med. Alla ingredienser är valda som standard.",
+        "ingredients": "Ingredienser",
+        "mealsPerDay": "Hur många måltider per dag?",
+        "prepTime": "Hur mycket tid har du för tillagning?",
+        "budget": "Vad är din budget?"
       },
       "6": {
-        "title": "Ditt Schema",
+        "title": "Varaktighet och rester",
         "subtitle": "Hur ofta och hur vill du förbereda måltider?",
-        "daysPerWeek": "Hur många dagar per vecka lagar du mat?",
-        "leftoversStrategy": "Hur föredrar du att hantera rester?",
+        "daysPerWeek": "Hur många dagar ska kostplanen täcka?",
+        "leftoversStrategy": "Hur vill du hantera rester?",
         "daily": {
           "title": "Daglig Matlagning",
           "desc": "Laga friska måltider varje dag"
@@ -173,22 +178,60 @@
         }
       },
       "7": {
-        "title": "Redo att Komma Igång?",
+        "title": "Bekräftelse",
         "subtitle": "Få din personaliserade måltidsplan levererad till din e-post",
-        "email": "E-postadress",
-        "name": "Fullständigt Namn",
-        "namePlaceholder": "Ange ditt namn",
-        "gdprConsent": "Jag accepterar att ta emot personaliserade rekommendationer och uppdateringar. Jag kan avsluta prenumerationen när som helst."
+        "email": "E-post",
+        "name": "Namn",
+        "namePlaceholder": "Ditt namn",
+        "gdprConsent": "Jag godkänner att ta emot min personaliserade kostplan via e-post. Jag förstår att mina uppgifter behandlas i enlighet med vår integritetspolicy.",
+        "emailPlaceholder": "din@epost.se"
       }
     },
     "errors": {
       "completionRequired": "Fyll i alla obligatoriska fält",
       "saveFailed": "Det gick inte att spara dina data",
-      "submitFailed": "Det gick inte att skicka kalkylatorn"
+      "submitFailed": "Det gick inte att skicka kalkylatorn",
+      "magicLinkFailed": "Kunde inte skicka inloggningslänk. Försök igen.",
+      "generationFailed": "Generering misslyckades"
     },
     "success": {
       "submitted": "Vi skickar dig en personlig matplan till din e-postadress!"
-    }
+    },
+    "mealPlan": {
+      "createTitle": "Skapa din kostplan",
+      "createSubtitle": "Få personaliserade måltider baserade på dina preferenser",
+      "title": "Din personaliserade kostplan",
+      "subtitle": "Baserat på dina preferenser",
+      "download": "Ladda ner kostplan",
+      "createNew": "Skapa ny kostplan",
+      "calorieInfo": "Dagliga kalorier (valfritt)",
+      "calorieNote": "Om du inte har en kalorieuträkning kan du ange dagliga kalorier här. Vi använder 1800 kcal som standard.",
+      "checkEmail": "Vi har skickat en inloggningslänk till din e-post. Klicka på länken för att logga in, och generera sedan din kostplan."
+    },
+    "mealOptions": {
+      "one": "1 måltid",
+      "two": "2 måltider",
+      "three": "3 måltider"
+    },
+    "prepOptions": {
+      "quick": "Snabb (< 20 min)",
+      "medium": "Måttlig (20-45 min)",
+      "long": "Klassisk (> 45 min)",
+      "mix": "Blandat"
+    },
+    "budgetOptions": {
+      "cheap": "Budgetvänlig",
+      "medium": "Måttlig",
+      "expensive": "Premium",
+      "mixed": "Blandat"
+    },
+    "leftoversOptions": {
+      "daily": "Varje dag (ny tillagning)",
+      "batch": "Batch-tillagning (förvaring)",
+      "mixed": "Blandat"
+    },
+    "generating": "Genererar...",
+    "generate": "Generera kostplan"
   },
   "ingredients": {
     "categories": {
