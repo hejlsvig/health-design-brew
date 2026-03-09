@@ -297,6 +297,7 @@ function RecipeCard({
             src={recipe.image_url}
             alt={loc(recipe.title)}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -513,6 +514,7 @@ ${recipe.image_url ? `<img src="${recipe.image_url}" alt="${title}">` : ''}
             src={recipe.image_url}
             alt={loc(recipe.title)}
             className="h-full w-full object-cover"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
         )}
         <div className="container absolute inset-0 z-20 mx-auto left-0 right-0 flex h-full flex-col justify-end pb-8">

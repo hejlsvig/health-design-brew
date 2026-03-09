@@ -6,6 +6,7 @@ import { initSEO } from '@/lib/seo'
 import Layout from '@/components/Layout'
 import Home from '@/pages/Home'
 import Calculator from '@/pages/Calculator'
+import MealPlan from '@/pages/MealPlan'
 import Recipes from '@/pages/Recipes'
 import Blog from '@/pages/Blog'
 import BlogPost from '@/pages/BlogPost'
@@ -55,6 +56,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/calculator" element={<Calculator />} />
+            <Route path="/meal-plan" element={<MealPlan />} />
             <Route path="/recipes" element={<Recipes />} />
             <Route path="/guides" element={<Guides />} />
             <Route path="/guides/:slug" element={<GuidePost />} />

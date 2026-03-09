@@ -264,7 +264,7 @@ export default function AdminRecipes() {
     if (uploadingRef.current) return
 
     if (!file.type.startsWith('image/')) { setError(t('admin.errorImageType')); return }
-    if (file.size > 20 * 1024 * 1024) { setError('Billedet skal vÃ¦re under 20 MB'); return }
+    if (file.size > 20 * 1024 * 1024) { setError('Billedet skal være under 20 MB'); return }
 
     uploadingRef.current = true
     setImageProcessing(true)
@@ -317,8 +317,8 @@ export default function AdminRecipes() {
   const generateSlug = (title: string) => {
     return title
       .toLowerCase()
-      .replace(/[Ã¦]/g, 'ae').replace(/[Ã¸]/g, 'oe').replace(/[Ã¥]/g, 'aa')
-      .replace(/[Ã¤]/g, 'ae').replace(/[Ã¶]/g, 'oe')
+      .replace(/[æ]/g, 'ae').replace(/[ø]/g, 'oe').replace(/[å]/g, 'aa')
+      .replace(/[ä]/g, 'ae').replace(/[ö]/g, 'oe')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
   }
@@ -929,7 +929,7 @@ export default function AdminRecipes() {
                     className="inline-flex h-10 items-center gap-2 px-4 rounded-md bg-accent/10 border border-accent/30 text-accent text-sm font-medium hover:bg-accent/20 transition-colors"
                   >
                     <Share2 className="h-4 w-4" />
-                    Del pÃ¥ Social
+                    Del på Social
                   </button>
                 )}
                 <a
