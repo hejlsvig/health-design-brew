@@ -159,12 +159,10 @@ serve(async (req) => {
     else if (contentType.includes('jpeg') || contentType.includes('jpg')) ext = 'jpg'
     else if (contentType.includes('png')) ext = 'png'
 
-    // Build remote path — one.com uses webroots/by-route/domain_/ structure
+    // Build filename
     const finalFilename = filename || `ai-${Date.now()}.${ext}`
-    const webRoot = 'webroots/by-route/shiftingsource.com_'
-    const remotePath = `/${webRoot}/images/${folder}/${finalFilename}`
 
-    console.log(`[upload-sftp] Uploading ${imageBuffer.length} bytes to ${remotePath} via SFTP (${sftpHost}:${sftpPort})`)
+    console.log(`[upload-sftp] Connecting to ${sftpHost}:${sftpPort} ...`)
 
     // Upload via SFTP
     const sftp = new SftpClient()
@@ -179,23 +177,56 @@ serve(async (req) => {
         retries: 1,
       })
 
-      // Ensure directory structure exists
-      const imagesDir = `/${webRoot}/images`
-      const folderDir = `/${webRoot}/images/${folder}`
+      // Detect the correct webroot path
+      const homeDir = await sftp.cwd()
+      console.log(`[upload-sftp] Home directory: ${homeDir}`)
 
-      const imagesDirExists = await sftp.exists(imagesDir)
-      if (!imagesDirExists) {
-        console.log(`[upload-sftp] Creating directory: ${imagesDir}`)
+      // Try common one.com path structures
+      let webRoot = ''
+      const candidates = [
+        `${homeDir}/webroots/by-route/shiftingsource.com_`,
+        `${homeDir}/www`,
+        `${homeDir}/public_html`,
+        'webroots/by-route/shiftingsource.com_',
+        '/webroots/by-route/shiftingsource.com_',
+      ]
+
+      for (const candidate of candidates) {
+        const exists = await sftp.exists(candidate)
+        console.log(`[upload-sftp] Checking path: ${candidate} → ${exists || 'not found'}`)
+        if (exists === 'd') {
+          webRoot = candidate
+          break
+        }
+      }
+
+      if (!webRoot) {
+        // List home directory for debugging
+        const homeList = await sftp.list(homeDir)
+        const dirs = homeList.filter((f: any) => f.type === 'd').map((f: any) => f.name)
+        console.log(`[upload-sftp] Directories in home: ${dirs.join(', ')}`)
+        throw new Error(`Kunne ikke finde webroot-mappen. Home: ${homeDir}, Mapper: ${dirs.join(', ')}`)
+      }
+
+      console.log(`[upload-sftp] Using webroot: ${webRoot}`)
+
+      // Ensure images/folder directory exists
+      const imagesDir = `${webRoot}/images`
+      const folderDir = `${webRoot}/images/${folder}`
+
+      if (!(await sftp.exists(imagesDir))) {
+        console.log(`[upload-sftp] Creating: ${imagesDir}`)
         await sftp.mkdir(imagesDir, true)
       }
 
-      const folderDirExists = await sftp.exists(folderDir)
-      if (!folderDirExists) {
-        console.log(`[upload-sftp] Creating directory: ${folderDir}`)
+      if (!(await sftp.exists(folderDir))) {
+        console.log(`[upload-sftp] Creating: ${folderDir}`)
         await sftp.mkdir(folderDir, true)
       }
 
-      // Upload the file from buffer
+      // Upload the file
+      const remotePath = `${folderDir}/${finalFilename}`
+      console.log(`[upload-sftp] Uploading ${imageBuffer.length} bytes to ${remotePath}`)
       await sftp.put(imageBuffer, remotePath)
       await sftp.end()
 
