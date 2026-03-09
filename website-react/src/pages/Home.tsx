@@ -389,7 +389,7 @@ function LatestArticlesSection({ articles, loc, t, lang }: {
                   <div className="relative aspect-[16/9] overflow-hidden bg-charcoal">
                     <div className="absolute inset-0 overlay-gradient z-10" />
                     {article.featured_image ? (
-                      <img src={article.featured_image} alt={loc(article.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      <img src={article.featured_image} alt={loc(article.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center"><BookOpen className="h-10 w-10 text-charcoal-foreground/30" /></div>
                     )}
@@ -455,7 +455,7 @@ function FeaturedArticlesSection({ articles, loc, t, lang }: {
                 <div className="relative aspect-[16/9] overflow-hidden bg-charcoal">
                   <div className="absolute inset-0 overlay-gradient z-10" />
                   {article.featured_image ? (
-                    <img src={article.featured_image} alt={loc(article.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <img src={article.featured_image} alt={loc(article.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center"><BookOpen className="h-10 w-10 text-charcoal-foreground/30" /></div>
                   )}
@@ -479,7 +479,7 @@ function FeaturedArticlesSection({ articles, loc, t, lang }: {
             <div className="relative aspect-[4/3] md:aspect-auto md:h-full overflow-hidden bg-charcoal">
               <div className="absolute inset-0 overlay-gradient z-10" />
               {main.featured_image ? (
-                <img src={main.featured_image} alt={loc(main.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                <img src={main.featured_image} alt={loc(main.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center"><BookOpen className="h-16 w-16 text-charcoal-foreground/30" /></div>
               )}

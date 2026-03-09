@@ -155,6 +155,7 @@ export default function Blog() {
                           src={article.featured_image}
                           alt={loc(article.title)}
                           className="h-full w-full object-cover"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
