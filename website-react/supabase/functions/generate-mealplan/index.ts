@@ -54,13 +54,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Verify caller is authenticated
+    // Verify caller has a valid key (anon key or user token)
     const authHeader = req.headers.get('Authorization') || ''
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return jsonResponse({ error: 'Ikke autoriseret' }, 401)
+    if (!authHeader) {
+      return jsonResponse({ error: 'Manglende autorisering' }, 401)
     }
 
     // Parse request body

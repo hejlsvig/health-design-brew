@@ -6,56 +6,15 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const MealPlanGenerator = require('./mealPlanGenerator');
+// NOTE: MealPlanGenerator removed — meal plan generation now handled by
+// Supabase Edge Function 'generate-mealplan' in website-react/supabase/functions/
 const EmailService = require('./emailService');
 const AuthService = require('./auth');
 
 const app = express();
 const PORT = 3000;
 
-// Initialize meal plan generator (will be set up with API key from env or config)
-let mealPlanGenerator = null;
 let emailService = null;
-
-// Try to load OpenAI API key from environment, config file, or database
-let OPENAI_API_KEY = process.env.OPENAI_API_KEY || null;
-
-// Try to load from config file if not in environment
-if (!OPENAI_API_KEY) {
-    try {
-        const configPath = path.join(__dirname, 'openai-key.json');
-        if (fs.existsSync(configPath)) {
-            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            OPENAI_API_KEY = config.apiKey;
-            console.log('✓ OpenAI API key loaded from config file');
-        }
-    } catch (error) {
-        console.warn('⚠️  Could not load OpenAI key from config file:', error.message);
-    }
-}
-
-if (OPENAI_API_KEY) {
-    try {
-        // Read config for model settings
-        const configPath = path.join(__dirname, 'openai-key.json');
-        let modelConfig = {};
-        if (fs.existsSync(configPath)) {
-            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            modelConfig = {
-                model: config.model || 'gpt-4o',
-                maxCompletionTokens: config.maxCompletionTokens || config.maxTokens || 16000,
-                temperature: config.temperature || 0.7
-            };
-        }
-        mealPlanGenerator = new MealPlanGenerator(OPENAI_API_KEY, modelConfig);
-        console.log('✓ Meal Plan Generator initialized with OpenAI API key');
-    } catch (error) {
-        console.warn('⚠️  Could not initialize Meal Plan Generator:', error.message);
-    }
-} else {
-    console.warn('⚠️  No OPENAI_API_KEY found. Meal plan generation will not be available.');
-    console.warn('   Set OPENAI_API_KEY environment variable or configure via admin panel.');
-}
 
 // Initialize email service from environment or config file
 let EMAIL_USER = process.env.EMAIL_USER || null;
@@ -353,8 +312,9 @@ app.get('/api/translations', (req, res) => {
 app.get('/api/admin/service-status', requireAdmin, (req, res) => {
     res.json({
         mealPlanGenerator: {
-            configured: mealPlanGenerator !== null,
-            ready: mealPlanGenerator ? true : false
+            configured: false,
+            ready: false,
+            note: 'Moved to Supabase Edge Function'
         },
         emailService: {
             configured: emailService ? emailService.isConfigured() : false,
@@ -671,33 +631,15 @@ app.post('/api/submit-calculator', (req, res) => {
                     const leadId = row.id;
                     console.log(`✓ Lead saved/updated: ${data.email} (ID: ${leadId}, Meal plans: ${mealPlanCount}/5)`);
 
-                    // AUTO-GENERATE MEAL PLAN if OpenAI is configured
-                    if (mealPlanGenerator) {
-                        console.log(`🤖 Auto-generating meal plan for ${data.email}...`);
-
-                        // Trigger meal plan generation in background (don't wait for response)
-                        generateMealPlanForLead(leadId, data.email, true).catch(err => {
-                            console.error('Error auto-generating meal plan:', err);
-                        });
-
-                        res.json({
-                            success: true,
-                            message: 'Data saved successfully. Your meal plan is being generated and will be emailed to you shortly!',
-                            leadId: leadId,
-                            mealPlanCount: mealPlanCount,
-                            mealPlanLimit: 5,
-                            generatingMealPlan: true
-                        });
-                    } else {
-                        res.json({
-                            success: true,
-                            message: 'Data saved successfully',
-                            leadId: leadId,
-                            mealPlanCount: mealPlanCount,
-                            mealPlanLimit: 5,
-                            generatingMealPlan: false
-                        });
-                    }
+                    // NOTE: Meal plan generation now handled client-side via Supabase Edge Function
+                    res.json({
+                        success: true,
+                        message: 'Data saved successfully',
+                        leadId: leadId,
+                        mealPlanCount: mealPlanCount,
+                        mealPlanLimit: 5,
+                        generatingMealPlan: false
+                    });
                 });
             });
         });
@@ -1109,249 +1051,10 @@ app.get('/api/checkins/:idOrToken', (req, res) => {
 });
 
 // ============================================
-// MEAL PLAN GENERATION ENDPOINTS
+// MEAL PLAN GENERATION — REMOVED
+// Meal plan generation is now handled by Supabase Edge Function 'generate-mealplan'
+// See: website-react/supabase/functions/generate-mealplan/index.ts
 // ============================================
-
-// Helper function to generate meal plan for a lead
-async function generateMealPlanForLead(leadId, email, sendEmail = true) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            // Get lead data
-            const sql = `SELECT * FROM leads WHERE id = ?`;
-
-            db.get(sql, [leadId], async (err, lead) => {
-                if (err || !lead) {
-                    return reject(new Error('Lead not found'));
-                }
-
-                // Generate meal plan using OpenAI (with PDF)
-                const result = await mealPlanGenerator.generateComplete({
-                    email: email,
-                    name: lead.name || 'Kære',
-                    gender: lead.gender,
-                    age: lead.age,
-                    weight: lead.weight,
-                    height: lead.height,
-                    activity: lead.activity,
-                    daily_calories: lead.daily_calories,
-                    meals_per_day: lead.meals_per_day || 3,
-                    num_days: lead.num_days || 7,
-                    leftovers: lead.leftovers === 1 || lead.leftovers === true,
-                    prep_time: lead.prep_time || 'medium',
-                    excluded_ingredients: lead.excluded_ingredients || '',
-                    selected_ingredients: lead.selected_ingredients || '',
-                    diet_type: lead.diet_type || 'Custom Keto',
-                    language: lead.language || 'da'
-                });
-
-                if (!result.success) {
-                    return reject(new Error(result.error || 'Meal plan generation failed'));
-                }
-
-                // Save to database
-                const insertSql = `
-                    INSERT INTO generated_meal_plans (lead_id, pdf_filename, pdf_path, tokens_used, cost_usd, model)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                `;
-
-                const modelUsed = result.model || mealPlanGenerator?.config?.model || 'gpt-4o';
-                db.run(insertSql, [leadId, result.pdfFileName, result.pdfPath, result.tokens, result.cost.total, modelUsed], async function(err) {
-                    if (err) {
-                        console.error('Error saving meal plan to database:', err);
-                    }
-
-                    console.log(`✓ Meal plan generated: ${result.pdfFileName} (${result.tokens} tokens, $${result.cost.total})`);
-
-                    // Send email if configured
-                    if (sendEmail && emailService && emailService.isConfigured()) {
-                        try {
-                            await emailService.sendMealPlan(
-                                { email: email, name: lead.name || 'Kære', id: leadId },
-                                result.pdfPath,
-                                null,
-                                lead.language || 'da'
-                            );
-                            console.log(`✓ Meal plan email sent to ${email}`);
-                        } catch (emailErr) {
-                            console.error('Error sending meal plan email:', emailErr);
-                        }
-                    }
-
-                    resolve(result);
-                });
-            });
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
-
-// Generate meal plan for a lead
-app.post('/api/generate-meal-plan/:leadId', async (req, res) => {
-    const { leadId } = req.params;
-    const {
-        sendEmail = false,
-        numDays,
-        mealsPerDay,
-        dailyCalories,
-        leftovers
-    } = req.body; // Optional parameters from frontend
-
-    if (!mealPlanGenerator) {
-        return res.status(503).json({
-            error: 'Meal plan generation is not available. OpenAI API key not configured.'
-        });
-    }
-
-    try {
-        // Get lead data
-        const sql = `
-            SELECT * FROM leads WHERE id = ?
-        `;
-
-        db.get(sql, [leadId], async (err, lead) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-
-            if (!lead) {
-                return res.status(404).json({ error: 'Lead not found' });
-            }
-
-            // Parse excluded ingredients
-            const excludedIngredients = lead.excluded_ingredients || '';
-
-            // Allow overriding parameters from request body
-            const mealPlanData = {
-                ...lead,
-                excluded_ingredients: excludedIngredients,
-                // Override with request params if provided
-                num_days: numDays !== undefined ? numDays : lead.num_days,
-                meals_per_day: mealsPerDay !== undefined ? mealsPerDay : lead.meals_per_day,
-                daily_calories: dailyCalories !== undefined ? dailyCalories : lead.daily_calories,
-                leftovers: leftovers !== undefined ? leftovers : lead.leftovers
-            };
-
-            // Generate meal plan
-            console.log(`📝 Generating meal plan for ${lead.email}...`);
-            console.log(`   Settings: ${mealPlanData.num_days} days, ${mealPlanData.meals_per_day} meals/day, ${mealPlanData.daily_calories} kcal`);
-            const result = await mealPlanGenerator.generateComplete(mealPlanData);
-
-            if (result.success) {
-                // Save meal plan info to database
-                const saveSql = `
-                    INSERT INTO generated_meal_plans
-                    (lead_id, pdf_filename, pdf_path, tokens_used, cost_usd, model, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-                `;
-
-                const modelUsed = result.model || mealPlanGenerator?.config?.model || 'gpt-4o';
-                db.run(saveSql, [
-                    leadId,
-                    result.pdfFileName,
-                    result.pdfPath,
-                    result.tokens,
-                    parseFloat(result.cost.total),
-                    modelUsed
-                ], function(saveErr) {
-                    if (saveErr) {
-                        console.error('Error saving meal plan record:', saveErr);
-                    } else {
-                        console.log(`✓ Meal plan saved to database (ID: ${this.lastID})`);
-                    }
-                });
-
-                // Send email if requested
-                let emailSent = false;
-                if (sendEmail && emailService && emailService.isConfigured()) {
-                    try {
-                        // Ensure lead has id property for email logging
-                        const leadWithId = { ...lead, id: parseInt(leadId) };
-                        // Prepare meal plan data for email template
-                        const emailPlanData = {
-                            days: mealPlanData.num_days,
-                            mealsPerDay: mealPlanData.meals_per_day
-                        };
-                        await emailService.sendMealPlan(
-                            leadWithId,
-                            result.pdfPath,
-                            emailPlanData,
-                            lead.language || 'da'
-                        );
-                        emailSent = true;
-                        console.log(`✓ Meal plan emailed to ${lead.email}`);
-                    } catch (emailError) {
-                        console.error('Error sending email:', emailError);
-                        // Don't fail the whole request if email fails
-                    }
-                }
-
-                res.json({
-                    success: true,
-                    message: 'Meal plan generated successfully',
-                    pdfFileName: result.pdfFileName,
-                    tokens: result.tokens,
-                    cost: result.cost,
-                    emailSent: emailSent
-                });
-            } else {
-                res.status(500).json({
-                    success: false,
-                    error: result.error
-                });
-            }
-        });
-    } catch (error) {
-        console.error('Error generating meal plan:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Download generated meal plan PDF
-app.get('/api/download-meal-plan/:filename', (req, res) => {
-    const { filename } = req.params;
-    const filePath = path.join(__dirname, 'generated_mealplans', filename);
-
-    // Security check: ensure filename doesn't contain path traversal
-    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-        return res.status(400).json({ error: 'Invalid filename' });
-    }
-
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: 'Meal plan not found' });
-    }
-
-    // Send file
-    res.download(filePath, filename, (err) => {
-        if (err) {
-            console.error('Error downloading file:', err);
-            res.status(500).json({ error: 'Error downloading file' });
-        }
-    });
-});
-
-// Get meal plans for a lead
-app.get('/api/meal-plans/:leadId', (req, res) => {
-    const { leadId } = req.params;
-
-    const sql = `
-        SELECT id, pdf_filename, tokens_used, cost_usd, created_at
-        FROM generated_meal_plans
-        WHERE lead_id = ?
-        ORDER BY created_at DESC
-    `;
-
-    db.all(sql, [leadId], (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-
-        res.json({
-            mealPlans: rows
-        });
-    });
-});
 
 // Send check-in reminder email
 app.post('/api/send-checkin-reminder/:coachingClientId', async (req, res) => {
@@ -1422,35 +1125,6 @@ app.post('/api/send-checkin-reminder/:coachingClientId', async (req, res) => {
     }
 });
 
-// Get all generated meal plans (admin)
-app.get('/api/admin/all-meal-plans', requireAdmin, (req, res) => {
-    const sql = `
-        SELECT
-            mp.id,
-            mp.lead_id,
-            mp.pdf_filename,
-            mp.tokens_used,
-            mp.cost_usd,
-            mp.created_at,
-            l.email,
-            l.name
-        FROM generated_meal_plans mp
-        JOIN leads l ON mp.lead_id = l.id
-        ORDER BY mp.created_at DESC
-    `;
-
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-
-        res.json({
-            mealPlans: rows,
-            totalCost: rows.reduce((sum, mp) => sum + mp.cost_usd, 0).toFixed(4)
-        });
-    });
-});
-
 // Set or update OpenAI API key (admin only - should be protected in production)
 app.post('/api/admin/set-openai-key', requireAdmin, (req, res) => {
     const { apiKey } = req.body;
@@ -1465,14 +1139,8 @@ app.post('/api/admin/set-openai-key', requireAdmin, (req, res) => {
         fs.writeFileSync(configPath, JSON.stringify({ apiKey }, null, 2));
         console.log('✓ OpenAI API key saved to disk:', configPath);
 
-        // Initialize or update meal plan generator
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        const modelConfig = {
-            model: config.model || 'gpt-4o',
-            maxCompletionTokens: config.maxCompletionTokens || config.maxTokens || 16000,
-            temperature: config.temperature || 0.7
-        };
-        mealPlanGenerator = new MealPlanGenerator(apiKey, modelConfig);
+        // NOTE: Meal plan generator now lives in Supabase Edge Function
+        // This key is only saved locally for legacy compatibility
 
         res.json({
             success: true,
@@ -1548,16 +1216,7 @@ app.post('/api/admin/set-model-config', requireAdmin, (req, res) => {
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
         console.log(`✓ Model config updated: Model=${model}, MaxCompletionTokens=${maxTokens}`);
 
-        // Reinitialize meal plan generator if API key exists
-        if (config.apiKey && mealPlanGenerator) {
-            const modelConfig = {
-                model: model,
-                maxCompletionTokens: maxTokens,
-                temperature: config.temperature || 0.7
-            };
-            mealPlanGenerator = new MealPlanGenerator(config.apiKey, modelConfig);
-            console.log('✓ Meal Plan Generator reinitialized with new config');
-        }
+        // NOTE: Meal plan generator now in Supabase Edge Function — no local reinitialization needed
 
         res.json({
             success: true,
@@ -2128,7 +1787,7 @@ app.listen(PORT, () => {
 ║                                                  ║
 ║  Website: http://localhost:${PORT}/                       ║
 ║  CRM Dashboard: http://localhost:${PORT}/crm/admin.html  ║
-║  Meal Plan Generator: ${mealPlanGenerator ? '✓ ENABLED' : '✗ DISABLED (No API key)'}       ║
+║  Meal Plan Generator: → Supabase Edge Function                                ║
 ╚══════════════════════════════════════════════════╝
     `);
 });

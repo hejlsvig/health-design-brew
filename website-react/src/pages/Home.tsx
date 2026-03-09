@@ -17,15 +17,20 @@ interface PageSection {
 
 interface RecipePreview {
   id: string; slug: string; title: Record<string, string>; image_url: string | null
-  total_time: number | null; calories: number | null; categories: string[] | null
+  total_time: number | null; calories: number | null; categories: string[] | Record<string, string[]> | null
 }
 
 interface ArticlePreview {
   id: string; slug: string; title: Record<string, string>; summary: Record<string, string> | null
-  featured_image: string | null; categories: string[]; published_at: string | null; original_published_at: string | null
+  featured_image: string | null; categories: string[] | Record<string, string[]>; published_at: string | null; original_published_at: string | null
 }
 
 /* ─── Helpers ─── */
+function resolveStringArray(data: string[] | Record<string, string[]> | null | undefined, lang: string): string[] {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  return data[lang] || data['da'] || []
+}
 function shuffleAndPick<T>(arr: T[], n: number): T[] {
   const shuffled = [...arr].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, n)
@@ -152,11 +157,11 @@ export default function Home() {
           case 'hero':
             return <HeroSection key={section.id} content={section.content} loc={loc} />
           case 'latest_recipes':
-            return <LatestRecipesSection key={section.id} recipes={recipes} loc={loc} t={t} />
+            return <LatestRecipesSection key={section.id} recipes={recipes} loc={loc} t={t} lang={lang} />
           case 'latest_articles':
             return <LatestArticlesSection key={section.id} articles={articles} loc={loc} t={t} lang={lang} />
           case 'featured_recipes':
-            return <FeaturedRecipesSection key={section.id} recipes={featuredRecipes} loc={loc} t={t} />
+            return <FeaturedRecipesSection key={section.id} recipes={featuredRecipes} loc={loc} t={t} lang={lang} />
           case 'featured_articles':
             return <FeaturedArticlesSection key={section.id} articles={featuredArticles} loc={loc} t={t} lang={lang} />
           case 'about':
@@ -231,8 +236,8 @@ function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: 
 }
 
 /* ═══ LATEST RECIPES ═══ */
-function LatestRecipesSection({ recipes, loc, t }: {
-  recipes: RecipePreview[]; loc: (f: any, fb?: string) => string; t: (k: string) => string
+function LatestRecipesSection({ recipes, loc, t, lang }: {
+  recipes: RecipePreview[]; loc: (f: any, fb?: string) => string; t: (k: string) => string; lang: string
 }) {
   return (
     <section className="container py-16">
@@ -258,7 +263,7 @@ function LatestRecipesSection({ recipes, loc, t }: {
                   <div className="flex h-full w-full items-center justify-center"><Utensils className="h-10 w-10 text-charcoal-foreground/30" /></div>
                 )}
                 <div className="absolute left-3 bottom-3 z-20 flex flex-wrap gap-1">
-                  {(recipe.categories ?? []).slice(0, 2).map(cat => (
+                  {resolveStringArray(recipe.categories, lang).slice(0, 2).map(cat => (
                     <span key={cat} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">{cat}</span>
                   ))}
                 </div>
@@ -281,8 +286,8 @@ function LatestRecipesSection({ recipes, loc, t }: {
 }
 
 /* ═══ FEATURED RECIPES ═══ */
-function FeaturedRecipesSection({ recipes, loc, t }: {
-  recipes: RecipePreview[]; loc: (f: any, fb?: string) => string; t: (k: string) => string
+function FeaturedRecipesSection({ recipes, loc, t, lang }: {
+  recipes: RecipePreview[]; loc: (f: any, fb?: string) => string; t: (k: string) => string; lang: string
 }) {
   if (recipes.length < 3) return null
   const [main, ...rest] = recipes
@@ -311,7 +316,7 @@ function FeaturedRecipesSection({ recipes, loc, t }: {
             )}
             <div className="absolute bottom-0 left-0 right-0 z-20 p-6">
               <div className="flex flex-wrap gap-1 mb-2">
-                {(main.categories ?? []).slice(0, 2).map(cat => (
+                {resolveStringArray(main.categories, lang).slice(0, 2).map(cat => (
                   <span key={cat} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">{cat}</span>
                 ))}
               </div>
@@ -335,7 +340,7 @@ function FeaturedRecipesSection({ recipes, loc, t }: {
                 <div className="flex h-full w-full items-center justify-center"><Utensils className="h-10 w-10 text-charcoal-foreground/30" /></div>
               )}
               <div className="absolute left-3 bottom-3 z-20 flex flex-wrap gap-1">
-                {(recipe.categories ?? []).slice(0, 2).map(cat => (
+                {resolveStringArray(recipe.categories, lang).slice(0, 2).map(cat => (
                   <span key={cat} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">{cat}</span>
                 ))}
               </div>
@@ -389,7 +394,7 @@ function LatestArticlesSection({ articles, loc, t, lang }: {
                       <div className="flex h-full w-full items-center justify-center"><BookOpen className="h-10 w-10 text-charcoal-foreground/30" /></div>
                     )}
                     <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-1">
-                      {(article.categories || []).slice(0, 2).map(cat => (
+                      {resolveStringArray(article.categories, lang).slice(0, 2).map(cat => (
                         <span key={cat} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground uppercase">{getCategoryLabel(cat, lang)}</span>
                       ))}
                     </div>
@@ -454,7 +459,7 @@ function FeaturedArticlesSection({ articles, loc, t, lang }: {
                   ) : (
                     <div className="flex h-full w-full items-center justify-center"><BookOpen className="h-10 w-10 text-charcoal-foreground/30" /></div>
                   )}
-                  <span className="absolute top-3 left-3 z-20 rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground uppercase">{article.categories?.[0] || ''}</span>
+                  <span className="absolute top-3 left-3 z-20 rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground uppercase">{resolveStringArray(article.categories, lang)[0] || ''}</span>
                 </div>
                 <div className="p-4">
                   <h3 className="font-serif text-lg text-foreground group-hover:text-accent transition-colors line-clamp-2">{loc(article.title)}</h3>
@@ -480,7 +485,7 @@ function FeaturedArticlesSection({ articles, loc, t, lang }: {
               )}
               <div className="absolute bottom-0 left-0 right-0 z-20 p-6">
                 <div className="flex flex-wrap gap-1 mb-2">
-                  {(main.categories || []).slice(0, 2).map(cat => (
+                  {resolveStringArray(main.categories, lang).slice(0, 2).map(cat => (
                     <span key={cat} className="inline-block rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground uppercase">{getCategoryLabel(cat, lang)}</span>
                   ))}
                 </div>
