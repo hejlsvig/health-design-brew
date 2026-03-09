@@ -235,11 +235,13 @@ export default function MealPlan() {
         throw new Error('Din session er udløbet. Log ud og ind igen for at generere en kostplan.')
       }
 
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
       const resp = await fetch(`${supabaseUrl}/functions/v1/generate-mealplan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
+          'apikey': anonKey,
         },
         body: JSON.stringify(mealPlanBody),
       })
