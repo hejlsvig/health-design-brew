@@ -16,6 +16,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Buffer } from 'node:buffer'
 import SftpClient from 'npm:ssh2-sftp-client@11'
 
 const corsHeaders = {
