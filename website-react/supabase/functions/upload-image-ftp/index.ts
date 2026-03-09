@@ -226,7 +226,7 @@ serve(async (req) => {
         try {
           const exists = await sftp.exists(candidate)
           console.log(`[upload-sftp] Checking: ${candidate} → ${exists || 'not found'}`)
-          if (exists === 'd') {
+          if (exists === 'd' || exists === 'l') {  // 'd' = directory, 'l' = symlink
             webRoot = candidate
             break
           }
