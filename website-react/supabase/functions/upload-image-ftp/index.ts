@@ -1,14 +1,17 @@
 /**
  * Supabase Edge Function: upload-image-ftp
  *
- * Downloads an image from a URL and uploads it to one.com via SFTP.
+ * Downloads an image from a URL and uploads it to:
+ *   1. Supabase Storage (permanent backup in 'images' bucket)
+ *   2. one.com via SFTP (for serving from the domain)
+ *
  * Uses npm:ssh2-sftp-client (pure JS, no native dependencies).
  *
  * Request body:
  *   { url: string, folder: "articles" | "recipes", filename?: string }
  *
  * Returns:
- *   { publicUrl: string, path: string }
+ *   { publicUrl: string, path: string, backupUrl: string }
  *
  * SFTP credentials are read from admin_settings:
  *   sftp_host, sftp_username, sftp_password (falls back to ftp_* keys for backwards compat)
@@ -162,6 +165,37 @@ serve(async (req) => {
     // Build filename
     const finalFilename = filename || `ai-${Date.now()}.${ext}`
 
+    // ── Backup to Supabase Storage (permanent, survives SFTP/CI issues) ──
+    let backupUrl = ''
+    const storagePath = `${folder}/${finalFilename}`
+    try {
+      console.log(`[upload-sftp] Backing up to Supabase Storage: images/${storagePath}`)
+
+      // Determine correct MIME type for Storage
+      const mimeType = ext === 'webp' ? 'image/webp'
+        : ext === 'jpg' ? 'image/jpeg'
+        : 'image/png'
+
+      const { error: storageError } = await supabaseClient.storage
+        .from('images')
+        .upload(storagePath, imageBuffer, {
+          contentType: mimeType,
+          upsert: true, // overwrite if exists
+        })
+
+      if (storageError) {
+        console.warn(`[upload-sftp] Storage backup failed (non-fatal): ${storageError.message}`)
+      } else {
+        const { data: urlData } = supabaseClient.storage
+          .from('images')
+          .getPublicUrl(storagePath)
+        backupUrl = urlData?.publicUrl || ''
+        console.log(`[upload-sftp] Storage backup OK: ${backupUrl}`)
+      }
+    } catch (storageErr: any) {
+      console.warn(`[upload-sftp] Storage backup error (non-fatal): ${storageErr.message}`)
+    }
+
     console.log(`[upload-sftp] Connecting to ${sftpHost}:${sftpPort} ...`)
 
     // Upload via SFTP
@@ -289,7 +323,7 @@ serve(async (req) => {
     console.log(`[upload-sftp] Upload complete: ${publicUrl}`)
 
     return new Response(
-      JSON.stringify({ publicUrl, path: `images/${folder}/${finalFilename}` }),
+      JSON.stringify({ publicUrl, path: `images/${folder}/${finalFilename}`, backupUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
 

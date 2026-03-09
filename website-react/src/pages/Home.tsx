@@ -5,6 +5,7 @@ import { ArrowRight, Flame, Heart, Clock, Utensils, BookOpen, ChevronDown } from
 import { supabase } from '@/lib/supabase'
 import { getCategoryLabel } from '@/lib/articleCategories'
 import { setSEO, clearSEO } from '@/lib/seo'
+import { handleImageError } from '@/lib/imageFallback'
 
 /* ─── Types ─── */
 interface PageSection {
@@ -258,7 +259,7 @@ function LatestRecipesSection({ recipes, loc, t, lang }: {
               <div className="relative aspect-[4/3] overflow-hidden bg-charcoal">
                 <div className="absolute inset-0 overlay-gradient z-10" />
                 {recipe.image_url ? (
-                  <img src={recipe.image_url} alt={loc(recipe.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  <img src={recipe.image_url} alt={loc(recipe.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={handleImageError} />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center"><Utensils className="h-10 w-10 text-charcoal-foreground/30" /></div>
                 )}
@@ -389,7 +390,7 @@ function LatestArticlesSection({ articles, loc, t, lang }: {
                   <div className="relative aspect-[16/9] overflow-hidden bg-charcoal">
                     <div className="absolute inset-0 overlay-gradient z-10" />
                     {article.featured_image ? (
-                      <img src={article.featured_image} alt={loc(article.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                      <img src={article.featured_image} alt={loc(article.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={handleImageError} />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center"><BookOpen className="h-10 w-10 text-charcoal-foreground/30" /></div>
                     )}
@@ -455,7 +456,7 @@ function FeaturedArticlesSection({ articles, loc, t, lang }: {
                 <div className="relative aspect-[16/9] overflow-hidden bg-charcoal">
                   <div className="absolute inset-0 overlay-gradient z-10" />
                   {article.featured_image ? (
-                    <img src={article.featured_image} alt={loc(article.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                    <img src={article.featured_image} alt={loc(article.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={handleImageError} />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center"><BookOpen className="h-10 w-10 text-charcoal-foreground/30" /></div>
                   )}
@@ -479,7 +480,7 @@ function FeaturedArticlesSection({ articles, loc, t, lang }: {
             <div className="relative aspect-[4/3] md:aspect-auto md:h-full overflow-hidden bg-charcoal">
               <div className="absolute inset-0 overlay-gradient z-10" />
               {main.featured_image ? (
-                <img src={main.featured_image} alt={loc(main.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <img src={main.featured_image} alt={loc(main.title)} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={handleImageError} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center"><BookOpen className="h-16 w-16 text-charcoal-foreground/30" /></div>
               )}

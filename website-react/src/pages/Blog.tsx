@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { ARTICLE_CATEGORIES, getCategoryLabel } from '@/lib/articleCategories'
+import { handleImageError } from '@/lib/imageFallback'
 
 interface Article {
   id: string
@@ -155,7 +156,7 @@ export default function Blog() {
                           src={article.featured_image}
                           alt={loc(article.title)}
                           className="h-full w-full object-cover"
-                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          onError={handleImageError}
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">

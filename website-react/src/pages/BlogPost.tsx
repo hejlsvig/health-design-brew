@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { getCategoryLabel } from '@/lib/articleCategories'
 import { setSEO, setArticleJsonLd, clearSEO } from '@/lib/seo'
+import { handleImageError } from '@/lib/imageFallback'
 
 interface Article {
   id: string
@@ -138,7 +139,7 @@ export default function BlogPost() {
             src={article.featured_image}
             alt=""
             className="absolute inset-0 h-full w-full object-cover opacity-30"
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+            onError={handleImageError}
           />
         )}
         <div className="overlay-gradient absolute inset-0 z-10" />

@@ -5,6 +5,7 @@ import { Clock, Search, BookOpen, Edit3 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import { handleImageError } from '@/lib/imageFallback'
 
 interface Guide {
   id: string
@@ -153,7 +154,7 @@ export default function Guides() {
                             src={guide.featured_image}
                             alt={loc(guide.title)}
                             className="h-full w-full object-cover"
-                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                            onError={handleImageError}
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
