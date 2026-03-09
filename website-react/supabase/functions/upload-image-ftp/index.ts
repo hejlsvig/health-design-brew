@@ -246,7 +246,7 @@ serve(async (req) => {
     console.log(`[upload-sftp] Upload complete: ${publicUrl}`)
 
     return new Response(
-      JSON.stringify({ publicUrl, path: remotePath }),
+      JSON.stringify({ publicUrl, path: `images/${folder}/${finalFilename}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
 
