@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, ChevronLeft, Check, UtensilsCrossed, Calculator as CalcIcon, Save, Loader2, Download } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check, UtensilsCrossed, Calculator as CalcIcon, Save } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import {
@@ -14,41 +15,31 @@ import {
   calculateMacros,
   validateStep,
 } from '@/lib/calculator'
-import { getIngredients, getCategories, getCategoryTranslationKey } from '@/lib/ingredients'
 
 
-// Phase 1: Calorie Calculator (steps 0-3) — UI shows "Trin 1-4"
-// Phase 2: Meal Planner (steps 4-7) — UI shows "Trin 5-8"
-const CALORIE_LAST_STEP = 3
-const MEAL_PLAN_FIRST_STEP = 4
-const TOTAL_STEPS = 8
+// TDEE-only calculator: 4 steps (0-3)
+// Step 0: Language & Units
+// Step 1: Personal Stats
+// Step 2: BMR/TDEE Results
+// Step 3: Weight Goal
+const TOTAL_STEPS = 4
 
 export default function Calculator() {
   const { t, i18n } = useTranslation()
   const { user, profile, refreshProfile } = useAuth()
   const [currentStep, setCurrentStep] = useState(0)
-  const [phase, setPhase] = useState<'calorie' | 'mealplan'>('calorie')
   const [showResults, setShowResults] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [state, setState] = useState<CalculatorState>(() => {
-    const allIds = getCategories().flatMap(cat => getIngredients(cat).map(ing => ing.id))
     const lang = (i18n.language || 'da') as 'da' | 'se' | 'en'
     const units = lang === 'en' ? 'imperial' : 'metric'
     return {
       ...INITIAL_STATE,
       language: lang,
       units,
-      selectedIngredients: allIds,
     }
   })
-  const [submitting, setSubmitting] = useState(false)
-  const [generatedMealPlan, setGeneratedMealPlan] = useState<string | null>(null)
-  const [mealPlanError, setMealPlanError] = useState<string | null>(null)
-  const mealPlanRef = useRef<HTMLDivElement>(null)
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([
-    'meat', 'fish', 'dairy', 'vegetables', 'nuts', 'fats', 'herbs',
-  ])
 
   // Load user data if logged in
   useEffect(() => {
@@ -92,14 +83,9 @@ export default function Calculator() {
 
   const handleNext = () => {
     if (validateStep(state, currentStep)) {
-      // After step 3 (last calorie step), show results screen
-      if (currentStep === CALORIE_LAST_STEP && phase === 'calorie') {
+      // After step 3 (last step), show results screen
+      if (currentStep === 3) {
         setShowResults(true)
-        return
-      }
-      // In meal plan phase, step 7 = submit
-      if (currentStep === 7) {
-        handleSubmit()
         return
       }
       setCurrentStep(currentStep + 1)
@@ -107,22 +93,9 @@ export default function Calculator() {
   }
 
   const handleBack = () => {
-    if (currentStep === MEAL_PLAN_FIRST_STEP && phase === 'mealplan') {
-      // Going back from meal plan to results screen
-      setShowResults(true)
-      setPhase('calorie')
-      setCurrentStep(CALORIE_LAST_STEP)
-      return
-    }
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
     }
-  }
-
-  const handleContinueToMealPlan = () => {
-    setPhase('mealplan')
-    setShowResults(false)
-    setCurrentStep(MEAL_PLAN_FIRST_STEP)
   }
 
   // Save calorie results to profile (no meal plan data)
@@ -175,222 +148,13 @@ export default function Calculator() {
     }
   }
 
-  // Full submit with meal plan data + email → generate meal plan via Edge Function
-  const handleSubmit = async () => {
-    if (!validateStep(state, 7)) {
-      alert(t('calculator.errors.completionRequired') || 'Please complete all required fields')
-      return
-    }
-
-    setSubmitting(true)
-    setMealPlanError(null)
-    setGeneratedMealPlan(null)
-
-    try {
-      const heightCm = state.height ? convertHeightToCm(state.height as number, state.units) : null
-      const weightKg = state.weight ? convertWeightToKg(state.weight as number, state.units) : null
-
-      // Map prep_time values to DB-compatible values
-      const prepTimeMap: Record<string, string> = {
-        quick: 'quick',
-        medium: 'medium',
-        long: 'long',
-        mix: 'mix',
-      }
-
-      // Map activity level number back to string for DB
-      const activityLevelStr = state.activityLevel
-        ? ({ 1.2: 'sedentary', 1.375: 'light', 1.55: 'moderate', 1.725: 'active', 1.9: 'very_active' } as Record<number, string>)[state.activityLevel as number]
-        : null
-
-      const profileData: Record<string, unknown> = {
-        email: state.email,
-        name: state.name,
-        gender: state.gender || null,
-        age: state.age || null,
-        weight: weightKg,
-        height: heightCm,
-        units: state.units || 'metric',
-        language: state.language,
-        activity_level: activityLevelStr,
-        weight_goal: state.weightGoal,
-        meals_per_day: state.mealsPerDay || null,
-        prep_time: state.prepTime ? (prepTimeMap[state.prepTime] || state.prepTime) : null,
-        selected_ingredients: state.selectedIngredients,
-        gdpr_consent: state.gdprConsent,
-        marketing_consent: state.gdprConsent,
-        source: 'calculator',
-        profile_type: 'calculator',
-      }
-
-      if (results) {
-        profileData.bmr = Math.round(results.bmr)
-        profileData.tdee = Math.round(results.tdee)
-        profileData.daily_calories = results.dailyCalories
-      }
-
-      // 1. Save profile data
-      if (user) {
-        const { error } = await supabase
-          .from('profiles')
-          .update(profileData)
-          .eq('id', user.id)
-
-        if (error) {
-          console.error('Error saving profile:', error)
-          alert(t('calculator.errors.saveFailed') || 'Failed to save data')
-          return
-        }
-
-        // Log lead activity for CRM pipeline
-        await supabase.from('lead_activity').insert({
-          user_id: user.id,
-          activity_type: 'calculator_completed',
-          activity_details: {
-            daily_calories: results?.dailyCalories,
-            tdee: results ? Math.round(results.tdee) : null,
-            bmr: results ? Math.round(results.bmr) : null,
-          },
-        }).then(() => {}, () => {})
-      } else {
-        // Not logged in: send Magic Link so they can access their data
-        const { error: signUpError } = await supabase.auth.signInWithOtp({
-          email: state.email,
-          options: {
-            data: { name: state.name },
-            emailRedirectTo: `${window.location.origin}/profile`,
-          },
-        })
-
-        if (signUpError) {
-          console.error('Error sending magic link:', signUpError)
-        }
-      }
-
-      // 2. Generate meal plan via Edge Function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hllprmlkuchhfmexzpad.supabase.co'
-      const { data: { session } } = await supabase.auth.getSession()
-
-      // Build excluded ingredients list from deselected ingredients
-      const allIds = getCategories().flatMap(cat => getIngredients(cat).map(ing => ing.id))
-      const deselected = allIds.filter(id => !state.selectedIngredients.includes(id))
-
-      const mealPlanBody = {
-        name: state.name || 'Klient',
-        language: state.language || 'da',
-        gender: state.gender || 'female',
-        age: state.age || 30,
-        weight: weightKg || 70,
-        height: heightCm || 170,
-        activity: activityLevelStr || 'moderate',
-        daily_calories: results?.dailyCalories || 1800,
-        meals_per_day: state.mealsPerDay || 3,
-        num_days: state.daysPerWeek || 7,
-        prep_time: state.prepTime || 'medium',
-        leftovers: state.leftoversStrategy === 'batch' || state.leftoversStrategy === 'mixed',
-        leftovers_strategy: state.leftoversStrategy || 'daily',
-        excluded_ingredients: deselected.length > 0 ? JSON.stringify(deselected) : '',
-        diet_type: 'Custom Keto',
-        budget: state.budget || 'medium',
-        health_anti_inflammatory: state.healthPreferences?.antiInflammatory || false,
-        health_avoid_processed: state.healthPreferences?.avoidProcessed || false,
-        weight_goal: state.weightGoal ?? 0,
-        units: state.units || 'metric',
-      }
-
-      const resp = await fetch(`${supabaseUrl}/functions/v1/generate-mealplan`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
-        },
-        body: JSON.stringify(mealPlanBody),
-      })
-
-      const respData = await resp.json()
-
-      if (!resp.ok || respData.error) {
-        throw new Error(respData.error || `Fejl ved generering: ${resp.status}`)
-      }
-
-      setGeneratedMealPlan(respData.mealPlan)
-
-      // Scroll to meal plan result
-      setTimeout(() => {
-        mealPlanRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 200)
-    } catch (error: unknown) {
-      console.error('Error submitting calculator:', error)
-      const msg = error instanceof Error ? error.message : 'Failed to generate meal plan'
-      setMealPlanError(msg)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // Simple markdown-to-HTML converter for the meal plan display
-  const renderMealPlanHTML = (markdown: string): string => {
-    return markdown
-      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-charcoal mt-4 mb-1">$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-serif font-bold text-charcoal mt-6 mb-2 border-b border-gray-200 pb-1">$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-serif font-bold text-charcoal mt-6 mb-3">$1</h1>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-sm">$1</li>')
-      .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 list-decimal text-sm">$2</li>')
-      .replace(/^---$/gm, '<hr class="my-4 border-gray-200" />')
-      .replace(/\n{2,}/g, '</p><p class="text-sm text-charcoal/80 mb-2">')
-      .replace(/^(?!<[h|l|u|o|s|p|d])(.*\S.*)$/gm, '<p class="text-sm text-charcoal/80 mb-1">$1</p>')
-  }
-
-  const toggleCategory = (category: string) => {
-    setExpandedCategories(prev =>
-      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
-    )
-  }
-
-  const toggleIngredient = (ingredientId: string) => {
-    setState(prev => ({
-      ...prev,
-      selectedIngredients: prev.selectedIngredients.includes(ingredientId)
-        ? prev.selectedIngredients.filter(id => id !== ingredientId)
-        : [...prev.selectedIngredients, ingredientId],
-    }))
-  }
-
-  const selectAllInCategory = (category: string) => {
-    const categoryIngredients = getIngredients(category).map(ing => ing.id)
-    setState(prev => ({
-      ...prev,
-      selectedIngredients: Array.from(new Set([...prev.selectedIngredients, ...categoryIngredients])),
-    }))
-  }
-
-  const deselectAllInCategory = (category: string) => {
-    const categoryIngredients = getIngredients(category).map(ing => ing.id)
-    setState(prev => ({
-      ...prev,
-      selectedIngredients: prev.selectedIngredients.filter(id => !categoryIngredients.includes(id)),
-    }))
-  }
-
-  const getCategoryCount = (category: string): number => {
-    return getIngredients(category).filter(ing => state.selectedIngredients.includes(ing.id)).length
-  }
-
-  // Progress calculation based on phase
+  // Progress calculation for TDEE-only
   const getStepProgress = () => {
-    if (phase === 'calorie') {
-      return ((currentStep + 1) / (CALORIE_LAST_STEP + 1)) * 100
-    }
-    const mealPlanStep = currentStep - MEAL_PLAN_FIRST_STEP
-    return ((mealPlanStep + 1) / (TOTAL_STEPS - MEAL_PLAN_FIRST_STEP)) * 100
+    return ((currentStep + 1) / TOTAL_STEPS) * 100
   }
 
   const getStepDisplay = () => {
-    if (phase === 'calorie') {
-      return { current: currentStep + 1, total: CALORIE_LAST_STEP + 1 }
-    }
-    return { current: currentStep - MEAL_PLAN_FIRST_STEP + 1, total: TOTAL_STEPS - MEAL_PLAN_FIRST_STEP }
+    return { current: currentStep + 1, total: TOTAL_STEPS }
   }
 
   // Shared button style helper
@@ -523,7 +287,7 @@ export default function Calculator() {
             <button
               onClick={() => {
                 setShowResults(false)
-                setCurrentStep(CALORIE_LAST_STEP)
+                setCurrentStep(3)
               }}
               className="flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-charcoal text-charcoal hover:bg-charcoal hover:text-white font-sans font-bold transition-all"
             >
@@ -566,7 +330,6 @@ export default function Calculator() {
                 onClick={() => {
                   setShowResults(false)
                   setCurrentStep(0)
-                  setPhase('calorie')
                 }}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border-2 border-primary bg-primary text-white hover:bg-primary/90 font-sans font-bold transition-all"
               >
@@ -576,23 +339,22 @@ export default function Calculator() {
             )}
           </div>
 
-          {/* Meal Plan CTA */}
-          <div className="bg-gradient-to-br from-accent/10 to-primary/10 rounded-xl border-2 border-accent/20 p-8 text-center">
-            <UtensilsCrossed size={40} className="mx-auto text-accent mb-4" />
-            <h3 className="font-serif text-2xl font-bold text-primary mb-2">
-              {t('calculator.continueMealPlan')}
-            </h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              {t('calculator.continueMealPlanDesc')}
-            </p>
-            <button
-              onClick={handleContinueToMealPlan}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-accent text-white hover:bg-accent/90 font-sans font-bold transition-all text-lg"
-            >
-              {t('calculator.mealPlanner')}
-              <ChevronRight size={20} />
-            </button>
-          </div>
+          {/* Meal Plan CTA — Link to /meal-plan */}
+          <Link to="/meal-plan" className="block">
+            <div className="bg-gradient-to-br from-accent/10 to-primary/10 rounded-xl border-2 border-accent/20 p-8 text-center hover:border-accent/40 transition-all cursor-pointer">
+              <UtensilsCrossed size={40} className="mx-auto text-accent mb-4" />
+              <h3 className="font-serif text-2xl font-bold text-primary mb-2">
+                {t('calculator.continueMealPlan')}
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                {t('calculator.continueMealPlanDesc')}
+              </p>
+              <div className="inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-accent text-white hover:bg-accent/90 font-sans font-bold transition-all text-lg">
+                {t('calculator.mealPlanner')}
+                <ChevronRight size={20} />
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
     )
@@ -609,30 +371,14 @@ export default function Calculator() {
         {/* Header */}
         <div className="text-center mb-8">
           <p className="text-xs font-sans font-bold uppercase tracking-widest text-accent mb-2">
-            {phase === 'calorie' ? t('calculator.calorieCalculator') : t('calculator.mealPlanner')}
+            {t('calculator.calorieCalculator')}
           </p>
           <h1 className="font-serif text-4xl font-bold text-primary mb-3">
-            {phase === 'calorie' ? t('calculator.title') : t('calculator.mealPlanTitle')}
+            {t('calculator.title')}
           </h1>
           <p className="text-muted-foreground">
-            {phase === 'calorie' ? t('calculator.subtitle') : t('calculator.mealPlanSubtitle')}
+            {t('calculator.subtitle')}
           </p>
-        </div>
-
-        {/* Phase Indicator */}
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all ${
-            phase === 'calorie' ? 'bg-primary text-white' : 'bg-gray-200 text-muted-foreground'
-          }`}>
-            <CalcIcon size={16} />
-            {t('calculator.phase')} 1: {t('calculator.calorieCalculator')}
-          </div>
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all ${
-            phase === 'mealplan' ? 'bg-accent text-white' : 'bg-gray-200 text-muted-foreground'
-          }`}>
-            <UtensilsCrossed size={16} />
-            {t('calculator.phase')} 2: {t('calculator.mealPlanner')}
-          </div>
         </div>
 
         {/* Progress Bar */}
@@ -645,7 +391,7 @@ export default function Calculator() {
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className={`h-full transition-all duration-300 ease-out ${phase === 'mealplan' ? 'bg-accent' : 'bg-primary'}`}
+              className="h-full bg-primary transition-all duration-300 ease-out"
               style={{ width: `${getStepProgress()}%` }}
             />
           </div>
@@ -983,484 +729,36 @@ export default function Calculator() {
             </div>
           )}
 
-          {/* ═══ Step 4: Meals, Prep Time, Budget (MEAL PLAN PHASE) ═══ */}
-          {currentStep === 4 && (
-            <div className="space-y-8">
-              <div>
-                <h2 className="font-serif text-2xl font-bold text-accent mb-4">
-                  {t('calculator.steps.4.title')}
-                </h2>
-              </div>
-
-              {/* Meals Per Day */}
-              <div>
-                <label className="block text-sm font-bold text-charcoal mb-4">
-                  {t('calculator.steps.4.mealsPerDay')}
-                </label>
-                <div className="grid grid-cols-3 gap-4">
-                  {[1, 2, 3].map(meals => (
-                    <button
-                      key={meals}
-                      onClick={() => setState(prev => ({ ...prev, mealsPerDay: meals as 1 | 2 | 3 }))}
-                      className={`py-6 px-4 rounded-lg border-2 font-sans font-bold transition-all ${
-                        state.mealsPerDay === meals
-                          ? 'border-accent bg-accent text-white'
-                          : 'border-gray-300 bg-white text-charcoal hover:border-accent'
-                      }`}
-                    >
-                      <p className="text-2xl font-serif mb-1">{meals}</p>
-                      <p className="text-sm">{t(`calculator.steps.4.meal${meals}`)}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Prep Time */}
-              <div>
-                <label className="block text-sm font-bold text-charcoal mb-4">
-                  {t('calculator.steps.4.prepTime')}
-                </label>
-                <div className="grid grid-cols-4 gap-4">
-                  {(['quick', 'medium', 'long', 'mix'] as const).map(time => (
-                    <button
-                      key={time}
-                      onClick={() => setState(prev => ({ ...prev, prepTime: time }))}
-                      className={`py-4 px-3 rounded-lg border-2 font-sans font-bold text-sm transition-all text-center ${
-                        state.prepTime === time
-                          ? 'border-accent bg-accent text-white'
-                          : 'border-gray-300 bg-white text-charcoal hover:border-accent'
-                      }`}
-                    >
-                      {t(`calculator.steps.4.prep${time.charAt(0).toUpperCase() + time.slice(1)}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Budget */}
-              <div>
-                <label className="block text-sm font-bold text-charcoal mb-4">
-                  {t('calculator.steps.4.budget')}
-                </label>
-                <div className="grid grid-cols-4 gap-4">
-                  {(['cheap', 'medium', 'expensive', 'mixed'] as const).map(budget => (
-                    <button
-                      key={budget}
-                      onClick={() => setState(prev => ({ ...prev, budget }))}
-                      className={`py-4 px-3 rounded-lg border-2 font-sans font-bold text-sm transition-all text-center ${
-                        state.budget === budget
-                          ? 'border-accent bg-accent text-white'
-                          : 'border-gray-300 bg-white text-charcoal hover:border-accent'
-                      }`}
-                    >
-                      {t(`calculator.steps.4.budget${budget.charAt(0).toUpperCase() + budget.slice(1)}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══ Step 5: Ingredient Preferences ═══ */}
-          {currentStep === 5 && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="font-serif text-2xl font-bold text-accent mb-4">
-                  {t('calculator.steps.5.title')}
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  {t('calculator.steps.5.subtitle')} ({state.selectedIngredients.length}/122)
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {getCategories().map(category => {
-                  const categoryIngredients = getIngredients(category)
-                  const selectedCount = getCategoryCount(category)
-                  const isExpanded = expandedCategories.includes(category)
-
-                  return (
-                    <div key={category} className="border-2 border-gray-300 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => toggleCategory(category)}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-charcoal capitalize">
-                            {t(getCategoryTranslationKey(category))}
-                          </span>
-                          <span className="text-xs font-sans text-muted-foreground">
-                            {selectedCount}/{categoryIngredients.length}
-                          </span>
-                        </div>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            if (selectedCount === categoryIngredients.length) {
-                              deselectAllInCategory(category)
-                            } else {
-                              selectAllInCategory(category)
-                            }
-                          }}
-                          className="text-sm font-sans font-bold text-accent hover:text-accent/80 transition-all"
-                        >
-                          {selectedCount === categoryIngredients.length
-                            ? t('calculator.deselectAll')
-                            : t('calculator.selectAll')}
-                        </button>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="border-t-2 border-gray-300 bg-gray-50 p-4 grid grid-cols-2 gap-3">
-                          {categoryIngredients.map(ingredient => (
-                            <label
-                              key={ingredient.id}
-                              className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-all"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={state.selectedIngredients.includes(ingredient.id)}
-                                onChange={() => toggleIngredient(ingredient.id)}
-                                className="w-4 h-4 rounded accent-accent"
-                              />
-                              <span className="text-sm font-sans text-charcoal">
-                                {t(ingredient.translationKey)}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Health Preferences */}
-              <div className="border-t-2 pt-6">
-                <label className="block text-sm font-bold text-charcoal mb-4">
-                  {t('calculator.steps.5.healthPreferences')}
-                </label>
-                <div className="space-y-3">
-                  {[
-                    { key: 'antiInflammatory', label: 'calculator.steps.5.antiInflammatory' },
-                    { key: 'avoidProcessed', label: 'calculator.steps.5.avoidProcessed' },
-                  ].map(({ key, label }) => (
-                    <label
-                      key={key}
-                      className="flex items-center gap-3 p-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-accent transition-all"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={state.healthPreferences[key as keyof typeof state.healthPreferences]}
-                        onChange={e =>
-                          setState(prev => ({
-                            ...prev,
-                            healthPreferences: {
-                              ...prev.healthPreferences,
-                              [key]: e.target.checked,
-                            },
-                          }))
-                        }
-                        className="w-4 h-4 accent-accent"
-                      />
-                      <span className="font-sans text-charcoal">{t(label)}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══ Step 6: Days & Leftovers Strategy ═══ */}
-          {currentStep === 6 && (
-            <div className="space-y-8">
-              <div>
-                <h2 className="font-serif text-2xl font-bold text-accent mb-4">
-                  {t('calculator.steps.6.title')}
-                </h2>
-              </div>
-
-              {/* Days Per Week */}
-              <div>
-                <label className="block text-sm font-bold text-charcoal mb-4">
-                  {t('calculator.steps.6.daysPerWeek')}
-                </label>
-                <div className="grid grid-cols-7 gap-2">
-                  {[1, 2, 3, 4, 5, 6, 7].map(day => (
-                    <button
-                      key={day}
-                      onClick={() => setState(prev => ({ ...prev, daysPerWeek: day as 1 | 2 | 3 | 4 | 5 | 6 | 7 }))}
-                      className={`py-4 px-3 rounded-lg border-2 font-sans font-bold text-sm transition-all text-center ${
-                        state.daysPerWeek === day
-                          ? 'border-accent bg-accent text-white'
-                          : 'border-gray-300 bg-white text-charcoal hover:border-accent'
-                      }`}
-                    >
-                      {day}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Leftovers Strategy */}
-              <div>
-                <label className="block text-sm font-bold text-charcoal mb-4">
-                  {t('calculator.steps.6.leftoversStrategy')}
-                </label>
-                <div className="space-y-3">
-                  {(['daily', 'batch', 'mixed'] as const).map(strategy => (
-                    <button
-                      key={strategy}
-                      onClick={() => setState(prev => ({ ...prev, leftoversStrategy: strategy }))}
-                      className={`w-full text-left p-4 rounded-lg border-2 font-sans transition-all ${
-                        state.leftoversStrategy === strategy
-                          ? 'border-accent bg-accent/10'
-                          : 'border-gray-300 hover:border-accent'
-                      }`}
-                    >
-                      <p className={`font-bold ${state.leftoversStrategy === strategy ? 'text-accent' : 'text-charcoal'}`}>
-                        {t(`calculator.steps.6.${strategy}.title`)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {t(`calculator.steps.6.${strategy}.desc`)}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══ Step 7: Summary & Email ═══ */}
-          {currentStep === 7 && results && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="font-serif text-2xl font-bold text-accent mb-4">
-                  {t('calculator.steps.7.title')}
-                </h2>
-                <p className="text-muted-foreground mb-6">{t('calculator.steps.7.subtitle')}</p>
-              </div>
-
-              {/* Summary Cards */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-primary/10 rounded-lg p-4 border-l-4 border-primary">
-                  <p className="text-xs font-sans text-muted-foreground mb-1">TDEE</p>
-                  <p className="font-serif text-2xl font-bold text-primary">{Math.round(results.tdee)} kcal</p>
-                </div>
-
-                <div className="bg-accent/10 rounded-lg p-4 border-l-4 border-accent">
-                  <p className="text-xs font-sans text-muted-foreground mb-1">
-                    {t('calculator.steps.3.dailyCalories')}
-                  </p>
-                  <p className="font-serif text-2xl font-bold text-accent">{results.dailyCalories} kcal</p>
-                </div>
-
-                <div className="bg-primary/10 rounded-lg p-4 border-l-4 border-primary">
-                  <p className="text-xs font-sans text-muted-foreground mb-1">
-                    {t('calculator.steps.4.mealsPerDay')}
-                  </p>
-                  <p className="font-serif text-2xl font-bold text-primary">{state.mealsPerDay}</p>
-                </div>
-
-                <div className="bg-accent/10 rounded-lg p-4 border-l-4 border-accent">
-                  <p className="text-xs font-sans text-muted-foreground mb-1">
-                    {t('calculator.steps.6.daysPerWeek')}
-                  </p>
-                  <p className="font-serif text-2xl font-bold text-accent">{state.daysPerWeek}</p>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-bold text-charcoal mb-2">
-                  {t('calculator.steps.7.email')}
-                </label>
-                <input
-                  type="email"
-                  value={state.email}
-                  onChange={e => setState(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg font-sans focus:outline-none focus:border-accent"
-                  placeholder="your@email.com"
-                />
-              </div>
-
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-bold text-charcoal mb-2">
-                  {t('calculator.steps.7.name')}
-                </label>
-                <input
-                  type="text"
-                  value={state.name}
-                  onChange={e => setState(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg font-sans focus:outline-none focus:border-accent"
-                  placeholder={t('calculator.steps.7.namePlaceholder')}
-                />
-              </div>
-
-              {/* GDPR Consent */}
-              <button
-                onClick={() => setState(prev => ({ ...prev, gdprConsent: !prev.gdprConsent }))}
-                className={`w-full flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-all ${
-                  state.gdprConsent
-                    ? 'border-accent bg-accent/10'
-                    : 'border-gray-300 hover:border-accent'
-                }`}
-              >
-                <div className={`w-5 h-5 mt-0.5 rounded border-2 flex-shrink-0 flex items-center justify-center ${
-                  state.gdprConsent
-                    ? 'border-accent bg-accent'
-                    : 'border-gray-400'
-                }`}>
-                  {state.gdprConsent && <Check size={14} className="text-white" />}
-                </div>
-                <p className="text-sm font-sans text-charcoal">
-                  {t('calculator.steps.7.gdprConsent')}{' '}
-                  <span className="text-accent font-bold">*</span>
-                </p>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Navigation Buttons */}
-        {!generatedMealPlan && (
-          <div className="flex gap-4 justify-between">
-            <button
-              onClick={handleBack}
-              disabled={currentStep === 0 || submitting}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 font-sans font-bold transition-all ${
-                currentStep === 0 || submitting
-                  ? 'border-gray-300 text-gray-300 cursor-not-allowed'
-                  : 'border-charcoal text-charcoal hover:bg-charcoal hover:text-white'
-              }`}
-            >
-              <ChevronLeft size={20} />
-              {t('calculator.back')}
-            </button>
+        <div className="flex gap-4 justify-between">
+          <button
+            onClick={handleBack}
+            disabled={currentStep === 0}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 font-sans font-bold transition-all ${
+              currentStep === 0
+                ? 'border-gray-300 text-gray-300 cursor-not-allowed'
+                : 'border-charcoal text-charcoal hover:bg-charcoal hover:text-white'
+            }`}
+          >
+            <ChevronLeft size={20} />
+            {t('calculator.back')}
+          </button>
 
-            <button
-              onClick={handleNext}
-              disabled={!validateStep(state, currentStep) || submitting}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 font-sans font-bold transition-all ${
-                !validateStep(state, currentStep) || submitting
-                  ? 'border-gray-300 text-gray-300 cursor-not-allowed'
-                  : phase === 'mealplan'
-                    ? 'border-accent bg-accent text-white hover:bg-accent/90'
-                    : 'border-primary bg-primary text-white hover:bg-primary/90'
-              }`}
-            >
-              {currentStep === 7 ? (
-                <>
-                  {submitting ? (
-                    <><Loader2 size={20} className="animate-spin" />{t('calculator.generating', 'Genererer madplan...')}</>
-                  ) : (
-                    <>{t('calculator.submit')}<Check size={20} /></>
-                  )}
-                </>
-              ) : (
-                <>
-                  {t('calculator.next')}
-                  <ChevronRight size={20} />
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Loading indicator while generating */}
-        {submitting && (
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <Loader2 size={40} className="animate-spin text-accent" />
-            <p className="text-lg font-serif font-bold text-charcoal">
-              {t('calculator.generating', 'Genererer din personlige madplan...')}
-            </p>
-            <p className="text-sm text-charcoal/60 font-sans">
-              {t('calculator.generatingDesc', 'Dette kan tage 30-60 sekunder. AI\'en laver en skræddersyet kostplan til dig.')}
-            </p>
-          </div>
-        )}
-
-        {/* Meal Plan Error */}
-        {mealPlanError && (
-          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-700 font-bold mb-2">{t('calculator.mealPlanError', 'Kunne ikke generere madplan')}</p>
-            <p className="text-sm text-red-600">{mealPlanError}</p>
-            <button
-              onClick={() => { setMealPlanError(null); handleSubmit() }}
-              className="mt-4 px-6 py-2 bg-accent text-white rounded-lg font-bold hover:bg-accent/90 transition-colors"
-            >
-              {t('calculator.tryAgain', 'Prøv igen')}
-            </button>
-          </div>
-        )}
-
-        {/* Generated Meal Plan Result */}
-        {generatedMealPlan && (
-          <div ref={mealPlanRef} className="mt-8">
-            <div className="bg-white border-2 border-accent/30 rounded-xl shadow-lg overflow-hidden">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-accent/10 to-sage/10 px-6 py-4 border-b border-accent/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <UtensilsCrossed size={24} className="text-accent" />
-                    <h2 className="text-xl font-serif font-bold text-charcoal">
-                      {t('calculator.yourMealPlan', 'Din Personlige Madplan')}
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const blob = new Blob([generatedMealPlan], { type: 'text/markdown' })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a')
-                      a.href = url
-                      a.download = `madplan_${state.name || 'keto'}_${state.daysPerWeek || 7}dage.md`
-                      a.click()
-                      URL.revokeObjectURL(url)
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent/90 transition-colors"
-                  >
-                    <Download size={16} />
-                    {t('calculator.downloadMealPlan', 'Download')}
-                  </button>
-                </div>
-              </div>
-
-              {/* Meal plan content */}
-              <div
-                className="px-6 py-6 prose prose-sm max-w-none [&_h1]:text-2xl [&_h1]:font-serif [&_h1]:font-bold [&_h1]:text-charcoal [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-xl [&_h2]:font-serif [&_h2]:font-bold [&_h2]:text-charcoal [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-gray-200 [&_h2]:pb-1 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-charcoal [&_h3]:mt-4 [&_h3]:mb-1 [&_p]:text-sm [&_p]:text-charcoal/80 [&_p]:mb-1 [&_li]:text-sm [&_li]:text-charcoal/80 [&_strong]:text-charcoal [&_hr]:my-4 [&_hr]:border-gray-200"
-                dangerouslySetInnerHTML={{ __html: renderMealPlanHTML(generatedMealPlan) }}
-              />
-
-              {/* Footer actions */}
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row gap-3 justify-center">
-                <button
-                  onClick={() => {
-                    setGeneratedMealPlan(null)
-                    setMealPlanError(null)
-                  }}
-                  className="px-6 py-2 border-2 border-charcoal text-charcoal rounded-lg font-bold hover:bg-charcoal hover:text-white transition-colors"
-                >
-                  {t('calculator.newMealPlan', 'Lav en ny madplan')}
-                </button>
-                <button
-                  onClick={() => {
-                    const allIds = getCategories().flatMap(cat => getIngredients(cat).map(ing => ing.id))
-                    setState({ ...INITIAL_STATE, selectedIngredients: allIds })
-                    setCurrentStep(0)
-                    setPhase('calorie')
-                    setShowResults(false)
-                    setGeneratedMealPlan(null)
-                    setMealPlanError(null)
-                  }}
-                  className="px-6 py-2 border-2 border-accent bg-accent text-white rounded-lg font-bold hover:bg-accent/90 transition-colors"
-                >
-                  {t('calculator.startOver', 'Start forfra')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          <button
+            onClick={handleNext}
+            disabled={!validateStep(state, currentStep)}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 font-sans font-bold transition-all ${
+              !validateStep(state, currentStep)
+                ? 'border-gray-300 text-gray-300 cursor-not-allowed'
+                : 'border-primary bg-primary text-white hover:bg-primary/90'
+            }`}
+          >
+            {t('calculator.next')}
+            <ChevronRight size={20} />
+          </button>
+        </div>
       </div>
     </div>
   )
