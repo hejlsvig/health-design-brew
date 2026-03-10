@@ -174,28 +174,8 @@ export default function MealPlan() {
         if (error) {
           console.error('Error saving profile:', error)
         }
-      } else {
-        // Not logged in: send Magic Link to create account/sign in
-        const { error: signUpError } = await supabase.auth.signInWithOtp({
-          email: state.email,
-          options: {
-            data: { name: state.name },
-            emailRedirectTo: `${window.location.origin}/meal-plan`,
-          },
-        })
-
-        if (signUpError) {
-          console.error('Error sending magic link:', signUpError)
-          throw new Error(t('calculator.errors.magicLinkFailed') || 'Kunne ikke sende login-link. Prøv igen.')
-        }
-
-        // User needs to verify email first — can't generate meal plan without auth
-        setMealPlanError(null)
-        setGeneratedMealPlan(null)
-        setSubmitting(false)
-        alert(t('calculator.mealPlan.checkEmail') || 'Vi har sendt dig et login-link på email. Klik på linket for at logge ind, og generer derefter din kostplan.')
-        return
       }
+      // Non-logged-in users can still generate meal plans — no auth required
 
       // Build excluded ingredients list from deselected ingredients
       const allIds = getCategories().flatMap(cat => getIngredients(cat).map(ing => ing.id))
@@ -226,24 +206,20 @@ export default function MealPlan() {
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hllprmlkuchhfmexzpad.supabase.co'
-
-      // Ensure we have a valid session before calling the Edge Function
-      let { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        // Try refreshing
-        const { data: refreshData } = await supabase.auth.refreshSession()
-        session = refreshData.session
-      }
-      if (!session?.access_token) {
-        throw new Error('Din session er udløbet. Log ud og ind igen for at generere en kostplan.')
-      }
-
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+
+      // Use session token if logged in, otherwise use anon key (Edge Function deployed with --no-verify-jwt)
+      let authToken = anonKey
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        authToken = session.access_token
+      }
+
       const resp = await fetch(`${supabaseUrl}/functions/v1/generate-mealplan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${authToken}`,
           'apikey': anonKey,
         },
         body: JSON.stringify(mealPlanBody),
