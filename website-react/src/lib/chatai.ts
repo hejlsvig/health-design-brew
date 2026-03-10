@@ -99,7 +99,7 @@ export async function sendChatMessage(
   if (!apiKey) throw new Error('OpenAI API key not configured')
 
   // Use the chat-specific model if set, otherwise fall back to the general model
-  const model = settings.ai_model || 'gpt-4.1'
+  const model = settings.ai_model || 'gpt-5.2-chat-latest'
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',

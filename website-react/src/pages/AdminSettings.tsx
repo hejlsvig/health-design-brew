@@ -175,7 +175,7 @@ export default function AdminSettings() {
         setApiKey('sk-••••••••' + s.openai_api_key.slice(-4))
         setHasExistingKey(true)
       }
-      setModel(s.ai_model || 'gpt-4.1')
+      setModel(s.ai_model || 'gpt-5.2-chat-latest')
 
       // Mealplan AI
       if (s.mealplan_openai_api_key) {

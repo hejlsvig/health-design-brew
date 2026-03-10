@@ -82,7 +82,7 @@ export async function getSettings(): Promise<AiSettings> {
 
   if (error) {
     console.error('[Settings] Fetch error:', error)
-    return { openai_api_key: '', ai_model: 'gpt-4.1', kieai_api_key: '', sftp_host: '', sftp_port: '22', sftp_username: '', sftp_password: '', chat_system_prompt_da: '', chat_system_prompt_en: '', chat_system_prompt_se: '' }
+    return { openai_api_key: '', ai_model: 'gpt-5.2-chat-latest', kieai_api_key: '', sftp_host: '', sftp_port: '22', sftp_username: '', sftp_password: '', chat_system_prompt_da: '', chat_system_prompt_en: '', chat_system_prompt_se: '' }
   }
 
   const map: Record<string, string> = {}

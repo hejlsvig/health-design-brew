@@ -54,7 +54,7 @@ export default function ChatWidget() {
   // ── Check model vision support on mount ───────────────
   useEffect(() => {
     getSettings().then(s => {
-      const model = s.ai_model || 'gpt-4.1'
+      const model = s.ai_model || 'gpt-5.2-chat-latest'
       setModelSupportsVision(supportsVision(model))
     }).catch(() => {})
   }, [])
