@@ -7,6 +7,7 @@
     "dashboard": "Dashboard",
     "leads": "Leads",
     "coaching": "Coaching",
+    "checkins": "Check-ins",
     "analytics": "Analyse",
     "mealplans": "Kostplaner",
     "automation": "Automation",
@@ -122,6 +123,7 @@
       "checkins": "Check-ins",
       "notes": "Noter",
       "profile": "Profil",
+      "profileEdit": "Rediger profil",
       "emailHistory": "Email-historik",
       "mealPlans": "Kostplaner",
       "payment": "Betaling"

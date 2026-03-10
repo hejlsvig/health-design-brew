@@ -14,6 +14,7 @@ const LeadDetail = lazy(() => import('@/pages/LeadDetail'))
 const Coaching = lazy(() => import('@/pages/Coaching'))
 const CoachingDetail = lazy(() => import('@/pages/CoachingDetail'))
 const Analytics = lazy(() => import('@/pages/Analytics'))
+const Checkins = lazy(() => import('@/pages/Checkins'))
 const FlowsPage = lazy(() => import('@/pages/Flows'))
 const EmailsPage = lazy(() => import('@/pages/Emails'))
 const Notes = lazy(() => import('@/pages/Notes'))
@@ -45,6 +46,7 @@ export default function App() {
               <Route path="/leads/:id" element={<LeadDetail />} />
               <Route path="/coaching" element={<Coaching />} />
               <Route path="/coaching/:id" element={<CoachingDetail />} />
+              <Route path="/checkins" element={<Checkins />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/mealplans" element={<ComingSoon title="mealplans" />} />
               <Route path="/flows" element={<FlowsPage />} />

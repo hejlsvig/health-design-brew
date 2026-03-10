@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Newspaper,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
   { to: '/leads', icon: Users, labelKey: 'nav.leads' },
   { to: '/coaching', icon: HeartPulse, labelKey: 'nav.coaching' },
+  { to: '/checkins', icon: ClipboardCheck, labelKey: 'nav.checkins' },
   { to: '/analytics', icon: BarChart3, labelKey: 'nav.analytics' },
   { to: '/mealplans', icon: UtensilsCrossed, labelKey: 'nav.mealplans' },
   {

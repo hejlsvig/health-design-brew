@@ -164,9 +164,10 @@ export default function AiImageGenerator({
 
   /**
    * Upload processed image to one.com via the upload-image-ftp Edge Function.
-   * Falls back to direct Kie.ai URL upload if processing fails.
+   * Sends the already-processed blob as base64 so the edge function doesn't
+   * need to re-download from a potentially expired temporary URL.
    */
-  const uploadViaFtp = async (imageUrl: string, _processedBlob: Blob, ext: string): Promise<string> => {
+  const uploadViaFtp = async (_imageUrl: string, processedBlob: Blob, ext: string): Promise<string> => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const session = (await supabase.auth.getSession()).data.session
 
@@ -191,15 +192,27 @@ export default function AiImageGenerator({
     const folder = contentType === 'recipe' ? 'recipes' : 'articles'
     const filename = `ai-${Date.now()}.${ext}`
 
-    // Upload via FTP Edge Function (sends image URL for server-side download)
-    console.log('[AiImageGen] Uploading via FTP Edge Function...')
+    // Convert processed blob to base64 so edge function receives the actual image data
+    // instead of a temporary URL that may expire
+    console.log(`[AiImageGen] Converting ${processedBlob.size} byte blob to base64...`)
+    const arrayBuffer = await processedBlob.arrayBuffer()
+    const uint8Array = new Uint8Array(arrayBuffer)
+    let binary = ''
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i])
+    }
+    const imageBase64 = btoa(binary)
+    const contentType64 = processedBlob.type || (ext === 'webp' ? 'image/webp' : 'image/jpeg')
+
+    // Upload via FTP Edge Function with base64 image data
+    console.log('[AiImageGen] Uploading via FTP Edge Function (base64 mode)...')
     const response = await fetch(`${supabaseUrl}/functions/v1/upload-image-ftp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ url: imageUrl, folder, filename }),
+      body: JSON.stringify({ imageBase64, imageContentType: contentType64, folder, filename }),
     })
 
     if (!response.ok) {
@@ -219,7 +232,12 @@ export default function AiImageGenerator({
       throw new Error('Ingen public URL returneret fra FTP upload')
     }
 
-    console.log('[AiImageGen] FTP upload success:', result.publicUrl)
+    console.log('[AiImageGen] FTP upload success:', result.publicUrl, 'verified:', result.verified)
+
+    if (result.verified === false) {
+      console.warn('[AiImageGen] WARNING: Image uploaded but verification failed — image may not be accessible at:', result.publicUrl)
+    }
+
     return result.publicUrl
   }
 

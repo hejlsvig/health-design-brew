@@ -126,3 +126,37 @@ export async function fetchCheckinStats(coachingClientId: string): Promise<Check
     weightChange: weights.length >= 2 ? Math.round((weights[weights.length - 1] - weights[0]) * 10) / 10 : null,
   }
 }
+
+/**
+ * Send a check-in reminder email via the send-checkin-email Edge Function.
+ * Uses coach-specific SMTP credentials.
+ */
+export async function sendCheckinEmail(params: {
+  coaching_client_id: string
+  coach_id: string
+  custom_message?: string
+  language?: string
+}): Promise<{ success: boolean; sent_to?: string; error?: string }> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+  const { data: { session } } = await supabase.auth.getSession()
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/send-checkin-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session?.access_token || supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
+    },
+    body: JSON.stringify(params),
+  })
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    return { success: false, error: data.error || `HTTP ${res.status}` }
+  }
+
+  return { success: true, sent_to: data.sent_to }
+}

@@ -6,7 +6,9 @@ import {
   fetchCheckinsForCoachingClient,
   type FullPersonData,
   type WeeklyCheckin,
+  type CoachingInfo,
 } from '@/lib/fullPersonView'
+import { sendCheckinEmail } from '@/lib/checkins'
 import { activateCoaching, assignCoach, updateCoachingStatus, type CoachingClient } from '@/lib/coaching'
 import { fetchCrmUsers, type CrmUserRow } from '@/lib/crmUsers'
 import { useAuth } from '@/contexts/AuthContext'
@@ -23,17 +25,16 @@ import {
   Activity, Wallet, ClipboardCheck, TrendingUp, TrendingDown,
   Minus, CalendarDays, Clock, Trophy, Moon, Zap, Brain,
   ChevronDown, ChevronUp, Plus, StickyNote, Pin, PinOff, Trash2,
-  Send,
+  Send, Check, X,
 } from 'lucide-react'
 
-const TABS = ['overview', 'checkins', 'notes', 'profile', 'emailHistory', 'mealPlans', 'payment'] as const
+const TABS = ['profile', 'checkins', 'notes', 'emailHistory', 'mealPlans', 'payment'] as const
 type TabKey = (typeof TABS)[number]
 
 const TAB_ICONS: Record<TabKey, typeof User> = {
-  overview: HeartPulse,
+  profile: User,
   checkins: ClipboardCheck,
   notes: StickyNote,
-  profile: User,
   emailHistory: Mail,
   mealPlans: FileText,
   payment: Wallet,
@@ -48,7 +49,7 @@ export default function CoachingDetail() {
   const [checkins, setCheckins] = useState<WeeklyCheckin[]>([])
   const [notes, setNotes] = useState<CrmNote[]>([])
   const [crmUsers, setCrmUsers] = useState<CrmUserRow[]>([])
-  const [activeTab, setActiveTab] = useState<TabKey>('overview')
+  const [activeTab, setActiveTab] = useState<TabKey>('profile')
   const [loading, setLoading] = useState(true)
   const [expandedCheckin, setExpandedCheckin] = useState<string | null>(null)
 
@@ -237,8 +238,14 @@ export default function CoachingDetail() {
 
       {/* Tab content */}
       <div className="bg-card rounded-xl border border-border p-6">
-        {activeTab === 'overview' && (
-          <OverviewTab coaching={coaching} checkins={checkins} profile={profile} />
+        {activeTab === 'profile' && (
+          <div className="space-y-8">
+            <OverviewTab coaching={coaching} checkins={checkins} profile={profile} />
+            <div className="border-t border-border pt-8">
+              <h3 className="text-sm font-semibold text-foreground mb-4">{t('coaching.tabs.profileEdit')}</h3>
+              <EditableProfileForm profile={profile} onUpdate={loadData} />
+            </div>
+          </div>
         )}
 
         {activeTab === 'checkins' && (
@@ -246,6 +253,8 @@ export default function CoachingDetail() {
             checkins={checkins}
             expandedId={expandedCheckin}
             onToggle={(cid) => setExpandedCheckin(expandedCheckin === cid ? null : cid)}
+            coaching={coaching}
+            coachId={user?.id}
           />
         )}
 
@@ -259,10 +268,6 @@ export default function CoachingDetail() {
               setNotes(updated)
             }}
           />
-        )}
-
-        {activeTab === 'profile' && (
-          <EditableProfileForm profile={profile} onUpdate={loadData} />
         )}
 
         {activeTab === 'emailHistory' && (
@@ -462,24 +467,148 @@ function CheckinsTab({
   checkins,
   expandedId,
   onToggle,
+  coaching,
+  coachId,
 }: {
   checkins: WeeklyCheckin[]
   expandedId: string | null
   onToggle: (id: string) => void
+  coaching?: CoachingInfo | null
+  coachId?: string | null
 }) {
   const { t } = useTranslation()
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailMessage, setEmailMessage] = useState('')
+  const [emailSending, setEmailSending] = useState(false)
+  const [emailResult, setEmailResult] = useState<{ success: boolean; error?: string; sent_to?: string } | null>(null)
 
-  if (checkins.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
-        <ClipboardCheck className="w-8 h-8" />
-        <p>{t('coaching.noCheckins')}</p>
-      </div>
-    )
+  async function handleSendCheckinEmail() {
+    if (!coaching?.id || !coachId) return
+    setEmailSending(true)
+    setEmailResult(null)
+    try {
+      const result = await sendCheckinEmail({
+        coaching_client_id: coaching.id,
+        coach_id: coachId,
+        custom_message: emailMessage.trim() || undefined,
+      })
+      setEmailResult(result)
+      if (result.success) {
+        setTimeout(() => {
+          setShowEmailModal(false)
+          setEmailMessage('')
+          setEmailResult(null)
+        }, 3000)
+      }
+    } catch (err) {
+      setEmailResult({ success: false, error: String(err) })
+    } finally {
+      setEmailSending(false)
+    }
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Send check-in email button */}
+      {coaching && coachId && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowEmailModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors text-sm font-medium"
+          >
+            <Send className="w-4 h-4" />
+            {t('coaching.sendCheckinEmail', 'Send check-in email')}
+          </button>
+        </div>
+      )}
+
+      {/* Send check-in email modal */}
+      {showEmailModal && coaching && coachId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowEmailModal(false)}>
+          <div
+            className="bg-card rounded-xl border border-border shadow-xl max-w-md w-full mx-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 p-5 border-b border-border">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Mail className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-serif font-semibold text-foreground">{t('coaching.sendCheckinEmail', 'Send check-in email')}</h2>
+                <p className="text-sm text-muted-foreground">{t('coaching.checkinEmailDesc', 'Send en påmindelse om at udfylde check-in')}</p>
+              </div>
+              <button onClick={() => setShowEmailModal(false)} className="p-2 rounded-lg hover:bg-muted transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  {t('coaching.customMessage', 'Personlig besked (valgfrit)')}
+                </label>
+                <textarea
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  rows={4}
+                  placeholder={t('coaching.customMessagePlaceholder', 'Skriv en personlig besked til klienten...')}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('coaching.checkinEmailNote', 'Emailen indeholder automatisk et link til check-in formularen.')}
+                </p>
+              </div>
+
+              {emailResult && (
+                <div className={`p-3 rounded-lg border ${
+                  emailResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                }`}>
+                  {emailResult.success ? (
+                    <div className="flex items-center gap-2 text-green-700">
+                      <Check className="w-4 h-4" />
+                      <span className="text-sm">{t('coaching.checkinEmailSent', 'Check-in email sendt!')} ({emailResult.sent_to})</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-red-700">
+                      <X className="w-4 h-4" />
+                      <span className="text-sm">{emailResult.error}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!emailResult?.success && (
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowEmailModal(false)}
+                    className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+                  >
+                    {t('common.cancel', 'Annuller')}
+                  </button>
+                  <button
+                    onClick={handleSendCheckinEmail}
+                    disabled={emailSending}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors text-sm font-medium"
+                  >
+                    {emailSending ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> {t('common.sending', 'Sender...')}</>
+                    ) : (
+                      <><Send className="w-4 h-4" /> {t('common.send', 'Send')}</>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {checkins.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+          <ClipboardCheck className="w-8 h-8" />
+          <p>{t('coaching.noCheckins')}</p>
+        </div>
+      ) : null}
+
       {checkins.map((ci) => {
         const isExpanded = expandedId === ci.id
         return (

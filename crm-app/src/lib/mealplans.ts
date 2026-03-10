@@ -13,14 +13,39 @@ export interface MealPlan {
 }
 
 export async function fetchMealPlansForUser(userId: string): Promise<MealPlan[]> {
+  // Try generated_meal_plans table first
   const { data, error } = await supabase
     .from('generated_meal_plans')
     .select('*')
     .eq('profile_id', userId)
     .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return (data || []) as MealPlan[]
+  if (!error && data && data.length > 0) {
+    return data as MealPlan[]
+  }
+
+  // Fallback: check profiles.meal_plan_pdf_url (edge function saves here)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, meal_plan_pdf_url, updated_at')
+    .eq('id', userId)
+    .single()
+
+  if (profile?.meal_plan_pdf_url) {
+    return [{
+      id: `profile-${userId}`,
+      profile_id: userId,
+      pdf_filename: profile.meal_plan_pdf_url.split('/').pop() || 'kostplan.pdf',
+      pdf_storage_path: profile.meal_plan_pdf_url,
+      tokens_used: null,
+      cost_usd: null,
+      model: '—',
+      num_days: null,
+      created_at: profile.updated_at || new Date().toISOString(),
+    }]
+  }
+
+  return []
 }
 
 export async function fetchAllMealPlans(limit = 100): Promise<(MealPlan & { profile?: { email: string; name: string | null } })[]> {

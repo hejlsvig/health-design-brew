@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function NewsletterSignup({ variant = 'footer' }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [email, setEmail] = useState('')
   const [consent, setConsent] = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'duplicate'>('idle')
@@ -100,10 +100,12 @@ export default function NewsletterSignup({ variant = 'footer' }: Props) {
           return
         }
 
-        // Reactivate
+        // Reactivate + update language
+        const reactivateLang = i18n.language?.startsWith('sv') ? 'se' : (i18n.language || 'da')
+        const reactivateValidLang = ['da', 'en', 'se'].includes(reactivateLang) ? reactivateLang : 'da'
         await supabase
           .from('newsletter_subscribers')
-          .update({ is_active: true, unsubscribed_at: null })
+          .update({ is_active: true, unsubscribed_at: null, language: reactivateValidLang })
           .eq('id', existingSub.id)
 
         // Log consent (best-effort)
@@ -128,12 +130,17 @@ export default function NewsletterSignup({ variant = 'footer' }: Props) {
       // 3. New subscriber — insert into newsletter_subscribers
       // Note: we do NOT use .select() after .insert() because RLS only grants
       // INSERT (not SELECT) to anonymous users. The insert itself is sufficient.
+      // Detect language: map i18n language to valid DB values (da/en/se)
+      const currentLang = i18n.language?.startsWith('sv') ? 'se' : (i18n.language || 'da')
+      const validLang = ['da', 'en', 'se'].includes(currentLang) ? currentLang : 'da'
+
       const { error: insertError } = await supabase
         .from('newsletter_subscribers')
         .insert({
           email: email.toLowerCase().trim(),
           source: 'footer_form',
           is_active: true,
+          language: validLang,
         })
 
       // Handle duplicate email (unique constraint violation: code 23505)

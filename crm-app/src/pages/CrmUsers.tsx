@@ -8,7 +8,7 @@ import {
 } from '@/lib/crmUsers'
 import {
   Loader2, UserCheck, UserX, Shield, Pencil, X, Save,
-  Plus, ChevronDown, ChevronRight, Eye, Edit3, Mail,
+  Plus, ChevronDown, ChevronRight, Eye, Edit3, Mail, Image, FileText,
 } from 'lucide-react'
 
 const ROLES: CrmRole[] = ['light', 'medium', 'admin']
@@ -35,6 +35,10 @@ export default function CrmUsers() {
   const [createForm, setCreateForm] = useState({ email: '', name: '', role: 'medium' as CrmRole, language: 'da', sender_email: '' })
   const [createError, setCreateError] = useState('')
   const [createLoading, setCreateLoading] = useState(false)
+  // Email config editing
+  const [emailEditingId, setEmailEditingId] = useState<string | null>(null)
+  const [emailForm, setEmailForm] = useState<{ sender_name: string; sender_email: string; smtp_password: string; email_footer: string; email_logo: string }>({ sender_name: '', sender_email: '', smtp_password: '', email_footer: '', email_logo: '' })
+  const [emailSaving, setEmailSaving] = useState(false)
 
   useEffect(() => { loadData() }, [])
 
@@ -110,6 +114,36 @@ export default function CrmUsers() {
       })
     } catch (err) {
       console.error('Toggle permission error:', err)
+    }
+  }
+
+  function startEmailEditing(user: CrmUserRow) {
+    setEmailEditingId(user.id)
+    setEmailForm({
+      sender_name: user.sender_name || '',
+      sender_email: user.sender_email || '',
+      smtp_password: user.smtp_password || '',
+      email_footer: user.email_footer || 'Med venlig hilsen,\n\n{name}\n{email}',
+      email_logo: user.email_logo || '',
+    })
+  }
+
+  async function handleEmailSave(userId: string) {
+    setEmailSaving(true)
+    try {
+      await updateCrmUser(userId, {
+        sender_name: emailForm.sender_name || null,
+        sender_email: emailForm.sender_email || null,
+        smtp_password: emailForm.smtp_password || null,
+        email_footer: emailForm.email_footer || null,
+        email_logo: emailForm.email_logo || null,
+      } as Partial<CrmUserRow>)
+      setEmailEditingId(null)
+      await loadData()
+    } catch (err) {
+      console.error('Save email config error:', err)
+    } finally {
+      setEmailSaving(false)
     }
   }
 
@@ -294,47 +328,182 @@ export default function CrmUsers() {
                     </td>
                   </tr>
 
-                  {/* Permissions row */}
+                  {/* Expanded details row */}
                   {isExpanded && (
                     <tr key={`${user.id}-perms`} className="bg-muted/30">
-                      <td colSpan={6} className="px-6 py-4">
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                          {t('crmUsers.permissions')}
-                          {isAdmin && <span className="ml-2 text-purple-600 normal-case">(Admin — alle rettigheder)</span>}
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                          {CRM_SECTIONS.map((section) => {
-                            const perm = userPerms.find((p) => p.section === section)
-                            const canView = isAdmin || (perm?.can_view ?? false)
-                            const canEdit = isAdmin || (perm?.can_edit ?? false)
-                            return (
-                              <div key={section} className="bg-card rounded-lg border border-border p-3">
-                                <p className="text-sm font-medium text-foreground mb-2">{SECTION_LABELS[section]}</p>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => !isAdmin && handleTogglePermission(user.id, section, 'can_view')}
-                                    disabled={isAdmin}
-                                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                      canView ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'
-                                    } ${isAdmin ? 'opacity-70 cursor-default' : 'hover:opacity-80'}`}
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                    {t('crmUsers.view')}
-                                  </button>
-                                  <button
-                                    onClick={() => !isAdmin && handleTogglePermission(user.id, section, 'can_edit')}
-                                    disabled={isAdmin}
-                                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                      canEdit ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
-                                    } ${isAdmin ? 'opacity-70 cursor-default' : 'hover:opacity-80'}`}
-                                  >
-                                    <Edit3 className="w-3 h-3" />
-                                    {t('crmUsers.editPerm')}
-                                  </button>
-                                </div>
+                      <td colSpan={6} className="px-6 py-4 space-y-6">
+                        {/* ── Email Configuration ── */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                              <Mail className="w-3.5 h-3.5" />
+                              Email-konfiguration
+                            </h4>
+                            {emailEditingId !== user.id ? (
+                              <button
+                                onClick={() => startEmailEditing(user)}
+                                className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
+                              >
+                                <Pencil className="w-3 h-3" /> Rediger
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleEmailSave(user.id)}
+                                  disabled={emailSaving}
+                                  className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700"
+                                >
+                                  {emailSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Gem
+                                </button>
+                                <button onClick={() => setEmailEditingId(null)} className="text-xs text-muted-foreground hover:text-foreground">
+                                  <X className="w-3 h-3" />
+                                </button>
                               </div>
-                            )
-                          })}
+                            )}
+                          </div>
+
+                          {emailEditingId === user.id ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">Afsender-navn (From Name)</label>
+                                <input
+                                  type="text"
+                                  value={emailForm.sender_name}
+                                  onChange={(e) => setEmailForm({ ...emailForm, sender_name: e.target.value })}
+                                  placeholder="Anders Hejlsvig"
+                                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">Afsender-email</label>
+                                <input
+                                  type="email"
+                                  value={emailForm.sender_email}
+                                  onChange={(e) => setEmailForm({ ...emailForm, sender_email: e.target.value })}
+                                  placeholder="anders@shiftingsource.com"
+                                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">SMTP-adgangskode</label>
+                                <input
+                                  type="password"
+                                  value={emailForm.smtp_password}
+                                  onChange={(e) => setEmailForm({ ...emailForm, smtp_password: e.target.value })}
+                                  placeholder="••••••••"
+                                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">Kræves for at sende mails med din afsender-email. Brug samme SMTP-password som i hosting.</p>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                  <Image className="w-3 h-3 inline mr-1" />
+                                  Email-logo URL
+                                </label>
+                                <input
+                                  type="url"
+                                  value={emailForm.email_logo}
+                                  onChange={(e) => setEmailForm({ ...emailForm, email_logo: e.target.value })}
+                                  placeholder="https://shiftingsource.com/images/logo.png"
+                                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+                                />
+                                {emailForm.email_logo && (
+                                  <div className="mt-2 p-2 bg-white rounded border border-border inline-block">
+                                    <img src={emailForm.email_logo} alt="Logo preview" className="max-h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="md:col-span-2">
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                  <FileText className="w-3 h-3 inline mr-1" />
+                                  Email-footer
+                                </label>
+                                <textarea
+                                  value={emailForm.email_footer}
+                                  onChange={(e) => setEmailForm({ ...emailForm, email_footer: e.target.value })}
+                                  rows={4}
+                                  placeholder={'Med venlig hilsen,\n\n{name}\n{email}'}
+                                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm font-mono"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Variabler: {'{name}'}, {'{email}'}, {'{title}'}, {'{phone}'}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-0.5">Afsender-navn</p>
+                                <p className="text-foreground">{user.sender_name || <span className="text-muted-foreground italic">Ikke sat</span>}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-0.5">Afsender-email</p>
+                                <p className="text-foreground">{user.sender_email || <span className="text-muted-foreground italic">Ikke sat</span>}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-0.5">SMTP-adgangskode</p>
+                                <p className="text-foreground">{user.smtp_password ? '••••••••' : <span className="text-amber-500 italic">Ikke sat — kræves for at sende mails</span>}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-0.5">Email-logo</p>
+                                {user.email_logo ? (
+                                  <div className="p-1.5 bg-white rounded border border-border inline-block">
+                                    <img src={user.email_logo} alt="Logo" className="max-h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                  </div>
+                                ) : (
+                                  <p className="text-muted-foreground italic">Ikke sat</p>
+                                )}
+                              </div>
+                              {user.email_footer && (
+                                <div className="md:col-span-3">
+                                  <p className="text-xs text-muted-foreground mb-0.5">Email-footer</p>
+                                  <pre className="text-xs text-foreground whitespace-pre-wrap bg-card rounded border border-border p-2">{user.email_footer}</pre>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ── Permissions ── */}
+                        <div>
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            {t('crmUsers.permissions')}
+                            {isAdmin && <span className="ml-2 text-purple-600 normal-case">(Admin — alle rettigheder)</span>}
+                          </h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                            {CRM_SECTIONS.map((section) => {
+                              const perm = userPerms.find((p) => p.section === section)
+                              const canView = isAdmin || (perm?.can_view ?? false)
+                              const canEdit = isAdmin || (perm?.can_edit ?? false)
+                              return (
+                                <div key={section} className="bg-card rounded-lg border border-border p-3">
+                                  <p className="text-sm font-medium text-foreground mb-2">{SECTION_LABELS[section]}</p>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => !isAdmin && handleTogglePermission(user.id, section, 'can_view')}
+                                      disabled={isAdmin}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                        canView ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'
+                                      } ${isAdmin ? 'opacity-70 cursor-default' : 'hover:opacity-80'}`}
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      {t('crmUsers.view')}
+                                    </button>
+                                    <button
+                                      onClick={() => !isAdmin && handleTogglePermission(user.id, section, 'can_edit')}
+                                      disabled={isAdmin}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                        canEdit ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                                      } ${isAdmin ? 'opacity-70 cursor-default' : 'hover:opacity-80'}`}
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                      {t('crmUsers.editPerm')}
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
                         </div>
                       </td>
                     </tr>

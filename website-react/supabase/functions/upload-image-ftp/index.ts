@@ -54,12 +54,22 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request
-    const { url, folder, filename } = await req.json()
+    // Parse request — supports two modes:
+    // Mode 1 (preferred): { imageBase64, imageContentType, folder, filename }
+    // Mode 2 (legacy):    { url, folder, filename }
+    const body = await req.json()
+    const { url, imageBase64, imageContentType, folder, filename } = body
 
-    if (!url || !folder) {
+    if (!folder) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: url, folder' }),
+        JSON.stringify({ error: 'Missing required field: folder' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    if (!url && !imageBase64) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required field: url or imageBase64' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -135,32 +145,42 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[upload-sftp] Downloading image from: ${url}`)
+    // Get image data — either from base64 (preferred) or by downloading URL (legacy)
+    let imageBuffer: Buffer
+    let detectedExt = 'png'
 
-    // Download image
-    const imgResponse = await fetch(url, {
-      headers: { 'Accept': 'image/*', 'User-Agent': 'ShiftingSource/1.0' },
-      redirect: 'follow',
-    })
+    if (imageBase64) {
+      // ── Mode 1: Base64 image data (no download needed) ──
+      console.log(`[upload-sftp] Received base64 image data (${imageBase64.length} chars), content-type: ${imageContentType || 'unknown'}`)
+      imageBuffer = Buffer.from(imageBase64, 'base64')
+      const ct = imageContentType || 'image/png'
+      if (ct.includes('webp')) detectedExt = 'webp'
+      else if (ct.includes('jpeg') || ct.includes('jpg')) detectedExt = 'jpg'
+      else if (ct.includes('png')) detectedExt = 'png'
+    } else {
+      // ── Mode 2: Download from URL (legacy, for backwards compat) ──
+      console.log(`[upload-sftp] Downloading image from: ${url}`)
+      const imgResponse = await fetch(url, {
+        headers: { 'Accept': 'image/*', 'User-Agent': 'ShiftingSource/1.0' },
+        redirect: 'follow',
+      })
 
-    if (!imgResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: `Kunne ikke downloade billede: ${imgResponse.status}` }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
+      if (!imgResponse.ok) {
+        return new Response(
+          JSON.stringify({ error: `Kunne ikke downloade billede: ${imgResponse.status}` }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+
+      imageBuffer = Buffer.from(await imgResponse.arrayBuffer())
+      const contentType = imgResponse.headers.get('Content-Type') || 'image/png'
+      if (contentType.includes('webp')) detectedExt = 'webp'
+      else if (contentType.includes('jpeg') || contentType.includes('jpg')) detectedExt = 'jpg'
+      else if (contentType.includes('png')) detectedExt = 'png'
     }
 
-    const imageBuffer = Buffer.from(await imgResponse.arrayBuffer())
-    const contentType = imgResponse.headers.get('Content-Type') || 'image/png'
-
-    // Determine file extension from content type
-    let ext = 'png'
-    if (contentType.includes('webp')) ext = 'webp'
-    else if (contentType.includes('jpeg') || contentType.includes('jpg')) ext = 'jpg'
-    else if (contentType.includes('png')) ext = 'png'
-
     // Build filename
-    const finalFilename = filename || `ai-${Date.now()}.${ext}`
+    const finalFilename = filename || `ai-${Date.now()}.${detectedExt}`
 
     console.log(`[upload-sftp] Connecting to ${sftpHost}:${sftpPort} ...`)
 
@@ -288,8 +308,21 @@ serve(async (req) => {
 
     console.log(`[upload-sftp] Upload complete: ${publicUrl}`)
 
+    // Verify the uploaded image is accessible via HTTP
+    let verified = false
+    try {
+      const verifyRes = await fetch(publicUrl, { method: 'HEAD' })
+      verified = verifyRes.ok
+      console.log(`[upload-sftp] Verification: ${publicUrl} → ${verifyRes.status} (${verified ? 'OK' : 'FAILED'})`)
+      if (!verified) {
+        console.warn(`[upload-sftp] WARNING: Image uploaded but not accessible at ${publicUrl}. Response: ${verifyRes.status}`)
+      }
+    } catch (verifyErr: any) {
+      console.warn(`[upload-sftp] Verification request failed: ${verifyErr.message}`)
+    }
+
     return new Response(
-      JSON.stringify({ publicUrl, path: `images/${folder}/${finalFilename}` }),
+      JSON.stringify({ publicUrl, path: `images/${folder}/${finalFilename}`, verified }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
 
