@@ -40,6 +40,7 @@ export interface FullProfile {
 export interface CoachingInfo {
   id: string
   profile_id: string
+  coach_id: string | null
   status: string
   start_date: string | null
   end_date: string | null
@@ -51,6 +52,12 @@ export interface CoachingInfo {
   stripe_customer_id: string | null
   coaching_package: string | null
   created_at: string
+  coach?: {
+    id: string
+    name: string | null
+    email: string
+    sender_email: string | null
+  }
 }
 
 export interface WeeklyCheckin {
@@ -142,7 +149,7 @@ export async function fetchFullPersonData(userId: string): Promise<FullPersonDat
     // 3. Subscription
     fetchSubscription(userId),
     // 4. Coaching client info
-    supabase.from('coaching_clients').select('*').eq('profile_id', userId).order('created_at', { ascending: false }).limit(1),
+    supabase.from('coaching_clients').select('*, coach:crm_users!coach_id (id, name, email, sender_email)').eq('profile_id', userId).order('created_at', { ascending: false }).limit(1),
     // 5. Email history
     fetchEmailsForUser(userId),
     // 6. Meal plans

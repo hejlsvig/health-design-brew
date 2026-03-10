@@ -12,6 +12,7 @@
     "automation": "Automation",
     "flows": "Flows",
     "emails": "Emails",
+    "newsletter": "Nyhedsbrev",
     "setup": "Setup",
     "settings": "Indstillinger",
     "users": "Brugere",
@@ -63,8 +64,10 @@
       "score": "Score",
       "source": "Kilde",
       "created": "Oprettet",
-      "lastContact": "Seneste kontakt"
-    }
+      "lastContact": "Seneste kontakt",
+      "assignedTo": "Tildelt"
+    },
+    "unassigned": "Ikke tildelt"
   },
   "leadDetail": {
     "tabs": {
@@ -110,6 +113,8 @@
     "weightChange": "Vægtændring",
     "latestCheckin": "Seneste check-in",
     "weightProgress": "Vægtudvikling",
+    "coach": "Coach",
+    "noCoachAssigned": "Ingen coach tildelt",
     "notes": "Noter",
     "noCheckins": "Ingen check-ins registreret endnu",
     "tabs": {
@@ -330,6 +335,31 @@
       "health": "Sundhed"
     },
     "noHealthChecks": "Ingen sundhedstjek registreret"
+  },
+  "newsletter": {
+    "title": "Nyhedsbrev-abonnenter",
+    "activeSubscribers": "aktive",
+    "inactiveSubscribers": "inaktive",
+    "searchPlaceholder": "Søg efter email eller navn...",
+    "filter": {
+      "all": "Alle",
+      "active": "Aktive",
+      "inactive": "Inaktive"
+    },
+    "columns": {
+      "email": "Email",
+      "name": "Navn",
+      "status": "Status",
+      "source": "Kilde",
+      "language": "Sprog",
+      "subscribedAt": "Tilmeldt",
+      "actions": "Handlinger"
+    },
+    "statusActive": "Aktiv",
+    "statusInactive": "Afmeldt",
+    "deactivate": "Afmeld",
+    "reactivate": "Genaktiver",
+    "noSubscribers": "Ingen nyhedsbrev-abonnenter fundet"
   },
   "common": {
     "save": "Gem",

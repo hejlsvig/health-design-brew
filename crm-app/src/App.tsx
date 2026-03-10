@@ -19,6 +19,7 @@ const EmailsPage = lazy(() => import('@/pages/Emails'))
 const Notes = lazy(() => import('@/pages/Notes'))
 const CrmUsers = lazy(() => import('@/pages/CrmUsers'))
 const CrmSettings = lazy(() => import('@/pages/CrmSettings'))
+const Newsletter = lazy(() => import('@/pages/Newsletter'))
 const ComingSoon = lazy(() => import('@/pages/ComingSoon'))
 
 const LoadingFallback = (
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/mealplans" element={<ComingSoon title="mealplans" />} />
               <Route path="/flows" element={<FlowsPage />} />
               <Route path="/emails" element={<EmailsPage />} />
+              <Route path="/newsletter" element={<Newsletter />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/users" element={<CrmUsers />} />
               <Route path="/settings" element={<CrmSettings />} />

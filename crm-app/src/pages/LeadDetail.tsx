@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
-import { updateLeadStatus, addLeadNote, fetchLeadActivity, type LeadStatusValue } from '@/lib/leads'
+import { updateLeadStatus, addLeadNote, fetchLeadActivity, assignLead, type LeadStatusValue } from '@/lib/leads'
+import { fetchCrmUsers, type CrmUserRow } from '@/lib/crmUsers'
 import {
   fetchFullPersonData,
   fetchCheckinsForCoachingClient,
@@ -66,6 +67,7 @@ export default function LeadDetail() {
   const [data, setData] = useState<FullPersonData | null>(null)
   const [activities, setActivities] = useState<Record<string, unknown>[]>([])
   const [checkins, setCheckins] = useState<WeeklyCheckin[]>([])
+  const [crmUsers, setCrmUsers] = useState<CrmUserRow[]>([])
   const [checkinsLoaded, setCheckinsLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState<TabKey>('profile')
   const [loading, setLoading] = useState(true)
@@ -75,6 +77,7 @@ export default function LeadDetail() {
   useEffect(() => {
     if (!id) return
     loadData()
+    fetchCrmUsers().then(setCrmUsers).catch(() => {})
   }, [id])
 
   // Lazy load checkins when coaching tab is opened
@@ -119,6 +122,19 @@ export default function LeadDetail() {
       await loadData()
     } catch (err) {
       console.error('Status update error:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleAssignLead(coachId: string | null) {
+    if (!id) return
+    setSaving(true)
+    try {
+      await assignLead(id, coachId)
+      await loadData()
+    } catch (err) {
+      console.error('Assign lead error:', err)
     } finally {
       setSaving(false)
     }
@@ -173,6 +189,22 @@ export default function LeadDetail() {
             </span>
           </div>
           <p className="text-sm text-muted-foreground">{profile.email}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-muted-foreground">{t('leads.columns.assignedTo')}:</span>
+            <select
+              value={data.leadStatus?.assigned_to || ''}
+              onChange={(e) => handleAssignLead(e.target.value || null)}
+              disabled={saving}
+              className="text-xs px-2 py-1 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">{t('leads.unassigned')}</option>
+              {crmUsers.filter(u => u.active).map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Status dropdown */}

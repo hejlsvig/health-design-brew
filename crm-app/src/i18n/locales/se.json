@@ -12,6 +12,7 @@
     "automation": "Automation",
     "flows": "Flows",
     "emails": "E-post",
+    "newsletter": "Nyhetsbrev",
     "setup": "Setup",
     "settings": "Inställningar",
     "users": "Användare",
@@ -63,8 +64,10 @@
       "score": "Poäng",
       "source": "Källa",
       "created": "Skapad",
-      "lastContact": "Senaste kontakt"
-    }
+      "lastContact": "Senaste kontakt",
+      "assignedTo": "Tilldelad"
+    },
+    "unassigned": "Ej tilldelad"
   },
   "leadDetail": {
     "tabs": {
@@ -110,6 +113,8 @@
     "weightChange": "Viktförändring",
     "latestCheckin": "Senaste check-in",
     "weightProgress": "Viktutveckling",
+    "coach": "Coach",
+    "noCoachAssigned": "Ingen coach tilldelad",
     "notes": "Anteckningar",
     "noCheckins": "Inga check-ins registrerade ännu",
     "tabs": {
@@ -330,6 +335,31 @@
       "health": "Hälsa"
     },
     "noHealthChecks": "Inga hälsokontroller registrerade"
+  },
+  "newsletter": {
+    "title": "Nyhetsbrevsprenumeranter",
+    "activeSubscribers": "aktiva",
+    "inactiveSubscribers": "inaktiva",
+    "searchPlaceholder": "Sök efter e-post eller namn...",
+    "filter": {
+      "all": "Alla",
+      "active": "Aktiva",
+      "inactive": "Inaktiva"
+    },
+    "columns": {
+      "email": "E-post",
+      "name": "Namn",
+      "status": "Status",
+      "source": "Källa",
+      "language": "Språk",
+      "subscribedAt": "Prenumererad",
+      "actions": "Åtgärder"
+    },
+    "statusActive": "Aktiv",
+    "statusInactive": "Avprenumererad",
+    "deactivate": "Avprenumerera",
+    "reactivate": "Återaktivera",
+    "noSubscribers": "Inga nyhetsbrevsprenumeranter hittade"
   },
   "common": {
     "save": "Spara",

@@ -12,6 +12,7 @@
     "automation": "Automation",
     "flows": "Flows",
     "emails": "Emails",
+    "newsletter": "Newsletter",
     "setup": "Setup",
     "settings": "Settings",
     "users": "Users",
@@ -63,8 +64,10 @@
       "score": "Score",
       "source": "Source",
       "created": "Created",
-      "lastContact": "Last Contact"
-    }
+      "lastContact": "Last Contact",
+      "assignedTo": "Assigned To"
+    },
+    "unassigned": "Unassigned"
   },
   "leadDetail": {
     "tabs": {
@@ -110,6 +113,8 @@
     "weightChange": "Weight change",
     "latestCheckin": "Latest check-in",
     "weightProgress": "Weight progress",
+    "coach": "Coach",
+    "noCoachAssigned": "No coach assigned",
     "notes": "Notes",
     "noCheckins": "No check-ins recorded yet",
     "tabs": {
@@ -330,6 +335,31 @@
       "health": "Health"
     },
     "noHealthChecks": "No health checks recorded"
+  },
+  "newsletter": {
+    "title": "Newsletter Subscribers",
+    "activeSubscribers": "active",
+    "inactiveSubscribers": "inactive",
+    "searchPlaceholder": "Search by email or name...",
+    "filter": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "columns": {
+      "email": "Email",
+      "name": "Name",
+      "status": "Status",
+      "source": "Source",
+      "language": "Language",
+      "subscribedAt": "Subscribed",
+      "actions": "Actions"
+    },
+    "statusActive": "Active",
+    "statusInactive": "Unsubscribed",
+    "deactivate": "Unsubscribe",
+    "reactivate": "Reactivate",
+    "noSubscribers": "No newsletter subscribers found"
   },
   "common": {
     "save": "Save",

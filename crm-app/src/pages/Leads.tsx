@@ -2,19 +2,29 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { fetchLeads, type LeadRow, type LeadStatusValue } from '@/lib/leads'
+import { fetchCrmUsers, type CrmUserRow } from '@/lib/crmUsers'
 import { Search, Loader2, ChevronRight } from 'lucide-react'
 
+// Only show non-coaching statuses in the leads filter
+// Coaching statuses are handled in the Coaching page
 const STATUS_OPTIONS: LeadStatusValue[] = [
-  'new', 'contacted', 'qualified', 'coaching_active',
-  'coaching_paused', 'coaching_completed', 'inactive', 'opted_out',
+  'new', 'contacted', 'qualified', 'inactive', 'opted_out',
 ]
 
 export default function Leads() {
   const { t } = useTranslation()
   const [leads, setLeads] = useState<LeadRow[]>([])
+  const [crmUsers, setCrmUsers] = useState<CrmUserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<LeadStatusValue | ''>('')
+
+  // Build lookup map for assigned_to → CRM user name
+  const userMap = new Map(crmUsers.map((u) => [u.id, u.name || u.email]))
+
+  useEffect(() => {
+    fetchCrmUsers().then(setCrmUsers).catch(() => {})
+  }, [])
 
   useEffect(() => {
     loadLeads()
@@ -108,6 +118,9 @@ export default function Leads() {
                     {t('leads.columns.status')}
                   </th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {t('leads.columns.assignedTo')}
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {t('leads.columns.score')}
                   </th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -138,6 +151,17 @@ export default function Leads() {
                       >
                         {t(`leads.status.${lead.status}`, lead.status)}
                       </span>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-muted-foreground">
+                      {lead.assigned_to ? (
+                        <span className="font-medium text-foreground">
+                          {userMap.get(lead.assigned_to) || '—'}
+                        </span>
+                      ) : (
+                        <span className="text-yellow-600 italic text-xs">
+                          {t('leads.unassigned')}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2">

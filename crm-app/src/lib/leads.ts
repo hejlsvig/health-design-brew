@@ -53,6 +53,9 @@ export interface LeadFilters {
   search?: string
 }
 
+// Statuses that belong to the Coaching section, not the Leads list
+const COACHING_STATUSES: LeadStatusValue[] = ['coaching_active', 'coaching_paused', 'coaching_completed']
+
 export async function fetchLeads(filters?: LeadFilters): Promise<LeadRow[]> {
   let query = supabase
     .from('lead_status')
@@ -67,7 +70,12 @@ export async function fetchLeads(filters?: LeadFilters): Promise<LeadRow[]> {
     `)
     .order('created_at', { ascending: false })
 
-  if (filters?.status) query = query.eq('status', filters.status)
+  if (filters?.status) {
+    query = query.eq('status', filters.status)
+  } else {
+    // By default, exclude coaching statuses — those belong in the Coaching page
+    query = query.not('status', 'in', `(${COACHING_STATUSES.join(',')})`)
+  }
   if (filters?.source) query = query.eq('source', filters.source)
 
   const { data, error } = await query
@@ -109,6 +117,13 @@ export async function fetchLeadById(userId: string) {
   return data
 }
 
+// Map lead_status coaching values → coaching_clients status values
+const LEAD_TO_COACHING_STATUS: Record<string, string> = {
+  coaching_active: 'active',
+  coaching_paused: 'inactive',
+  coaching_completed: 'completed',
+}
+
 export async function updateLeadStatus(
   userId: string,
   newStatus: LeadStatusValue,
@@ -121,6 +136,33 @@ export async function updateLeadStatus(
     .eq('user_id', userId)
 
   if (error) throw error
+
+  // Sync coaching_clients when lead_status changes to/from a coaching status
+  const coachingStatus = LEAD_TO_COACHING_STATUS[newStatus]
+  if (coachingStatus) {
+    // Moving INTO coaching — upsert coaching_clients record
+    const updates: Record<string, unknown> = { status: coachingStatus }
+    if (coachingStatus === 'completed') updates.end_date = new Date().toISOString()
+    if (coachingStatus === 'active') updates.start_date = new Date().toISOString()
+
+    // Try update first; if no row exists, insert one
+    const { data: existing } = await supabase
+      .from('coaching_clients')
+      .select('id')
+      .eq('profile_id', userId)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      await supabase.from('coaching_clients').update(updates).eq('profile_id', userId)
+    } else if (coachingStatus === 'active') {
+      await supabase.from('coaching_clients').insert({
+        profile_id: userId,
+        status: 'active',
+        start_date: new Date().toISOString(),
+        check_in_frequency: 'weekly',
+      })
+    }
+  }
 
   // Log activity
   await supabase.from('lead_activity').insert({

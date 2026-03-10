@@ -34,6 +34,80 @@ export async function fetchAllMealPlans(limit = 100): Promise<(MealPlan & { prof
   return (data || []) as (MealPlan & { profile?: { email: string; name: string | null } })[]
 }
 
+/**
+ * Parameters for generating and sending a meal plan via the Edge Function.
+ * When coach_id is provided, the Edge Function uses coach-specific SMTP.
+ */
+export interface SendMealPlanParams {
+  name: string
+  email: string
+  language: string
+  gender?: string | null
+  age?: number | null
+  weight?: number | null
+  height?: number | null
+  activity?: string | null
+  daily_calories: number
+  meals_per_day: number
+  num_days: number
+  prep_time?: string | null
+  leftovers?: boolean
+  leftovers_strategy?: string
+  excluded_ingredients?: string
+  diet_type?: string
+  budget?: string
+  health_anti_inflammatory?: boolean
+  health_avoid_processed?: boolean
+  weight_goal?: number | null
+  units?: string
+  coach_id: string // CRM user id of the coach sending the plan
+}
+
+export interface SendMealPlanResult {
+  success: boolean
+  mealPlanText?: string
+  pdfUrl?: string
+  error?: string
+  tokens_used?: number
+  cost_usd?: number
+}
+
+/**
+ * Calls the generate-mealplan Edge Function to create + email a meal plan.
+ * Reuses the same engine as the public website, with coach_id for SMTP override.
+ */
+export async function sendMealPlan(params: SendMealPlanParams): Promise<SendMealPlanResult> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+  // Get current session token for auth header
+  const { data: { session } } = await supabase.auth.getSession()
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/generate-mealplan`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session?.access_token || supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
+    },
+    body: JSON.stringify(params),
+  })
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    return { success: false, error: data.error || `HTTP ${res.status}` }
+  }
+
+  return {
+    success: true,
+    mealPlanText: data.mealPlan,
+    pdfUrl: data.pdfUrl,
+    tokens_used: data.tokens_used,
+    cost_usd: data.cost_usd,
+  }
+}
+
 export async function fetchMealPlanStats(): Promise<{
   totalPlans: number
   totalCost: number

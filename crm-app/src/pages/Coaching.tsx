@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { fetchCoachingClients, type CoachingClient } from '@/lib/coaching'
+import { fetchCoachingClients, assignCoach, type CoachingClient } from '@/lib/coaching'
+import { fetchCrmUsers, type CrmUserRow } from '@/lib/crmUsers'
 import {
   Loader2, HeartPulse, LayoutGrid, Table2, Columns3,
   ChevronRight, Search,
@@ -25,6 +26,7 @@ const KANBAN_COLUMNS: { status: CoachingClient['status']; color: string }[] = [
 export default function Coaching() {
   const { t } = useTranslation()
   const [clients, setClients] = useState<CoachingClient[]>([])
+  const [crmUsers, setCrmUsers] = useState<CrmUserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<StatusFilter>('')
   const [search, setSearch] = useState('')
@@ -38,7 +40,18 @@ export default function Coaching() {
       .then(setClients)
       .catch((err) => console.error('Load coaching error:', err))
       .finally(() => setLoading(false))
+    fetchCrmUsers().then(setCrmUsers).catch(() => {})
   }, [])
+
+  async function handleReassignCoach(profileId: string, newCoachId: string | null) {
+    try {
+      await assignCoach(profileId, newCoachId)
+      const updated = await fetchCoachingClients()
+      setClients(updated)
+    } catch (err) {
+      console.error('Reassign coach error:', err)
+    }
+  }
 
   useEffect(() => {
     try { localStorage.setItem('crm_coaching_view', view) } catch { /* noop */ }
@@ -120,9 +133,9 @@ export default function Coaching() {
       </div>
 
       {/* Views */}
-      {view === 'cards' && <CardsView clients={filtered} t={t} />}
-      {view === 'table' && <TableView clients={filtered} t={t} />}
-      {view === 'kanban' && <KanbanView clients={clients} search={search} t={t} />}
+      {view === 'cards' && <CardsView clients={filtered} crmUsers={crmUsers} onReassign={handleReassignCoach} t={t} />}
+      {view === 'table' && <TableView clients={filtered} crmUsers={crmUsers} onReassign={handleReassignCoach} t={t} />}
+      {view === 'kanban' && <KanbanView clients={clients} search={search} crmUsers={crmUsers} onReassign={handleReassignCoach} t={t} />}
 
       {view !== 'kanban' && filtered.length === 0 && (
         <p className="text-center text-muted-foreground py-12">{t('coaching.noClients')}</p>
@@ -132,45 +145,65 @@ export default function Coaching() {
 }
 
 /* ─── Cards View ─── */
-function CardsView({ clients, t }: { clients: CoachingClient[]; t: (k: string) => string }) {
+function CardsView({ clients, crmUsers, onReassign, t }: {
+  clients: CoachingClient[]; crmUsers: CrmUserRow[];
+  onReassign: (profileId: string, coachId: string | null) => void; t: (k: string) => string
+}) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {clients.map((client) => (
-        <Link
+        <div
           key={client.id}
-          to={`/coaching/${client.profile_id}`}
           className="bg-card rounded-xl border border-border p-5 hover:border-primary/50 transition-colors"
         >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-muted">
-              <HeartPulse className="w-5 h-5 text-accent" />
+          <Link to={`/coaching/${client.profile_id}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-muted">
+                <HeartPulse className="w-5 h-5 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {client.profile?.name || client.profile?.email || 'Client'}
+                </p>
+                <p className="text-xs text-muted-foreground">{client.profile?.email}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                {client.profile?.name || client.profile?.email || 'Client'}
-              </p>
-              <p className="text-xs text-muted-foreground">{client.profile?.email}</p>
+            <div className="flex items-center justify-between">
+              <StatusBadge status={client.status} t={t} />
+              <span className="text-xs text-muted-foreground">
+                {new Date(client.start_date).toLocaleDateString()}
+              </span>
             </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <StatusBadge status={client.status} t={t} />
-            <span className="text-xs text-muted-foreground">
-              {new Date(client.start_date).toLocaleDateString()}
-            </span>
+          </Link>
+          <div className="mt-2 flex items-center gap-1">
+            <span className="text-xs text-muted-foreground font-medium">{t('coaching.coach')}:</span>
+            <select
+              value={client.coach_id || ''}
+              onChange={(e) => { e.stopPropagation(); onReassign(client.profile_id, e.target.value || null) }}
+              className="text-xs px-1.5 py-0.5 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            >
+              <option value="">{t('coaching.noCoachAssigned')}</option>
+              {crmUsers.filter(u => u.active).map((u) => (
+                <option key={u.id} value={u.id}>{u.name || u.email}</option>
+              ))}
+            </select>
           </div>
           {client.coaching_package && (
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               {client.coaching_package}
             </p>
           )}
-        </Link>
+        </div>
       ))}
     </div>
   )
 }
 
 /* ─── Table View ─── */
-function TableView({ clients, t }: { clients: CoachingClient[]; t: (k: string) => string }) {
+function TableView({ clients, crmUsers, onReassign, t }: {
+  clients: CoachingClient[]; crmUsers: CrmUserRow[];
+  onReassign: (profileId: string, coachId: string | null) => void; t: (k: string) => string
+}) {
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       <div className="overflow-x-auto">
@@ -185,6 +218,9 @@ function TableView({ clients, t }: { clients: CoachingClient[]; t: (k: string) =
               </th>
               <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {t('leads.columns.status')}
+              </th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t('coaching.coach')}
               </th>
               <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {t('coaching.package')}
@@ -215,6 +251,18 @@ function TableView({ clients, t }: { clients: CoachingClient[]; t: (k: string) =
                 <td className="px-5 py-3">
                   <StatusBadge status={client.status} t={t} />
                 </td>
+                <td className="px-5 py-3">
+                  <select
+                    value={client.coach_id || ''}
+                    onChange={(e) => onReassign(client.profile_id, e.target.value || null)}
+                    className="text-xs px-2 py-1 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  >
+                    <option value="">{t('coaching.noCoachAssigned')}</option>
+                    {crmUsers.filter(u => u.active).map((u) => (
+                      <option key={u.id} value={u.id}>{u.name || u.email}</option>
+                    ))}
+                  </select>
+                </td>
                 <td className="px-5 py-3 text-sm text-muted-foreground">
                   {client.coaching_package || '—'}
                 </td>
@@ -242,10 +290,14 @@ function TableView({ clients, t }: { clients: CoachingClient[]; t: (k: string) =
 function KanbanView({
   clients,
   search,
+  crmUsers,
+  onReassign,
   t,
 }: {
   clients: CoachingClient[]
   search: string
+  crmUsers: CrmUserRow[]
+  onReassign: (profileId: string, coachId: string | null) => void
   t: (k: string) => string
 }) {
   const searchFiltered = search
@@ -271,15 +323,26 @@ function KanbanView({
             </div>
             <div className="space-y-2">
               {col.map((client) => (
-                <Link
+                <div
                   key={client.id}
-                  to={`/coaching/${client.profile_id}`}
-                  className="block bg-card rounded-lg border border-border p-3 hover:border-primary/50 transition-colors"
+                  className="bg-card rounded-lg border border-border p-3 hover:border-primary/50 transition-colors"
                 >
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {client.profile?.name || client.profile?.email || 'Client'}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">{client.profile?.email}</p>
+                  <Link to={`/coaching/${client.profile_id}`}>
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {client.profile?.name || client.profile?.email || 'Client'}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{client.profile?.email}</p>
+                  </Link>
+                  <select
+                    value={client.coach_id || ''}
+                    onChange={(e) => onReassign(client.profile_id, e.target.value || null)}
+                    className="mt-1 w-full text-xs px-1.5 py-0.5 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 truncate"
+                  >
+                    <option value="">{t('coaching.noCoachAssigned')}</option>
+                    {crmUsers.filter(u => u.active).map((u) => (
+                      <option key={u.id} value={u.id}>{u.name || u.email}</option>
+                    ))}
+                  </select>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs text-muted-foreground">
                       {new Date(client.start_date).toLocaleDateString()}
@@ -290,7 +353,7 @@ function KanbanView({
                       </span>
                     )}
                   </div>
-                </Link>
+                </div>
               ))}
               {col.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-6">{t('coaching.noClients')}</p>

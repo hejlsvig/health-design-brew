@@ -11,6 +11,9 @@ export interface CrmUserRow {
   active: boolean
   email_footer: string | null
   email_logo: string | null
+  sender_email: string | null
+  smtp_password: string | null
+  sender_name: string | null
   created_at: string
   updated_at: string
 }

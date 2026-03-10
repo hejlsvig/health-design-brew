@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Newspaper,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
     children: [
       { to: '/flows', icon: Workflow, labelKey: 'nav.flows' },
       { to: '/emails', icon: Mail, labelKey: 'nav.emails' },
+      { to: '/newsletter', icon: Newspaper, labelKey: 'nav.newsletter' },
     ],
   },
   {

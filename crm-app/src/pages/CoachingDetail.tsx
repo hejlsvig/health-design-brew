@@ -7,7 +7,8 @@ import {
   type FullPersonData,
   type WeeklyCheckin,
 } from '@/lib/fullPersonView'
-import { activateCoaching } from '@/lib/coaching'
+import { activateCoaching, assignCoach, updateCoachingStatus, type CoachingClient } from '@/lib/coaching'
+import { fetchCrmUsers, type CrmUserRow } from '@/lib/crmUsers'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   fetchNotes, createNote, deleteNote, togglePinNote,
@@ -46,6 +47,7 @@ export default function CoachingDetail() {
   const [data, setData] = useState<FullPersonData | null>(null)
   const [checkins, setCheckins] = useState<WeeklyCheckin[]>([])
   const [notes, setNotes] = useState<CrmNote[]>([])
+  const [crmUsers, setCrmUsers] = useState<CrmUserRow[]>([])
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [loading, setLoading] = useState(true)
   const [expandedCheckin, setExpandedCheckin] = useState<string | null>(null)
@@ -53,6 +55,7 @@ export default function CoachingDetail() {
   useEffect(() => {
     if (!id) return
     loadData()
+    fetchCrmUsers().then(setCrmUsers).catch(() => {})
   }, [id])
 
   async function loadData() {
@@ -75,6 +78,26 @@ export default function CoachingDetail() {
       console.error('Load coaching detail error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleAssignCoach(coachId: string | null) {
+    if (!id) return
+    try {
+      await assignCoach(id, coachId)
+      await loadData()
+    } catch (err) {
+      console.error('Assign coach error:', err)
+    }
+  }
+
+  async function handleStatusChange(newStatus: CoachingClient['status']) {
+    if (!id) return
+    try {
+      await updateCoachingStatus(id, newStatus)
+      await loadData()
+    } catch (err) {
+      console.error('Update coaching status error:', err)
     }
   }
 
@@ -115,8 +138,10 @@ export default function CoachingDetail() {
               {profile.name || profile.email || 'Client'}
             </h1>
             {coaching && (
-              <span
-                className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+              <select
+                value={coaching.status}
+                onChange={(e) => handleStatusChange(e.target.value as CoachingClient['status'])}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 ${
                   coaching.status === 'active'
                     ? 'bg-green-100 text-green-700'
                     : coaching.status === 'completed'
@@ -124,11 +149,30 @@ export default function CoachingDetail() {
                     : 'bg-yellow-100 text-yellow-700'
                 }`}
               >
-                {t(`coaching.${coaching.status}`) || coaching.status}
-              </span>
+                <option value="active">{t('coaching.active')}</option>
+                <option value="inactive">{t('coaching.inactive')}</option>
+                <option value="completed">{t('coaching.completed')}</option>
+              </select>
             )}
           </div>
           <p className="text-sm text-muted-foreground">{profile.email}</p>
+          {coaching && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground">{t('coaching.coach')}:</span>
+              <select
+                value={coaching.coach_id || ''}
+                onChange={(e) => handleAssignCoach(e.target.value || null)}
+                className="text-xs px-2 py-1 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="">{t('coaching.noCoachAssigned')}</option>
+                {crmUsers.filter(u => u.active).map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name || u.email} {u.sender_email ? `(${u.sender_email})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Quick actions */}
@@ -226,7 +270,12 @@ export default function CoachingDetail() {
         )}
 
         {activeTab === 'mealPlans' && (
-          <MealPlansTab mealPlans={data.mealPlans} />
+          <MealPlansTab
+            mealPlans={data.mealPlans}
+            profile={data.profile}
+            coachId={user?.id}
+            onPlanSent={loadData}
+          />
         )}
 
         {activeTab === 'payment' && (
@@ -290,6 +339,10 @@ function OverviewTab({
         <h3 className="text-sm font-semibold text-foreground mb-4">{t('coaching.details')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <InfoField label="Status" value={coaching.status} capitalize />
+          <InfoField
+            label={t('coaching.coach')}
+            value={coaching.coach ? (coaching.coach.name || coaching.coach.email) : t('coaching.noCoachAssigned')}
+          />
           <InfoField label={t('coaching.checkInFrequency')} value={coaching.check_in_frequency || 'weekly'} />
           <InfoField label={t('coaching.package')} value={coaching.coaching_package || '—'} />
           <InfoField
