@@ -57,7 +57,7 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Cpu }[] = [
   { id: 'ai', label: 'AI & Generering', icon: Sparkles },
   { id: 'social', label: 'Sociale Medier', icon: Share2 },
   { id: 'seo', label: 'SEO & Sikkerhed', icon: Shield },
-  { id: 'hosting', label: 'Hosting & Upload', icon: Server },
+  { id: 'hosting', label: 'Hosting & Email', icon: Server },
 ]
 
 export default function AdminSettings() {
@@ -92,6 +92,16 @@ export default function AdminSettings() {
   const [sftpPassword, setSftpPassword] = useState('')
   const [showSftpPassword, setShowSftpPassword] = useState(false)
   const [hasExistingSftpPassword, setHasExistingSftpPassword] = useState(false)
+
+  // SMTP Email
+  const [smtpHost, setSmtpHost] = useState('')
+  const [smtpPort, setSmtpPort] = useState('465')
+  const [smtpUser, setSmtpUser] = useState('')
+  const [smtpPassword, setSmtpPassword] = useState('')
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false)
+  const [hasExistingSmtpPassword, setHasExistingSmtpPassword] = useState(false)
+  const [smtpFromEmail, setSmtpFromEmail] = useState('')
+  const [smtpFromName, setSmtpFromName] = useState('Shifting Source')
 
   // AI Prompts
   const [chatPromptDa, setChatPromptDa] = useState('')
@@ -185,6 +195,17 @@ export default function AdminSettings() {
         setSftpPassword('••••••••' + s.sftp_password.slice(-4))
         setHasExistingSftpPassword(true)
       }
+
+      // SMTP Email
+      if (s.smtp_host) setSmtpHost(s.smtp_host)
+      if (s.smtp_port) setSmtpPort(s.smtp_port)
+      if (s.smtp_user) setSmtpUser(s.smtp_user)
+      if (s.smtp_password) {
+        setSmtpPassword('••••••••' + s.smtp_password.slice(-4))
+        setHasExistingSmtpPassword(true)
+      }
+      if (s.smtp_from_email) setSmtpFromEmail(s.smtp_from_email)
+      if (s.smtp_from_name) setSmtpFromName(s.smtp_from_name)
 
       // AI Prompts
       setChatPromptDa(s.chat_system_prompt_da || '')
@@ -369,6 +390,17 @@ export default function AdminSettings() {
       await saveSetting('sftp_password', sftpPassword, user?.id)
     }
   }, [sftpHost, sftpPort, sftpUsername, sftpPassword, user?.id])
+
+  const saveSmtp = useCallback(async () => {
+    if (smtpHost) await saveSetting('smtp_host', smtpHost, user?.id)
+    if (smtpPort) await saveSetting('smtp_port', smtpPort, user?.id)
+    if (smtpUser) await saveSetting('smtp_user', smtpUser, user?.id)
+    if (smtpPassword && !smtpPassword.startsWith('••••')) {
+      await saveSetting('smtp_password', smtpPassword, user?.id)
+    }
+    await saveSetting('smtp_from_email', smtpFromEmail, user?.id)
+    await saveSetting('smtp_from_name', smtpFromName, user?.id)
+  }, [smtpHost, smtpPort, smtpUser, smtpPassword, smtpFromEmail, smtpFromName, user?.id])
 
   if (authLoading || loading) {
     return (
@@ -558,7 +590,7 @@ export default function AdminSettings() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                Separat OpenAI-konfiguration til kostplangenerering. Hvis felterne er tomme, bruges den generelle OpenAI-nøgle og model ovenfor.
+                Separat OpenAI-konfiguration til kostplangenerering. Hvis felterne herunder er tomme, bruges automatisk API-nøglen og modellen fra &quot;OpenAI Tekstgenerering&quot; sektionen ovenfor (pt. <strong>{model || 'gpt-5.2'}</strong>).
               </p>
 
               {/* Mealplan API Key */}
@@ -605,8 +637,8 @@ export default function AdminSettings() {
                         : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground'
                     )}
                   >
-                    <span className="block text-sm font-medium">Standard</span>
-                    <span className="block text-[11px] opacity-70">Brug generel model</span>
+                    <span className="block text-sm font-medium">Samme som artikler</span>
+                    <span className="block text-[11px] opacity-70">Bruger: {model || 'gpt-5.2'}</span>
                   </button>
                   {AVAILABLE_MODELS.map(m => (
                     <button
@@ -1382,6 +1414,109 @@ export default function AdminSettings() {
               </div>
 
               <SectionSaveButton onSave={saveSftp} label="Gem SFTP-indstillinger" />
+            </section>
+
+            {/* ── Email (SMTP) ── */}
+            <section className="rounded-lg border border-border bg-card p-6 space-y-5">
+              <div className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-accent" />
+                <h2 className="font-serif text-lg font-bold text-foreground">
+                  Email (SMTP)
+                </h2>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                SMTP-indstillinger til afsendelse af emails (kostplaner, notifikationer). Brug din one.com email-konto eller en anden SMTP-udbyder.
+              </p>
+
+              <div className="rounded-md bg-sage/10 border border-sage/20 p-3">
+                <p className="text-xs text-muted-foreground">
+                  <strong className="text-foreground">one.com SMTP:</strong> Host: <code className="bg-sage/20 px-1 rounded">send.one.com</code>, Port: <code className="bg-sage/20 px-1 rounded">465</code> (SSL). Brugernavn og adgangskode er din one.com email-adresse og dens adgangskode.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">SMTP Host</label>
+                  <input
+                    type="text"
+                    value={smtpHost}
+                    onChange={e => setSmtpHost(e.target.value)}
+                    placeholder="send.one.com"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Port</label>
+                  <input
+                    type="text"
+                    value={smtpPort}
+                    onChange={e => setSmtpPort(e.target.value)}
+                    placeholder="465"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">465 = SSL, 587 = STARTTLS</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Brugernavn (email)</label>
+                  <input
+                    type="text"
+                    value={smtpUser}
+                    onChange={e => setSmtpUser(e.target.value)}
+                    placeholder="info@shiftingsource.com"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Adgangskode</label>
+                  <div className="relative">
+                    <input
+                      type={showSmtpPassword ? 'text' : 'password'}
+                      value={smtpPassword}
+                      onChange={e => { setSmtpPassword(e.target.value); setHasExistingSmtpPassword(false) }}
+                      onFocus={() => { if (hasExistingSmtpPassword) { setSmtpPassword(''); setHasExistingSmtpPassword(false) } }}
+                      placeholder="••••••••"
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <hr className="border-border/30" />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Afsender-email</label>
+                  <input
+                    type="email"
+                    value={smtpFromEmail}
+                    onChange={e => setSmtpFromEmail(e.target.value)}
+                    placeholder="info@shiftingsource.com"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Den adresse modtagere ser i &quot;Fra&quot;-feltet</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Afsender-navn</label>
+                  <input
+                    type="text"
+                    value={smtpFromName}
+                    onChange={e => setSmtpFromName(e.target.value)}
+                    placeholder="Shifting Source"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">F.eks. &quot;Shifting Source&quot; eller &quot;Anders fra Shifting Source&quot;</p>
+                </div>
+              </div>
+
+              <SectionSaveButton onSave={saveSmtp} label="Gem email-indstillinger" />
             </section>
           </>
         )}

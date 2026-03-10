@@ -20,12 +20,10 @@ export interface AiSettings {
 }
 
 const AVAILABLE_MODELS = [
-  { id: 'gpt-5.2-chat-latest', label: 'GPT-5.2 Instant', desc: 'Latest flagship — fast, best for articles' },
-  { id: 'gpt-5.2', label: 'GPT-5.2 Thinking', desc: 'Best quality — slow (uses reasoning)' },
-  { id: 'gpt-5.1', label: 'GPT-5.1', desc: 'Fast, warm, good all-round' },
+  { id: 'gpt-5.2-chat-latest', label: 'GPT-5.2 Instant', desc: 'Nyeste flagship — hurtig, bedst til artikler' },
+  { id: 'gpt-5.2', label: 'GPT-5.2 Thinking', desc: 'Bedste kvalitet — langsom (bruger reasoning)' },
+  { id: 'gpt-5.1', label: 'GPT-5.1', desc: 'Hurtig, god til det meste' },
   { id: 'gpt-5', label: 'GPT-5', desc: 'Original GPT-5' },
-  { id: 'gpt-4.1', label: 'GPT-4.1', desc: 'Previous gen — fast and cheap' },
-  { id: 'o4-mini', label: 'o4-mini', desc: 'Fast reasoning model' },
 ]
 
 export { AVAILABLE_MODELS }

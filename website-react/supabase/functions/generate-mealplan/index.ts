@@ -246,9 +246,10 @@ async function uploadToSftp(
   }
 }
 
-// ── Email via Resend ──
+// ── Email via SMTP (one.com / any SMTP provider) ──
 
 async function sendMealPlanEmail(
+  settings: Record<string, string>,
   email: string,
   name: string,
   pdfUrl: string,
@@ -256,108 +257,112 @@ async function sendMealPlanEmail(
   calories: number,
   days: number,
 ): Promise<boolean> {
-  const resendKey = Deno.env.get('RESEND_API_KEY')
-  const fromEmail = Deno.env.get('FROM_EMAIL') || 'noreply@shiftingsource.com'
+  const smtpHost = settings.smtp_host
+  const smtpPort = parseInt(settings.smtp_port || '465', 10)
+  const smtpUser = settings.smtp_user
+  const smtpPass = settings.smtp_password
+  const fromEmail = settings.smtp_from_email || smtpUser
+  const fromName = settings.smtp_from_name || 'Shifting Source'
 
-  if (!resendKey) {
-    console.warn('[generate-mealplan] RESEND_API_KEY not set, skipping email')
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    console.warn('[generate-mealplan] SMTP not configured in admin_settings, skipping email')
     return false
   }
 
   const subjects: Record<string, string> = {
-    da: `Din personlige keto madplan er klar! 🔥`,
-    en: `Your personal keto meal plan is ready! 🔥`,
-    se: `Din personliga keto matplan är klar! 🔥`,
+    da: `Din personlige keto madplan er klar!`,
+    en: `Your personal keto meal plan is ready!`,
+    se: `Din personliga keto matplan är klar!`,
   }
 
   const bodies: Record<string, string> = {
     da: `
       <div style="font-family: 'Nunito Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #2d2d2d;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">🔥 Shifting Source</h1>
+          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">Shifting Source</h1>
           <p style="color: #888; font-size: 14px;">Din keto livsstilsplatform</p>
         </div>
         <h2 style="font-family: Georgia, serif; color: #2d5a3d;">Hej ${name}!</h2>
         <p>Din personlige ${days}-dages keto madplan (${calories} kcal/dag) er nu klar.</p>
         <p style="text-align: center; margin: 30px 0;">
           <a href="${pdfUrl}" style="display: inline-block; background: #2d5a3d; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px;">
-            📥 Download din madplan
+            Download din madplan
           </a>
         </p>
-        <p style="font-size: 14px; color: #666;">Du kan også altid finde din seneste madplan på din profil på <a href="https://shiftingsource.com/profile" style="color: #D97706;">shiftingsource.com</a>.</p>
+        <p style="font-size: 14px; color: #666;">Du kan altid finde din seneste madplan på din profil på <a href="https://shiftingsource.com/profile" style="color: #D97706;">shiftingsource.com</a>.</p>
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
         <p style="text-align: center; font-size: 12px; color: #888;">
-          Shifting Source · <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
+          Shifting Source &middot; <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
           Du modtager denne email fordi du har genereret en kostplan.
         </p>
       </div>`,
     en: `
       <div style="font-family: 'Nunito Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #2d2d2d;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">🔥 Shifting Source</h1>
+          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">Shifting Source</h1>
           <p style="color: #888; font-size: 14px;">Your keto lifestyle platform</p>
         </div>
         <h2 style="font-family: Georgia, serif; color: #2d5a3d;">Hi ${name}!</h2>
         <p>Your personal ${days}-day keto meal plan (${calories} kcal/day) is now ready.</p>
         <p style="text-align: center; margin: 30px 0;">
           <a href="${pdfUrl}" style="display: inline-block; background: #2d5a3d; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px;">
-            📥 Download your meal plan
+            Download your meal plan
           </a>
         </p>
         <p style="font-size: 14px; color: #666;">You can always find your latest meal plan on your profile at <a href="https://shiftingsource.com/profile" style="color: #D97706;">shiftingsource.com</a>.</p>
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
         <p style="text-align: center; font-size: 12px; color: #888;">
-          Shifting Source · <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
+          Shifting Source &middot; <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
           You received this email because you generated a meal plan.
         </p>
       </div>`,
     se: `
       <div style="font-family: 'Nunito Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #2d2d2d;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">🔥 Shifting Source</h1>
+          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">Shifting Source</h1>
           <p style="color: #888; font-size: 14px;">Din keto-livsstilsplattform</p>
         </div>
         <h2 style="font-family: Georgia, serif; color: #2d5a3d;">Hej ${name}!</h2>
-        <p>Din personliga ${days}-dagars keto matplan (${calories} kcal/dag) är nu klar.</p>
+        <p>Din personliga ${days}-dagars keto matplan (${calories} kcal/dag) ar nu klar.</p>
         <p style="text-align: center; margin: 30px 0;">
           <a href="${pdfUrl}" style="display: inline-block; background: #2d5a3d; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px;">
-            📥 Ladda ner din matplan
+            Ladda ner din matplan
           </a>
         </p>
-        <p style="font-size: 14px; color: #666;">Du kan alltid hitta din senaste matplan på din profil på <a href="https://shiftingsource.com/profile" style="color: #D97706;">shiftingsource.com</a>.</p>
+        <p style="font-size: 14px; color: #666;">Du kan alltid hitta din senaste matplan pa din profil pa <a href="https://shiftingsource.com/profile" style="color: #D97706;">shiftingsource.com</a>.</p>
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
         <p style="text-align: center; font-size: 12px; color: #888;">
-          Shifting Source · <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
-          Du fick detta e-postmeddelande för att du genererade en matplan.
+          Shifting Source &middot; <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
+          Du fick detta e-postmeddelande for att du genererade en matplan.
         </p>
       </div>`,
   }
 
+  const subject = subjects[language] || subjects['da']
+  const htmlBody = bodies[language] || bodies['da']
+
   try {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [email],
-        subject: subjects[language] || subjects['da'],
-        html: bodies[language] || bodies['da'],
-      }),
+    // Use Nodemailer via npm for SMTP
+    const nodemailer = await import('npm:nodemailer@6')
+    const transporter = nodemailer.default.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: { user: smtpUser, pass: smtpPass },
+      tls: { rejectUnauthorized: false },
     })
 
-    if (resp.ok) {
-      console.log(`[generate-mealplan] Email sent to ${email}`)
-      return true
-    } else {
-      const err = await resp.text()
-      console.error(`[generate-mealplan] Email failed: ${err}`)
-      return false
-    }
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: email,
+      subject,
+      html: htmlBody,
+    })
+
+    console.log(`[generate-mealplan] Email sent to ${email} via SMTP (${smtpHost})`)
+    return true
   } catch (e) {
-    console.error('[generate-mealplan] Email error:', e)
+    console.error('[generate-mealplan] SMTP email error:', e)
     return false
   }
 }
@@ -431,6 +436,8 @@ Deno.serve(async (req: Request) => {
       'sftp_host', 'sftp_username', 'sftp_password', 'sftp_port',
       'ftp_host', 'ftp_username', 'ftp_password',
       'site_url',
+      'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password',
+      'smtp_from_email', 'smtp_from_name',
     ])
 
     // Use mealplan-specific keys if available, fallback to shared keys
@@ -593,7 +600,7 @@ Lav ALLE ${num_days} dage med komplette opskrifter.${
     let emailSent = false
     if (pdfUrl && email) {
       try {
-        emailSent = await sendMealPlanEmail(email, name, pdfUrl, language, daily_calories, num_days)
+        emailSent = await sendMealPlanEmail(settings, email, name, pdfUrl, language, daily_calories, num_days)
       } catch (emailErr) {
         console.error('[generate-mealplan] Email error (non-fatal):', emailErr)
       }
