@@ -47,6 +47,8 @@ export default function MealPlan() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [generatedMealPlan, setGeneratedMealPlan] = useState<string | null>(null)
+  const [mealPlanPdfUrl, setMealPlanPdfUrl] = useState<string | null>(null)
+  const [mealPlanEmailSent, setMealPlanEmailSent] = useState(false)
   const [mealPlanError, setMealPlanError] = useState<string | null>(null)
   const mealPlanRef = useRef<HTMLDivElement>(null)
   const [expandedCategories, setExpandedCategories] = useState<string[]>([
@@ -201,6 +203,7 @@ export default function MealPlan() {
 
       const mealPlanBody = {
         name: state.name || 'Klient',
+        email: state.email,
         language: state.language || 'da',
         gender: state.gender || 'female',
         age: state.age || 30,
@@ -253,6 +256,8 @@ export default function MealPlan() {
       }
 
       setGeneratedMealPlan(respData.mealPlan)
+      if (respData.pdfUrl) setMealPlanPdfUrl(respData.pdfUrl)
+      if (respData.emailSent) setMealPlanEmailSent(true)
 
       // Scroll to meal plan result
       setTimeout(() => {
@@ -357,8 +362,37 @@ export default function MealPlan() {
             />
           </div>
 
-          {/* Download Button */}
-          <div className="flex justify-center mb-8">
+          {/* Success notifications */}
+          {(mealPlanEmailSent || mealPlanPdfUrl) && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg space-y-2">
+              {mealPlanEmailSent && (
+                <p className="text-sm text-green-800 flex items-center gap-2">
+                  <Check size={16} className="text-green-600" />
+                  {t('calculator.mealPlan.emailSent') || 'Kostplanen er sendt til din email!'}
+                </p>
+              )}
+              {mealPlanPdfUrl && (
+                <p className="text-sm text-green-800 flex items-center gap-2">
+                  <Check size={16} className="text-green-600" />
+                  {t('calculator.mealPlan.pdfReady') || 'PDF er klar til download'}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Download Buttons */}
+          <div className="flex justify-center gap-4 mb-8">
+            {mealPlanPdfUrl && (
+              <a
+                href={mealPlanPdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-all"
+              >
+                <Download size={20} />
+                {t('calculator.mealPlan.downloadPdf') || 'Download PDF'}
+              </a>
+            )}
             <button
               onClick={() => {
                 const element = document.createElement('a')
@@ -369,10 +403,14 @@ export default function MealPlan() {
                 element.click()
                 document.body.removeChild(element)
               }}
-              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-all"
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${
+                mealPlanPdfUrl
+                  ? 'bg-white border-2 border-gray-300 text-charcoal hover:border-primary'
+                  : 'bg-primary text-white hover:bg-primary/90'
+              }`}
             >
               <Download size={20} />
-              {t('calculator.mealPlan.download') || 'Download kostplan'}
+              {t('calculator.mealPlan.downloadTxt') || 'Download tekst'}
             </button>
           </div>
 
@@ -381,6 +419,8 @@ export default function MealPlan() {
             <button
               onClick={() => {
                 setGeneratedMealPlan(null)
+                setMealPlanPdfUrl(null)
+                setMealPlanEmailSent(false)
                 setCurrentStep(0)
               }}
               className="px-6 py-3 bg-charcoal text-white rounded-lg font-bold hover:bg-charcoal/90 transition-all"

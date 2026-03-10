@@ -74,6 +74,12 @@ export default function AdminSettings() {
   const [showKey, setShowKey] = useState(false)
   const [hasExistingKey, setHasExistingKey] = useState(false)
 
+  // Mealplan AI (separate from article generation)
+  const [mealplanApiKey, setMealplanApiKey] = useState('')
+  const [mealplanModel, setMealplanModel] = useState('')
+  const [showMealplanKey, setShowMealplanKey] = useState(false)
+  const [hasExistingMealplanKey, setHasExistingMealplanKey] = useState(false)
+
   // Kie.ai
   const [kieaiKey, setKieaiKey] = useState('')
   const [showKieaiKey, setShowKieaiKey] = useState(false)
@@ -160,6 +166,13 @@ export default function AdminSettings() {
         setHasExistingKey(true)
       }
       setModel(s.ai_model || 'gpt-4.1')
+
+      // Mealplan AI
+      if (s.mealplan_openai_api_key) {
+        setMealplanApiKey('sk-••••••••' + s.mealplan_openai_api_key.slice(-4))
+        setHasExistingMealplanKey(true)
+      }
+      if (s.mealplan_ai_model) setMealplanModel(s.mealplan_ai_model)
 
       if (s.kieai_api_key) {
         setKieaiKey('••••••••' + s.kieai_api_key.slice(-4))
@@ -289,6 +302,16 @@ export default function AdminSettings() {
       await saveSetting('kieai_api_key', kieaiKey, user?.id)
     }
   }, [kieaiKey, user?.id])
+
+  const saveMealplanAI = useCallback(async () => {
+    if (mealplanApiKey && !mealplanApiKey.startsWith('sk-••••')) {
+      if (!mealplanApiKey.startsWith('sk-')) throw new Error('API key skal starte med "sk-"')
+      await saveSetting('mealplan_openai_api_key', mealplanApiKey, user?.id)
+    }
+    if (mealplanModel) {
+      await saveSetting('mealplan_ai_model', mealplanModel, user?.id)
+    }
+  }, [mealplanApiKey, mealplanModel, user?.id])
 
   const saveChatPrompts = useCallback(async () => {
     await saveSetting('chat_system_prompt_da', chatPromptDa, user?.id)
@@ -523,6 +546,87 @@ export default function AdminSettings() {
               </div>
 
               <SectionSaveButton onSave={saveKieai} label="Gem Kie.ai nøgle" />
+            </section>
+
+            {/* ── Mealplan AI (separate from article generation) ── */}
+            <section className="rounded-lg border border-border bg-card p-6 space-y-5">
+              <div className="flex items-center gap-2">
+                <UtensilsCrossed className="h-5 w-5 text-accent" />
+                <h2 className="font-serif text-lg font-bold text-foreground">
+                  Kostplan AI
+                </h2>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Separat OpenAI-konfiguration til kostplangenerering. Hvis felterne er tomme, bruges den generelle OpenAI-nøgle og model ovenfor.
+              </p>
+
+              {/* Mealplan API Key */}
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  <Key className="inline h-3.5 w-3.5 mr-1" />
+                  Kostplan API Key (valgfri)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showMealplanKey ? 'text' : 'password'}
+                    value={mealplanApiKey}
+                    onChange={e => { setMealplanApiKey(e.target.value); setHasExistingMealplanKey(false) }}
+                    onFocus={() => { if (hasExistingMealplanKey) { setMealplanApiKey(''); setHasExistingMealplanKey(false) } }}
+                    placeholder="sk-... (tom = brug generel nøgle)"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 pr-10 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMealplanKey(!showMealplanKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showMealplanKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Brug en separat API-nøgle til kostplaner, eller lad stå tom for at bruge den generelle OpenAI-nøgle.
+                </p>
+              </div>
+
+              {/* Mealplan Model selector */}
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  <Cpu className="inline h-3.5 w-3.5 mr-1" />
+                  Kostplan AI Model (valgfri)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setMealplanModel('')}
+                    className={cn(
+                      'rounded-md border px-3 py-2.5 text-left transition-colors',
+                      !mealplanModel
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                    )}
+                  >
+                    <span className="block text-sm font-medium">Standard</span>
+                    <span className="block text-[11px] opacity-70">Brug generel model</span>
+                  </button>
+                  {AVAILABLE_MODELS.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => setMealplanModel(m.id)}
+                      className={cn(
+                        'rounded-md border px-3 py-2.5 text-left transition-colors',
+                        mealplanModel === m.id
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                      )}
+                    >
+                      <span className="block text-sm font-medium">{m.label}</span>
+                      <span className="block text-[11px] opacity-70">{m.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <SectionSaveButton onSave={saveMealplanAI} label="Gem kostplan AI-indstillinger" />
             </section>
 
             {/* ── AI Prompt Management ── */}
