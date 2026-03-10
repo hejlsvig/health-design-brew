@@ -64,7 +64,7 @@ IMPORTANT — "content" FIELD:
 
 OTHER RULES:
 - "slug": derived from Danish title, lowercase, hyphens, no special chars (æ→ae, ø→oe, å→aa)
-- "categories": Pick 1-3 from: "keto", "fasting", "metabolic_health", "gut_biome", "sleep_recovery", "hormones", "mental_health", "inflammation", "exercise_movement", "longevity", "womens_health". Choose the most relevant categories for the article content.
+- "categories": Pick 1-3 from: "keto", "fasting", "weight_loss", "nutrition_science", "metabolic_health", "insulin_resistance", "autophagy", "mitochondria", "ampk", "mtor", "ketones", "cardiovascular", "blood_pressure", "cholesterol", "thyroid", "gut_biome", "liver_health", "hormones", "chronic_disease", "cancer", "diabetes", "inflammation", "muscle", "exercise_movement", "sleep_recovery", "circadian_rhythms", "supplement", "protein", "creatine", "bcaa", "electrolytes", "sugar", "mental_health", "longevity", "womens_health", "mens_health". Choose the most relevant categories for the article content.
 - "tags": 3-5 relevant English lowercase tags
 - "seo_title": optimized for search (50-60 chars)
 - "seo_description": 120-155 chars
