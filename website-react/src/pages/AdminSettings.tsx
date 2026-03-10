@@ -224,10 +224,10 @@ export default function AdminSettings() {
       if (s.smtp_from_email) setSmtpFromEmail(s.smtp_from_email)
       if (s.smtp_from_name) setSmtpFromName(s.smtp_from_name)
 
-      // AI Prompts
-      setChatPromptDa(s.chat_system_prompt_da || '')
-      setChatPromptEn(s.chat_system_prompt_en || '')
-      setChatPromptSe(s.chat_system_prompt_se || '')
+      // AI Prompts — pre-populate with defaults if not set in database
+      setChatPromptDa(s.chat_system_prompt_da || DEFAULT_PROMPTS['da'] || '')
+      setChatPromptEn(s.chat_system_prompt_en || DEFAULT_PROMPTS['en'] || '')
+      setChatPromptSe(s.chat_system_prompt_se || DEFAULT_PROMPTS['se'] || '')
 
       // Article & image prompts
       setArticlePrompt(s.article_system_prompt || '')
@@ -884,9 +884,9 @@ export default function AdminSettings() {
                         const setter = promptTab === 'da' ? setChatPromptDa : promptTab === 'en' ? setChatPromptEn : setChatPromptSe
                         setter(e.target.value)
                       }}
-                      placeholder={DEFAULT_PROMPTS[promptTab] || ''}
-                      rows={8}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[120px]"
+                      placeholder="Skriv din brugerdefinerede prompt her..."
+                      rows={16}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[200px]"
                     />
                     <p className="text-xs text-muted-foreground mt-1.5">
                       Definerer chat-assistentens rolle, begrænsninger og tone. Chatten er begrænset til keto/faste-emner og hjemmesidens indhold.

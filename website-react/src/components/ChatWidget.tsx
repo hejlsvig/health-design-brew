@@ -12,7 +12,6 @@ import {
   sendChatMessage,
   fileToDataUrl,
   supportsVision,
-  getChatSystemPrompt,
   type ChatMessage,
   type ChatContentPart,
 } from '@/lib/chatai'
@@ -60,10 +59,10 @@ export default function ChatWidget() {
   }, [])
 
   // ── Build conversation history for API ────────────────
+  // System prompt is added server-side by the edge function
   const buildApiMessages = useCallback(
-    async (userText: string, userImages: string[]): Promise<ChatMessage[]> => {
-      const systemPrompt = await getChatSystemPrompt(lang)
-      const apiMsgs: ChatMessage[] = [{ role: 'system', content: systemPrompt }]
+    (userText: string, userImages: string[]): ChatMessage[] => {
+      const apiMsgs: ChatMessage[] = []
 
       // Add conversation history (last 20 messages max)
       const history = messages.slice(-20)
@@ -96,7 +95,7 @@ export default function ChatWidget() {
 
       return apiMsgs
     },
-    [messages, lang],
+    [messages],
   )
 
   // ── Send message ──────────────────────────────────────
@@ -117,8 +116,8 @@ export default function ChatWidget() {
     try {
       const controller = new AbortController()
       abortRef.current = controller
-      const apiMessages = await buildApiMessages(userText, userImages)
-      const reply = await sendChatMessage(apiMessages, controller.signal)
+      const apiMessages = buildApiMessages(userText, userImages)
+      const reply = await sendChatMessage(apiMessages, lang, controller.signal)
       setMessages(prev => [...prev, { role: 'assistant', text: reply }])
     } catch (err: any) {
       if (err.name === 'AbortError') return
@@ -208,7 +207,7 @@ export default function ChatWidget() {
       <div
         className={cn(
           'fixed bottom-5 right-5 z-50',
-          'w-[360px] max-w-[calc(100vw-2.5rem)] h-[520px] max-h-[calc(100vh-6rem)]',
+          'w-[440px] max-w-[calc(100vw-2.5rem)] h-[620px] max-h-[calc(100vh-6rem)]',
           'bg-background rounded-2xl shadow-2xl border border-primary/10',
           'flex flex-col overflow-hidden',
           'transition-all duration-300 ease-out origin-bottom-right',

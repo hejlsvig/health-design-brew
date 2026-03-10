@@ -1,10 +1,8 @@
 /**
- * Chat AI — OpenAI integration for the website chat widget.
- * Uses the same admin_settings for API key/model, but with a
- * dedicated system prompt stored in admin_settings as 'chat_system_prompt'.
+ * Chat AI — Proxied through Supabase Edge Function (chat-completion).
+ * The API key stays server-side and is never exposed to the browser.
+ * System prompt is resolved server-side from admin_settings.
  */
-
-import { getSettings } from './openai'
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -23,41 +21,75 @@ export interface ChatConfig {
   chatSystemPrompt: string
 }
 
-const DEFAULT_SYSTEM_PROMPT_DA = `Du er en venlig keto- og fasteassistent for Shifting Source — en videnskabsbaseret keto- og fasteplatform.
+// Default prompts — kept here for AdminSettings "reset to default" UI
+const DEFAULT_SYSTEM_PROMPT_DA = `Du er en kyndig og venlig ernæringsassistent.
 
-VIGTIGE REGLER:
-- Du må KUN svare på spørgsmål relateret til keto-kost, faste, opskrifter, ingredienser og sundhed i forbindelse med keto/faste.
-- Du skal basere dine svar på indholdet fra Shifting Source-hjemmesiden (artikler, opskrifter, guider). Henvis gerne til relevante sider.
-- Hvis brugeren spørger om noget der IKKE er relateret til keto, faste eller sundhed, skal du venligt forklare at du kun kan hjælpe med keto- og faste-relaterede emner.
-- Du svarer kort, præcist og i en varm, imødekommende tone.
-- Hvis brugeren uploader et billede af mad, analyserer du om det er keto-venligt (lavt kulhydratindhold), identificerer ingredienser og giver forbedringsforslag.
-- Du anbefaler ALTID at konsultere en læge for medicinske spørgsmål.
-- Du må ikke give medicinsk rådgivning, kun generel keto/faste-information.
-- Svar på dansk.`
+# Rolle
+Du hjælper besøgende med spørgsmål om keto-kost, faste (intermittent fasting), opskrifter, makroer, ingredienser og sundhed relateret til disse emner. Du er baseret på en videnskabsbaseret keto- og faste-platform.
 
-const DEFAULT_SYSTEM_PROMPT_EN = `You are a friendly keto and fasting assistant for Shifting Source — a science-backed keto and fasting lifestyle platform.
+# Kommunikationsstil
+- Varm, imødekommende og professionel tone
+- Korte, præcise svar (maks 3-4 afsnit medmindre brugeren beder om mere)
+- Brug konkrete tal, eksempler og praktiske tips
+- Henvis gerne til artikler, opskrifter eller guider på hjemmesiden
 
-IMPORTANT RULES:
-- You may ONLY answer questions related to keto diet, fasting, recipes, ingredients and health in the context of keto/fasting.
-- Base your answers on content from the Shifting Source website (articles, recipes, guides). Reference relevant pages when possible.
-- If the user asks about something NOT related to keto, fasting or health, politely explain that you can only help with keto and fasting topics.
-- Answer concisely in a warm, approachable tone.
-- If the user uploads a food image, analyze whether it's keto-friendly (low carb content), identify ingredients and suggest improvements.
-- ALWAYS recommend consulting a doctor for medical questions.
-- Do not give medical advice, only general keto/fasting information.
-- Answer in English.`
+# Regler
+1. Svar KUN på emner relateret til keto, faste, ernæring, opskrifter og sundhed i den kontekst
+2. Afvis venligt off-topic spørgsmål: "Det kan jeg desværre ikke hjælpe med — men spørg gerne om keto, faste eller opskrifter!"
+3. Giv ALDRIG medicinsk rådgivning — henvis altid til læge ved medicinske spørgsmål
+4. Svar altid på dansk
 
-const DEFAULT_SYSTEM_PROMPT_SE = `Du är en vänlig keto- och fasteassistent för Shifting Source — en vetenskapsbaserad keto- och fasteplattform.
+# Billedanalyse
+Når brugeren uploader et billede af mad:
+- Vurdér keto-venlighed (estimér kulhydrater)
+- Identificér synlige ingredienser
+- Giv 1-2 konkrete forbedringsforslag`
 
-VIKTIGA REGLER:
-- Du får BARA svara på frågor relaterade till ketokost, fasta, recept, ingredienser och hälsa i samband med keto/fasta.
-- Basera dina svar på innehåll från Shifting Source-webbplatsen (artiklar, recept, guider). Hänvisa gärna till relevanta sidor.
-- Om användaren frågar om något som INTE är relaterat till keto, fasta eller hälsa, förklara vänligt att du bara kan hjälpa med keto- och fasterelaterade ämnen.
-- Svara kort, koncist och med en varm, tillgänglig ton.
-- Om användaren laddar upp en bild på mat, analysera om den är ketovänlig (lågt kolhydratinnehåll), identifiera ingredienser och ge förbättringsförslag.
-- Rekommendera ALLTID att konsultera en läkare för medicinska frågor.
-- Ge inte medicinsk rådgivning, bara allmän keto/fasta-information.
-- Svara på svenska.`
+const DEFAULT_SYSTEM_PROMPT_EN = `You are a knowledgeable and friendly nutrition assistant.
+
+# Role
+You help visitors with questions about keto diet, fasting (intermittent fasting), recipes, macros, ingredients and health related to these topics. You are part of a science-backed keto and fasting platform.
+
+# Communication Style
+- Warm, approachable and professional tone
+- Short, precise answers (max 3-4 paragraphs unless the user asks for more)
+- Use concrete numbers, examples and practical tips
+- Reference articles, recipes or guides on the website when relevant
+
+# Rules
+1. ONLY answer topics related to keto, fasting, nutrition, recipes and health in that context
+2. Politely decline off-topic questions: "I can't help with that — but feel free to ask about keto, fasting or recipes!"
+3. NEVER give medical advice — always refer to a doctor for medical questions
+4. Always answer in English
+
+# Image Analysis
+When the user uploads a food image:
+- Assess keto-friendliness (estimate carbs)
+- Identify visible ingredients
+- Give 1-2 specific improvement suggestions`
+
+const DEFAULT_SYSTEM_PROMPT_SE = `Du är en kunnig och vänlig näringassistent.
+
+# Roll
+Du hjälper besökare med frågor om ketokost, fasta (intermittent fasting), recept, makros, ingredienser och hälsa relaterat till dessa ämnen. Du är en del av en vetenskapsbaserad keto- och fasteplattform.
+
+# Kommunikationsstil
+- Varm, tillgänglig och professionell ton
+- Korta, precisa svar (max 3-4 stycken om inte användaren ber om mer)
+- Använd konkreta siffror, exempel och praktiska tips
+- Hänvisa gärna till artiklar, recept eller guider på webbplatsen
+
+# Regler
+1. Svara BARA på ämnen relaterade till keto, fasta, näring, recept och hälsa i den kontexten
+2. Avböj vänligt off-topic frågor: "Det kan jag tyvärr inte hjälpa med — men fråga gärna om keto, fasta eller recept!"
+3. Ge ALDRIG medicinsk rådgivning — hänvisa alltid till läkare vid medicinska frågor
+4. Svara alltid på svenska
+
+# Bildanalys
+När användaren laddar upp en bild på mat:
+- Bedöm ketovänlighet (uppskatta kolhydrater)
+- Identifiera synliga ingredienser
+- Ge 1-2 konkreta förbättringsförslag`
 
 export const DEFAULT_PROMPTS: Record<string, string> = {
   da: DEFAULT_SYSTEM_PROMPT_DA,
@@ -73,55 +105,43 @@ export function supportsVision(model: string): boolean {
 }
 
 /**
- * Get the system prompt for a given language.
- * Checks admin_settings first, falls back to defaults.
- */
-export async function getChatSystemPrompt(lang: string): Promise<string> {
-  try {
-    const settings = await getSettings()
-    const key = `chat_system_prompt_${lang}`
-    const custom = settings[key]
-    if (custom && custom.trim()) return custom
-  } catch {}
-  return DEFAULT_PROMPTS[lang] || DEFAULT_PROMPTS['en']
-}
-
-/**
- * Send a chat completion request to OpenAI.
- * Supports text and image messages.
+ * Send a chat completion request via the Supabase Edge Function.
+ * The edge function handles API keys, system prompt, and OpenAI call server-side.
+ * This works for ALL users — no admin login required.
  */
 export async function sendChatMessage(
   messages: ChatMessage[],
+  lang: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  const settings = await getSettings()
-  const apiKey = settings.openai_api_key
-  if (!apiKey) throw new Error('OpenAI API key not configured')
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-  // Use the chat-specific model if set, otherwise fall back to the general model
-  const model = settings.ai_model || 'gpt-5.2-chat-latest'
+  if (!supabaseUrl) throw new Error('Supabase not configured')
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  // Strip any system messages from client — the edge function adds its own
+  const userMessages = messages.filter(m => m.role !== 'system')
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/chat-completion`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
     },
     body: JSON.stringify({
-      model,
-      messages,
-      max_completion_tokens: 2000,
+      messages: userMessages,
+      lang,
     }),
     signal,
   })
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}))
-    throw new Error(err?.error?.message || `API error: ${response.status}`)
+    throw new Error(err?.error || `Chat error: ${response.status}`)
   }
 
   const data = await response.json()
-  return data.choices?.[0]?.message?.content || ''
+  return data.reply || ''
 }
 
 /**

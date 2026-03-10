@@ -67,13 +67,17 @@ export default function NewsletterSignup({ variant = 'footer' }: Props) {
           .update({ newsletter_consent: true })
           .eq('id', existingProfile.id)
 
-        // Log consent
-        await supabase.from('consent_log').insert({
-          user_id: existingProfile.id,
-          consent_type: 'newsletter',
-          granted: true,
-          source: 'footer_form',
-        })
+        // Log consent (best-effort)
+        try {
+          await supabase.from('consent_log').insert({
+            user_id: existingProfile.id,
+            consent_type: 'newsletter',
+            granted: true,
+            source: 'footer_form',
+          })
+        } catch (consentErr) {
+          console.warn('Consent log insert failed (non-critical):', consentErr)
+        }
 
         setStatus('success')
         setEmail('')
@@ -102,13 +106,17 @@ export default function NewsletterSignup({ variant = 'footer' }: Props) {
           .update({ is_active: true, unsubscribed_at: null })
           .eq('id', existingSub.id)
 
-        // Log consent
-        await supabase.from('consent_log').insert({
-          subscriber_id: existingSub.id,
-          consent_type: 'newsletter',
-          granted: true,
-          source: 'footer_form',
-        })
+        // Log consent (best-effort)
+        try {
+          await supabase.from('consent_log').insert({
+            subscriber_id: existingSub.id,
+            consent_type: 'newsletter',
+            granted: true,
+            source: 'footer_form',
+          })
+        } catch (consentErr) {
+          console.warn('Consent log insert failed (non-critical):', consentErr)
+        }
 
         setStatus('success')
         setEmail('')
@@ -128,16 +136,27 @@ export default function NewsletterSignup({ variant = 'footer' }: Props) {
         .select('id')
         .single()
 
+      // Handle duplicate email (unique constraint violation: code 23505)
+      // This happens when RLS blocks the SELECT check above (non-admin users)
+      if (insertError?.code === '23505') {
+        setStatus('duplicate')
+        reset()
+        return
+      }
       if (insertError) throw insertError
 
-      // Log consent
+      // Log consent (best-effort — don't fail the signup if consent logging fails)
       if (newSub) {
-        await supabase.from('consent_log').insert({
-          subscriber_id: newSub.id,
-          consent_type: 'newsletter',
-          granted: true,
-          source: 'footer_form',
-        })
+        try {
+          await supabase.from('consent_log').insert({
+            subscriber_id: newSub.id,
+            consent_type: 'newsletter',
+            granted: true,
+            source: 'footer_form',
+          })
+        } catch (consentErr) {
+          console.warn('Consent log insert failed (non-critical):', consentErr)
+        }
       }
 
       setStatus('success')
