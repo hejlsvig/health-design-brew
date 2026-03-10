@@ -126,15 +126,15 @@ export default function NewsletterSignup({ variant = 'footer' }: Props) {
       }
 
       // 3. New subscriber — insert into newsletter_subscribers
-      const { data: newSub, error: insertError } = await supabase
+      // Note: we do NOT use .select() after .insert() because RLS only grants
+      // INSERT (not SELECT) to anonymous users. The insert itself is sufficient.
+      const { error: insertError } = await supabase
         .from('newsletter_subscribers')
         .insert({
           email: email.toLowerCase().trim(),
           source: 'footer_form',
           is_active: true,
         })
-        .select('id')
-        .single()
 
       // Handle duplicate email (unique constraint violation: code 23505)
       // This happens when RLS blocks the SELECT check above (non-admin users)
@@ -145,18 +145,16 @@ export default function NewsletterSignup({ variant = 'footer' }: Props) {
       }
       if (insertError) throw insertError
 
-      // Log consent (best-effort — don't fail the signup if consent logging fails)
-      if (newSub) {
-        try {
-          await supabase.from('consent_log').insert({
-            subscriber_id: newSub.id,
-            consent_type: 'newsletter',
-            granted: true,
-            source: 'footer_form',
-          })
-        } catch (consentErr) {
-          console.warn('Consent log insert failed (non-critical):', consentErr)
-        }
+      // Consent is recorded by the insert itself (source='footer_form' + is_active=true).
+      // The consent_log insert is best-effort and may fail for anonymous users due to RLS.
+      try {
+        await supabase.from('consent_log').insert({
+          consent_type: 'newsletter',
+          granted: true,
+          source: 'footer_form',
+        })
+      } catch {
+        // Non-critical — the newsletter_subscribers row itself documents consent
       }
 
       setStatus('success')
