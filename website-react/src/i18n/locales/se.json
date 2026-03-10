@@ -203,7 +203,11 @@
       "title": "Din personaliserade kostplan",
       "subtitle": "Baserat på dina preferenser",
       "download": "Ladda ner kostplan",
+      "downloadPdf": "Ladda ner PDF",
+      "downloadTxt": "Ladda ner som text",
       "createNew": "Skapa ny kostplan",
+      "emailSent": "Din kostplan har skickats till din e-post!",
+      "pdfReady": "PDF är redo för nedladdning",
       "calorieInfo": "Dagliga kalorier (valfritt)",
       "calorieNote": "Om du inte har en kalorieuträkning kan du ange dagliga kalorier här. Vi använder 1800 kcal som standard.",
       "checkEmail": "Vi har skickat en inloggningslänk till din e-post. Klicka på länken för att logga in, och generera sedan din kostplan."

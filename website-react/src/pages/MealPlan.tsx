@@ -357,8 +357,8 @@ export default function MealPlan() {
           )}
 
           {/* Download Buttons */}
-          <div className="flex justify-center gap-4 mb-8">
-            {mealPlanPdfUrl && (
+          {mealPlanPdfUrl && (
+            <div className="flex justify-center mb-8">
               <a
                 href={mealPlanPdfUrl}
                 target="_blank"
@@ -366,44 +366,10 @@ export default function MealPlan() {
                 className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-all"
               >
                 <Download size={20} />
-                {t('calculator.mealPlan.downloadPdf') || 'Download PDF'}
+                {t('calculator.mealPlan.downloadPdf')}
               </a>
-            )}
-            <button
-              onClick={() => {
-                const element = document.createElement('a')
-                const file = new Blob([generatedMealPlan], { type: 'text/plain' })
-                element.href = URL.createObjectURL(file)
-                element.download = `mealplan_${Date.now()}.txt`
-                document.body.appendChild(element)
-                element.click()
-                document.body.removeChild(element)
-              }}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${
-                mealPlanPdfUrl
-                  ? 'bg-white border-2 border-gray-300 text-charcoal hover:border-primary'
-                  : 'bg-primary text-white hover:bg-primary/90'
-              }`}
-            >
-              <Download size={20} />
-              {t('calculator.mealPlan.downloadTxt') || 'Download tekst'}
-            </button>
-          </div>
-
-          {/* Back to Meal Plan Button */}
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={() => {
-                setGeneratedMealPlan(null)
-                setMealPlanPdfUrl(null)
-                setMealPlanEmailSent(false)
-                setCurrentStep(0)
-              }}
-              className="px-6 py-3 bg-charcoal text-white rounded-lg font-bold hover:bg-charcoal/90 transition-all"
-            >
-              {t('calculator.mealPlan.createNew') || 'Lav ny kostplan'}
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     )

@@ -391,16 +391,34 @@ Det deler Supabase-database med React-appen og serveres via Vite proxy i dev.
 | Newsletter | ✅ Basis | `NewsletterSignup.tsx`, migration 006 | ⚠️ Tæt koblet |
 | AI Content | ✅ Komplet | `lib/chatai.ts`, `lib/kieai.ts`, `lib/openai.ts` | ⚠️ Tæt koblet |
 | Calculator | ✅ Komplet | `pages/Calculator.tsx`, `lib/calculator.ts` | ⚠️ Tæt koblet |
+| Meal Plan Generator | ✅ Komplet | `pages/MealPlan.tsx`, `functions/generate-mealplan/` | ⚠️ Tæt koblet |
 | Auth | ✅ Komplet | `contexts/AuthContext.tsx` | ⚠️ Core platform |
 | Image Upload (FTP) | ✅ Komplet | `functions/upload-image-ftp/`, `AiImageGenerator.tsx` | ✅ Selvstændigt |
 
 **Næste skridt:** Når Social Publisher er færdigbygget, refaktorér det som det første ægte modul med sin egen mappestruktur. Brug det som template for at modularisere resten.
 
 ### Seneste ændringer (marts 2026)
+- **Kostplan-generator (MealPlan)**: Fuldt flow — Calculator → MealPlan → OpenAI generering → PDF → SFTP upload → Email afsendelse. Virker uden login. Logget-ind brugere får profil-data auto-udfyldt og gemt.
+- **Separat mealplan SMTP**: Egen SMTP-konto til kostplan-emails (`meal@shiftingsource.com`). Konfigureres i Admin → Settings → AI & Indhold → Kostplan AI → Kostplan Email (SMTP).
+- **Separat mealplan AI**: Valgfri separat OpenAI API-nøgle og model til kostplaner. Fallback til generel AI-config.
+- **SMTP erstatter Resend**: Al email sendes nu via SMTP (one.com) i stedet for Resend API. Konfigureres i Admin → Settings → Hosting & Email.
+- **Kun GPT 5.x modeller**: Fjernet GPT-4.1 og o4-mini. Default fallback er `gpt-5.2-chat-latest`.
+- **Edge Function auth valgfrit**: `generate-mealplan` deployes med `--no-verify-jwt`. Auth er valgfrit — logget-ind brugere får profil+CRM gemt.
 - **Dual auth**: Login understøtter nu Magic Link + password. Profil-siden har "Opret adgangskode"-sektion.
 - **CRM tilgængelig**: AdminDashboard linker korrekt til `/admin/crm`. CRM-ikon i navbar for admins.
 - **FTP image upload**: Ny Edge Function `upload-image-ftp` — AI-genererede billeder uploades direkte til one.com via FTP.
 - **PubMed-artikler**: 3 forskningsartikler tilføjet (anti-inflammatorisk kost, metabolisk skift, kunstige sødestoffer).
+
+### Kostplan-generator detaljer
+- **Frontend**: `pages/MealPlan.tsx` — 4-steps wizard (måltider → ingredienser → dage → opsummering+email)
+- **Edge Function**: `functions/generate-mealplan/index.ts` — OpenAI → markdown → HTML → PDF (via html2pdf.app) → SFTP upload → Email (SMTP)
+- **Admin settings** (alle i `admin_settings` tabel):
+  - `mealplan_openai_api_key`, `mealplan_ai_model` — separat AI config
+  - `mealplan_smtp_host/port/user/password` — separat SMTP-konto
+  - `mealplan_smtp_from_email/from_name` — afsender-info
+  - `mealplan_system_prompt` — tilpasset system prompt
+- **Migrationer**: 020 (mealplan fields), 021 (SMTP settings), 022 (mealplan SMTP)
+- **Planlagt**: Rate limiting (5 generationer/uge for ikke-klienter), CRM-integration (coach-specifik afsender)
 
 ---
 

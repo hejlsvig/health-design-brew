@@ -203,7 +203,11 @@
       "title": "Your personalized meal plan",
       "subtitle": "Based on your preferences",
       "download": "Download meal plan",
+      "downloadPdf": "Download PDF",
+      "downloadTxt": "Download as text",
       "createNew": "Create new meal plan",
+      "emailSent": "Your meal plan has been sent to your email!",
+      "pdfReady": "PDF is ready for download",
       "calorieInfo": "Daily calories (optional)",
       "calorieNote": "If you don't have a calorie calculation, you can enter daily calories here. We use 1800 kcal as default.",
       "checkEmail": "We've sent you a login link by email. Click the link to log in, then generate your meal plan."

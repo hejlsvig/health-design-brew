@@ -75,9 +75,10 @@ function markdownToHtml(md: string, meta: { name: string; calories: number; days
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`)
-    .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
+    .replace(/^- (.+)$/gm, '<li class="ul">$1</li>')
+    .replace(/^(\d+)\. (.+)$/gm, '<li class="ol">$2</li>')
+    .replace(/((?:<li class="ul">.*<\/li>\n?)+)/g, (match) => `<ul>${match.replace(/ class="ul"/g, '')}</ul>`)
+    .replace(/((?:<li class="ol">.*<\/li>\n?)+)/g, (match) => `<ol>${match.replace(/ class="ol"/g, '')}</ol>`)
     .replace(/^---$/gm, '<hr/>')
     .replace(/\n\n/g, '<br/><br/>')
 
@@ -100,8 +101,9 @@ function markdownToHtml(md: string, meta: { name: string; calories: number; days
     h1 { font-family: 'DM Serif Display', serif; font-size: 22px; color: #2d5a3d; margin: 25px 0 10px; padding-bottom: 5px; border-bottom: 1px solid #e0e0e0; }
     h2 { font-family: 'DM Serif Display', serif; font-size: 18px; color: #2d5a3d; margin: 20px 0 8px; }
     h3 { font-size: 15px; font-weight: 700; color: #444; margin: 15px 0 6px; }
-    ul { padding-left: 20px; margin: 8px 0; }
+    ul, ol { padding-left: 20px; margin: 8px 0; }
     li { margin: 3px 0; font-size: 14px; }
+    ol { list-style-type: decimal; }
     strong { color: #333; }
     hr { border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }
     .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #2d5a3d; font-size: 12px; color: #888; }
