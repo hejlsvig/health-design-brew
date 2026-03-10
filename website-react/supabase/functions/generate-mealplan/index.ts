@@ -385,18 +385,15 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? supabaseServiceKey
 
-    // 1. Verify authentication — any authenticated user
+    // 1. Try to get authenticated user (optional — meal plans work without login)
     const authHeader = req.headers.get('Authorization') || ''
-    if (!authHeader) {
-      return jsonResponse({ error: 'Manglende autorisering' }, 401)
-    }
-
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    })
-    const { data: { user }, error: authError } = await supabaseUser.auth.getUser()
-    if (authError || !user) {
-      return jsonResponse({ error: 'Ikke autoriseret — log ind for at generere en kostplan' }, 401)
+    let user: { id: string; email?: string } | null = null
+    if (authHeader) {
+      const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      })
+      const { data: { user: authUser } } = await supabaseUser.auth.getUser()
+      user = authUser
     }
 
     // 2. Service-role client for admin_settings & profile updates
@@ -406,7 +403,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json()
     const {
       name = 'Klient',
-      email = user.email || '',
+      email = user?.email || '',
       language = 'da',
       gender,
       age,
@@ -544,7 +541,7 @@ Lav ALLE ${num_days} dage med komplette opskrifter.${
       ? `\n\nKRITISK REGEL: ALDRIG bruge: ${excludedList}. Brug alternativer!`
       : ''
 
-    console.log(`[generate-mealplan] model=${model}, calories=${daily_calories}, days=${num_days}, user=${user.email}`)
+    console.log(`[generate-mealplan] model=${model}, calories=${daily_calories}, days=${num_days}, user=${user?.email || email}`)
 
     // ── 4. Call OpenAI ──
     const startTime = Date.now()
@@ -612,39 +609,41 @@ Lav ALLE ${num_days} dage med komplette opskrifter.${
       }
     }
 
-    // ── 7. Save to user profile ──
-    try {
-      await supabase
-        .from('profiles')
-        .update({
-          latest_meal_plan: mealPlanText,
-          meal_plan_generated_at: new Date().toISOString(),
-          ...(pdfUrl ? { meal_plan_pdf_url: pdfUrl } : {}),
-        })
-        .eq('id', user.id)
-    } catch (saveErr) {
-      console.warn('[generate-mealplan] Failed to save to profile:', saveErr)
-    }
+    // ── 7. Save to user profile (only if logged in) ──
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            latest_meal_plan: mealPlanText,
+            meal_plan_generated_at: new Date().toISOString(),
+            ...(pdfUrl ? { meal_plan_pdf_url: pdfUrl } : {}),
+          })
+          .eq('id', user.id)
+      } catch (saveErr) {
+        console.warn('[generate-mealplan] Failed to save to profile:', saveErr)
+      }
 
-    // ── 8. Log CRM activity ──
-    try {
-      await supabase.from('lead_activity').insert({
-        user_id: user.id,
-        activity_type: 'meal_plan_generated',
-        activity_details: {
-          calories: daily_calories,
-          days: num_days,
-          meals_per_day,
-          language,
-          model,
-          pdf_url: pdfUrl || null,
-          email_sent: emailSent,
-          tokens: completionData.usage?.total_tokens || 0,
-        },
-        notes: `Madplan genereret: ${num_days} dage, ${daily_calories} kcal/dag`,
-      })
-    } catch (crmErr) {
-      console.warn('[generate-mealplan] CRM activity log error:', crmErr)
+      // ── 8. Log CRM activity ──
+      try {
+        await supabase.from('lead_activity').insert({
+          user_id: user.id,
+          activity_type: 'meal_plan_generated',
+          activity_details: {
+            calories: daily_calories,
+            days: num_days,
+            meals_per_day,
+            language,
+            model,
+            pdf_url: pdfUrl || null,
+            email_sent: emailSent,
+            tokens: completionData.usage?.total_tokens || 0,
+          },
+          notes: `Madplan genereret: ${num_days} dage, ${daily_calories} kcal/dag`,
+        })
+      } catch (crmErr) {
+        console.warn('[generate-mealplan] CRM activity log error:', crmErr)
+      }
     }
 
     // ── 9. Return response ──
