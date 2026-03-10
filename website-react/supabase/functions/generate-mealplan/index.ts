@@ -261,8 +261,8 @@ async function sendMealPlanEmail(
   const smtpPort = parseInt(settings.smtp_port || '465', 10)
   const smtpUser = settings.smtp_user
   const smtpPass = settings.smtp_password
-  const fromEmail = settings.smtp_from_email || smtpUser
-  const fromName = settings.smtp_from_name || 'Shifting Source'
+  const fromEmail = settings.mealplan_smtp_from_email || settings.smtp_from_email || smtpUser
+  const fromName = settings.mealplan_smtp_from_name || settings.smtp_from_name || 'Shifting Source'
 
   if (!smtpHost || !smtpUser || !smtpPass) {
     console.warn('[generate-mealplan] SMTP not configured in admin_settings, skipping email')
@@ -438,6 +438,7 @@ Deno.serve(async (req: Request) => {
       'site_url',
       'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password',
       'smtp_from_email', 'smtp_from_name',
+      'mealplan_smtp_from_email', 'mealplan_smtp_from_name',
     ])
 
     // Use mealplan-specific keys if available, fallback to shared keys
@@ -446,7 +447,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'OpenAI API key er ikke konfigureret. Gå til Admin → Indstillinger.' }, 500)
     }
 
-    const model = settings.mealplan_ai_model || settings.ai_model || 'gpt-4.1'
+    const model = settings.mealplan_ai_model || settings.ai_model || 'gpt-5.2-chat-latest'
 
     // ── Build the user prompt ──
     const langMap: Record<string, string> = { da: 'dansk', en: 'engelsk', se: 'svensk' }

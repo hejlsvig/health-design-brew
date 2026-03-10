@@ -77,6 +77,8 @@ export default function AdminSettings() {
   // Mealplan AI (separate from article generation)
   const [mealplanApiKey, setMealplanApiKey] = useState('')
   const [mealplanModel, setMealplanModel] = useState('')
+  const [mealplanFromEmail, setMealplanFromEmail] = useState('')
+  const [mealplanFromName, setMealplanFromName] = useState('')
   const [showMealplanKey, setShowMealplanKey] = useState(false)
   const [hasExistingMealplanKey, setHasExistingMealplanKey] = useState(false)
 
@@ -183,6 +185,8 @@ export default function AdminSettings() {
         setHasExistingMealplanKey(true)
       }
       if (s.mealplan_ai_model) setMealplanModel(s.mealplan_ai_model)
+      if (s.mealplan_smtp_from_email) setMealplanFromEmail(s.mealplan_smtp_from_email)
+      if (s.mealplan_smtp_from_name) setMealplanFromName(s.mealplan_smtp_from_name)
 
       if (s.kieai_api_key) {
         setKieaiKey('••••••••' + s.kieai_api_key.slice(-4))
@@ -332,7 +336,9 @@ export default function AdminSettings() {
     if (mealplanModel) {
       await saveSetting('mealplan_ai_model', mealplanModel, user?.id)
     }
-  }, [mealplanApiKey, mealplanModel, user?.id])
+    await saveSetting('mealplan_smtp_from_email', mealplanFromEmail, user?.id)
+    await saveSetting('mealplan_smtp_from_name', mealplanFromName, user?.id)
+  }, [mealplanApiKey, mealplanModel, mealplanFromEmail, mealplanFromName, user?.id])
 
   const saveChatPrompts = useCallback(async () => {
     await saveSetting('chat_system_prompt_da', chatPromptDa, user?.id)
@@ -658,7 +664,40 @@ export default function AdminSettings() {
                 </div>
               </div>
 
-              <SectionSaveButton onSave={saveMealplanAI} label="Gem kostplan AI-indstillinger" />
+              {/* Mealplan From Email */}
+              <div className="border-t border-border pt-4 mt-2">
+                <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-1.5">
+                  <Mail className="h-4 w-4 text-accent" />
+                  Afsender-email til kostplaner
+                </p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Kostplaner sendes fra denne email. Hvis tom, bruges den generelle SMTP-afsender fra Hosting &amp; Email.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Afsender-email</label>
+                    <input
+                      type="email"
+                      value={mealplanFromEmail}
+                      onChange={e => setMealplanFromEmail(e.target.value)}
+                      placeholder="meal@shiftingsource.com"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Afsender-navn</label>
+                    <input
+                      type="text"
+                      value={mealplanFromName}
+                      onChange={e => setMealplanFromName(e.target.value)}
+                      placeholder="Shifting Source Kostplaner"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <SectionSaveButton onSave={saveMealplanAI} label="Gem kostplan-indstillinger" />
             </section>
 
             {/* ── AI Prompt Management ── */}
