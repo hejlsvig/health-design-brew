@@ -79,6 +79,12 @@ export default function AdminSettings() {
   const [mealplanModel, setMealplanModel] = useState('')
   const [mealplanFromEmail, setMealplanFromEmail] = useState('')
   const [mealplanFromName, setMealplanFromName] = useState('')
+  const [mealplanSmtpHost, setMealplanSmtpHost] = useState('')
+  const [mealplanSmtpPort, setMealplanSmtpPort] = useState('465')
+  const [mealplanSmtpUser, setMealplanSmtpUser] = useState('')
+  const [mealplanSmtpPassword, setMealplanSmtpPassword] = useState('')
+  const [showMealplanSmtpPassword, setShowMealplanSmtpPassword] = useState(false)
+  const [hasExistingMealplanSmtpPassword, setHasExistingMealplanSmtpPassword] = useState(false)
   const [showMealplanKey, setShowMealplanKey] = useState(false)
   const [hasExistingMealplanKey, setHasExistingMealplanKey] = useState(false)
 
@@ -187,6 +193,13 @@ export default function AdminSettings() {
       if (s.mealplan_ai_model) setMealplanModel(s.mealplan_ai_model)
       if (s.mealplan_smtp_from_email) setMealplanFromEmail(s.mealplan_smtp_from_email)
       if (s.mealplan_smtp_from_name) setMealplanFromName(s.mealplan_smtp_from_name)
+      if (s.mealplan_smtp_host) setMealplanSmtpHost(s.mealplan_smtp_host)
+      if (s.mealplan_smtp_port) setMealplanSmtpPort(s.mealplan_smtp_port)
+      if (s.mealplan_smtp_user) setMealplanSmtpUser(s.mealplan_smtp_user)
+      if (s.mealplan_smtp_password) {
+        setMealplanSmtpPassword('••••••••')
+        setHasExistingMealplanSmtpPassword(true)
+      }
 
       if (s.kieai_api_key) {
         setKieaiKey('••••••••' + s.kieai_api_key.slice(-4))
@@ -338,7 +351,13 @@ export default function AdminSettings() {
     }
     await saveSetting('mealplan_smtp_from_email', mealplanFromEmail, user?.id)
     await saveSetting('mealplan_smtp_from_name', mealplanFromName, user?.id)
-  }, [mealplanApiKey, mealplanModel, mealplanFromEmail, mealplanFromName, user?.id])
+    await saveSetting('mealplan_smtp_host', mealplanSmtpHost, user?.id)
+    await saveSetting('mealplan_smtp_port', mealplanSmtpPort, user?.id)
+    await saveSetting('mealplan_smtp_user', mealplanSmtpUser, user?.id)
+    if (mealplanSmtpPassword && !mealplanSmtpPassword.startsWith('••••')) {
+      await saveSetting('mealplan_smtp_password', mealplanSmtpPassword, user?.id)
+    }
+  }, [mealplanApiKey, mealplanModel, mealplanFromEmail, mealplanFromName, mealplanSmtpHost, mealplanSmtpPort, mealplanSmtpUser, mealplanSmtpPassword, user?.id])
 
   const saveChatPrompts = useCallback(async () => {
     await saveSetting('chat_system_prompt_da', chatPromptDa, user?.id)
@@ -664,16 +683,68 @@ export default function AdminSettings() {
                 </div>
               </div>
 
-              {/* Mealplan From Email */}
+              {/* Mealplan SMTP */}
               <div className="border-t border-border pt-4 mt-2">
                 <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-1.5">
                   <Mail className="h-4 w-4 text-accent" />
-                  Afsender-email til kostplaner
+                  Kostplan Email (SMTP)
                 </p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Kostplaner sendes fra denne email. Hvis tom, bruges den generelle SMTP-afsender fra Hosting &amp; Email.
+                  Separat SMTP-konto til afsendelse af kostplaner. Hvis felterne er tomme, bruges den generelle SMTP fra Hosting &amp; Email.
+                  <br />
+                  <span className="text-muted-foreground/70">One.com: host = <code className="px-1 py-0.5 rounded bg-sage/20 text-xs">send.one.com</code>, port = <code className="px-1 py-0.5 rounded bg-sage/20 text-xs">465</code></span>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">SMTP Host</label>
+                    <input
+                      type="text"
+                      value={mealplanSmtpHost}
+                      onChange={e => setMealplanSmtpHost(e.target.value)}
+                      placeholder="send.one.com"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">SMTP Port</label>
+                    <input
+                      type="text"
+                      value={mealplanSmtpPort}
+                      onChange={e => setMealplanSmtpPort(e.target.value)}
+                      placeholder="465"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">SMTP Bruger (email)</label>
+                    <input
+                      type="email"
+                      value={mealplanSmtpUser}
+                      onChange={e => setMealplanSmtpUser(e.target.value)}
+                      placeholder="meal@shiftingsource.com"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">SMTP Adgangskode</label>
+                    <div className="relative">
+                      <input
+                        type={showMealplanSmtpPassword ? 'text' : 'password'}
+                        value={mealplanSmtpPassword}
+                        onChange={e => { setMealplanSmtpPassword(e.target.value); setHasExistingMealplanSmtpPassword(false) }}
+                        onFocus={() => { if (hasExistingMealplanSmtpPassword) { setMealplanSmtpPassword(''); setHasExistingMealplanSmtpPassword(false) } }}
+                        placeholder="Adgangskode til email-kontoen"
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMealplanSmtpPassword(!showMealplanSmtpPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showMealplanSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-xs font-medium mb-1">Afsender-email</label>
                     <input
@@ -683,6 +754,7 @@ export default function AdminSettings() {
                       placeholder="meal@shiftingsource.com"
                       className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     />
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Tom = bruger SMTP Bruger</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium mb-1">Afsender-navn</label>

@@ -257,17 +257,21 @@ async function sendMealPlanEmail(
   calories: number,
   days: number,
 ): Promise<boolean> {
-  const smtpHost = settings.smtp_host
-  const smtpPort = parseInt(settings.smtp_port || '465', 10)
-  const smtpUser = settings.smtp_user
-  const smtpPass = settings.smtp_password
-  const fromEmail = settings.mealplan_smtp_from_email || settings.smtp_from_email || smtpUser
+  // Use mealplan-specific SMTP if configured, otherwise fall back to general SMTP
+  const hasMealplanSmtp = settings.mealplan_smtp_host && settings.mealplan_smtp_user && settings.mealplan_smtp_password
+  const smtpHost = hasMealplanSmtp ? settings.mealplan_smtp_host : settings.smtp_host
+  const smtpPort = parseInt((hasMealplanSmtp ? settings.mealplan_smtp_port : settings.smtp_port) || '465', 10)
+  const smtpUser = hasMealplanSmtp ? settings.mealplan_smtp_user : settings.smtp_user
+  const smtpPass = hasMealplanSmtp ? settings.mealplan_smtp_password : settings.smtp_password
+  const fromEmail = settings.mealplan_smtp_from_email || (hasMealplanSmtp ? smtpUser : settings.smtp_from_email) || smtpUser
   const fromName = settings.mealplan_smtp_from_name || settings.smtp_from_name || 'Shifting Source'
 
   if (!smtpHost || !smtpUser || !smtpPass) {
     console.warn('[generate-mealplan] SMTP not configured in admin_settings, skipping email')
     return false
   }
+
+  console.log(`[generate-mealplan] Using ${hasMealplanSmtp ? 'mealplan-specific' : 'general'} SMTP: ${smtpHost}, from: ${fromEmail}`)
 
   const subjects: Record<string, string> = {
     da: `Din personlige keto madplan er klar!`,
@@ -439,6 +443,7 @@ Deno.serve(async (req: Request) => {
       'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password',
       'smtp_from_email', 'smtp_from_name',
       'mealplan_smtp_from_email', 'mealplan_smtp_from_name',
+      'mealplan_smtp_host', 'mealplan_smtp_port', 'mealplan_smtp_user', 'mealplan_smtp_password',
     ])
 
     // Use mealplan-specific keys if available, fallback to shared keys
