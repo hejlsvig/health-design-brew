@@ -48,4 +48,4 @@ jobs:
       - name: Deploy to SFTP
         run: |
           sudo apt-get install -y lftp
-          lftp -u ${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }} sftp://${{ secrets.SFTP_HOST }} -e "set sftp:auto-confirm yes; mirror -R --verbose --delete --exclude images/ dist/ webroots/by-route/shiftingsource.com_/; quit"
+          lftp -u ${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }} sftp://${{ secrets.SFTP_HOST }} -e "set sftp:auto-confirm yes; mirror -R --verbose --delete --exclude images/ --exclude mealplans/ dist/ webroots/by-route/shiftingsource.com_/; quit"

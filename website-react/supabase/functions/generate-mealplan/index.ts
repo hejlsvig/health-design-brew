@@ -20,7 +20,8 @@
  *   daily_calories, meals_per_day, num_days, prep_time,
  *   leftovers, leftovers_strategy, excluded_ingredients, diet_type,
  *   budget, health_anti_inflammatory, health_avoid_processed,
- *   weight_goal, units
+ *   weight_goal, units,
+ *   coach_id (optional — if set, uses coach's SMTP credentials from crm_users)
  * }
  */
 
@@ -59,9 +60,9 @@ async function getSettings(
 
 function markdownToHtml(md: string, meta: { name: string; calories: number; days: number; language: string }): string {
   const langLabels: Record<string, Record<string, string>> = {
-    da: { title: 'Personlig Keto Madplan', generated: 'Genereret', calories: 'kalorier/dag', days: 'dage', for: 'Til', by: 'Lavet af Shifting Source' },
-    en: { title: 'Personal Keto Meal Plan', generated: 'Generated', calories: 'calories/day', days: 'days', for: 'For', by: 'Created by Shifting Source' },
-    se: { title: 'Personlig Keto Matplan', generated: 'Genererad', calories: 'kalorier/dag', days: 'dagar', for: 'Till', by: 'Skapad av Shifting Source' },
+    da: { title: 'Personlig Keto Madplan', generated: 'Genereret', calories: 'kalorier/dag', days: 'dage', for: 'Til', by: 'Powered by Hejlsvig Consulting' },
+    en: { title: 'Personal Keto Meal Plan', generated: 'Generated', calories: 'calories/day', days: 'days', for: 'For', by: 'Powered by Hejlsvig Consulting' },
+    se: { title: 'Personlig Keto Matplan', generated: 'Genererad', calories: 'kalorier/dag', days: 'dagar', for: 'Till', by: 'Powered by Hejlsvig Consulting' },
   }
   const l = langLabels[meta.language] || langLabels['da']
   const date = new Date().toLocaleDateString(meta.language === 'se' ? 'sv-SE' : meta.language === 'en' ? 'en-GB' : 'da-DK', {
@@ -123,7 +124,7 @@ function markdownToHtml(md: string, meta: { name: string; calories: number; days
   ${bodyHtml}
   <div class="footer">
     <div class="brand">Shifting Source</div>
-    <div>shiftingsource.com · ${l.by}</div>
+    <div>${l.by}</div>
   </div>
 </body>
 </html>`
@@ -266,7 +267,7 @@ async function sendMealPlanEmail(
   const smtpUser = hasMealplanSmtp ? settings.mealplan_smtp_user : settings.smtp_user
   const smtpPass = hasMealplanSmtp ? settings.mealplan_smtp_password : settings.smtp_password
   const fromEmail = settings.mealplan_smtp_from_email || (hasMealplanSmtp ? smtpUser : settings.smtp_from_email) || smtpUser
-  const fromName = settings.mealplan_smtp_from_name || settings.smtp_from_name || 'Shifting Source'
+  const fromName = settings.mealplan_smtp_from_name || settings.smtp_from_name || 'Hejlsvig Consulting'
 
   if (!smtpHost || !smtpUser || !smtpPass) {
     console.warn('[generate-mealplan] SMTP not configured in admin_settings, skipping email')
@@ -298,7 +299,7 @@ async function sendMealPlanEmail(
         <p style="font-size: 14px; color: #666;">Du kan altid finde din seneste madplan på din profil på <a href="https://shiftingsource.com/profile" style="color: #D97706;">shiftingsource.com</a>.</p>
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
         <p style="text-align: center; font-size: 12px; color: #888;">
-          Shifting Source &middot; <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
+          Powered by Hejlsvig Consulting<br/>
           Du modtager denne email fordi du har genereret en kostplan.
         </p>
       </div>`,
@@ -318,7 +319,7 @@ async function sendMealPlanEmail(
         <p style="font-size: 14px; color: #666;">You can always find your latest meal plan on your profile at <a href="https://shiftingsource.com/profile" style="color: #D97706;">shiftingsource.com</a>.</p>
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
         <p style="text-align: center; font-size: 12px; color: #888;">
-          Shifting Source &middot; <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
+          Powered by Hejlsvig Consulting<br/>
           You received this email because you generated a meal plan.
         </p>
       </div>`,
@@ -338,7 +339,7 @@ async function sendMealPlanEmail(
         <p style="font-size: 14px; color: #666;">Du kan alltid hitta din senaste matplan pa din profil pa <a href="https://shiftingsource.com/profile" style="color: #D97706;">shiftingsource.com</a>.</p>
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
         <p style="text-align: center; font-size: 12px; color: #888;">
-          Shifting Source &middot; <a href="https://shiftingsource.com" style="color: #888;">shiftingsource.com</a><br/>
+          Powered by Hejlsvig Consulting<br/>
           Du fick detta e-postmeddelande for att du genererade en matplan.
         </p>
       </div>`,
@@ -369,6 +370,120 @@ async function sendMealPlanEmail(
     return true
   } catch (e) {
     console.error('[generate-mealplan] SMTP email error:', e)
+    return false
+  }
+}
+
+// ── Email via explicit SMTP credentials (for coach-specific sending) ──
+
+async function sendMealPlanEmailWithSmtp(
+  smtpHost: string,
+  smtpPort: number,
+  smtpUser: string,
+  smtpPass: string,
+  fromEmail: string,
+  fromName: string,
+  toEmail: string,
+  name: string,
+  pdfUrl: string,
+  language: string,
+  calories: number,
+  days: number,
+): Promise<boolean> {
+  // Reuse the same email template structure
+  const subjects: Record<string, string> = {
+    da: `Din personlige keto madplan er klar!`,
+    en: `Your personal keto meal plan is ready!`,
+    se: `Din personliga keto matplan är klar!`,
+  }
+
+  const bodies: Record<string, string> = {
+    da: `
+      <div style="font-family: 'Nunito Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #2d2d2d;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">Shifting Source</h1>
+          <p style="color: #888; font-size: 14px;">Din keto livsstilsplatform</p>
+        </div>
+        <h2 style="font-family: Georgia, serif; color: #2d5a3d;">Hej ${name}!</h2>
+        <p>Din personlige ${days}-dages keto madplan (${calories} kcal/dag) er nu klar. Den er lavet specifikt til dig af din coach.</p>
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="${pdfUrl}" style="display: inline-block; background: #2d5a3d; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px;">
+            Download din madplan
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #666;">Har du spørgsmål til din madplan? Svar direkte på denne email.</p>
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
+        <p style="text-align: center; font-size: 12px; color: #888;">
+          Powered by Hejlsvig Consulting<br/>
+          Sendt af ${fromName}
+        </p>
+      </div>`,
+    en: `
+      <div style="font-family: 'Nunito Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #2d2d2d;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">Shifting Source</h1>
+          <p style="color: #888; font-size: 14px;">Your keto lifestyle platform</p>
+        </div>
+        <h2 style="font-family: Georgia, serif; color: #2d5a3d;">Hi ${name}!</h2>
+        <p>Your personal ${days}-day keto meal plan (${calories} kcal/day) is now ready. It was created specifically for you by your coach.</p>
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="${pdfUrl}" style="display: inline-block; background: #2d5a3d; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px;">
+            Download your meal plan
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #666;">Got questions about your meal plan? Reply directly to this email.</p>
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
+        <p style="text-align: center; font-size: 12px; color: #888;">
+          Powered by Hejlsvig Consulting<br/>
+          Sent by ${fromName}
+        </p>
+      </div>`,
+    se: `
+      <div style="font-family: 'Nunito Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #2d2d2d;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-family: Georgia, serif; color: #2d5a3d; margin: 0;">Shifting Source</h1>
+          <p style="color: #888; font-size: 14px;">Din keto-livsstilsplattform</p>
+        </div>
+        <h2 style="font-family: Georgia, serif; color: #2d5a3d;">Hej ${name}!</h2>
+        <p>Din personliga ${days}-dagars keto matplan (${calories} kcal/dag) ar nu klar. Den ar skapad specifikt for dig av din coach.</p>
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="${pdfUrl}" style="display: inline-block; background: #2d5a3d; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px;">
+            Ladda ner din matplan
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #666;">Har du fragor om din matplan? Svara direkt pa detta mail.</p>
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
+        <p style="text-align: center; font-size: 12px; color: #888;">
+          Powered by Hejlsvig Consulting<br/>
+          Skickat av ${fromName}
+        </p>
+      </div>`,
+  }
+
+  const subject = subjects[language] || subjects['da']
+  const htmlBody = bodies[language] || bodies['da']
+
+  try {
+    const nodemailer = await import('npm:nodemailer@6')
+    const transporter = nodemailer.default.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: { user: smtpUser, pass: smtpPass },
+      tls: { rejectUnauthorized: false },
+    })
+
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: toEmail,
+      subject,
+      html: htmlBody,
+    })
+
+    console.log(`[generate-mealplan] Coach email sent to ${toEmail} via ${fromEmail} (${smtpHost})`)
+    return true
+  } catch (e) {
+    console.error('[generate-mealplan] Coach SMTP email error:', e)
     return false
   }
 }
@@ -425,6 +540,7 @@ Deno.serve(async (req: Request) => {
       health_avoid_processed = false,
       weight_goal = 0,
       units = 'metric',
+      coach_id = null, // Optional: CRM coach sending meal plan to client
     } = body
 
     if (!daily_calories) {
@@ -531,6 +647,7 @@ VIGTIGE REGLER:
 4. Korrekt kaloriefordeling så total matcher ${daily_calories} kcal.
 5. Variér proteinkilder — aldrig samme protein 2+ dage i træk.
 6. INGEN snacks — kun ${meals_per_day} hovedmåltider.
+7. ALDRIG inkluder marketing, reklame, upsell eller forslag om at bestille yderligere planer/services. Ingen sætninger som "kontakt os", "bestil en længere plan", "7-dages version" osv. Kun madplanen.
 
 Lav ALLE ${num_days} dage med komplette opskrifter.${
   excludedList !== 'ingen' ? `\n\n⚠️ KRITISK: ALDRIG bruge: ${excludedList}. Brug alternativer!` : ''
@@ -605,7 +722,37 @@ Lav ALLE ${num_days} dage med komplette opskrifter.${
     let emailSent = false
     if (pdfUrl && email) {
       try {
-        emailSent = await sendMealPlanEmail(settings, email, name, pdfUrl, language, daily_calories, num_days)
+        // If coach_id is set, look up coach SMTP credentials from crm_users
+        let coachSmtp: { sender_email: string; sender_name: string; smtp_password: string } | null = null
+        if (coach_id) {
+          const { data: coachData } = await supabase
+            .from('crm_users')
+            .select('sender_email, sender_name, smtp_password')
+            .eq('id', coach_id)
+            .single()
+
+          if (coachData?.sender_email && coachData?.smtp_password) {
+            coachSmtp = coachData
+            console.log(`[generate-mealplan] Using coach SMTP: ${coachData.sender_email}`)
+          } else {
+            console.warn(`[generate-mealplan] Coach ${coach_id} missing sender_email or smtp_password, falling back to default SMTP`)
+          }
+        }
+
+        if (coachSmtp) {
+          // Send via coach's own SMTP credentials (same host as mealplan/general SMTP)
+          const smtpHost = settings.mealplan_smtp_host || settings.smtp_host || 'send.one.com'
+          const smtpPort = parseInt(settings.mealplan_smtp_port || settings.smtp_port || '465', 10)
+
+          emailSent = await sendMealPlanEmailWithSmtp(
+            smtpHost, smtpPort,
+            coachSmtp.sender_email, coachSmtp.smtp_password,
+            coachSmtp.sender_email, coachSmtp.sender_name || 'Hejlsvig Consulting',
+            email, name, pdfUrl, language, daily_calories, num_days,
+          )
+        } else {
+          emailSent = await sendMealPlanEmail(settings, email, name, pdfUrl, language, daily_calories, num_days)
+        }
       } catch (emailErr) {
         console.error('[generate-mealplan] Email error (non-fatal):', emailErr)
       }
@@ -641,7 +788,7 @@ Lav ALLE ${num_days} dage med komplette opskrifter.${
             email_sent: emailSent,
             tokens: completionData.usage?.total_tokens || 0,
           },
-          notes: `Madplan genereret: ${num_days} dage, ${daily_calories} kcal/dag`,
+          notes: `Madplan genereret: ${num_days} dage, ${daily_calories} kcal/dag${coach_id ? ' (sendt af coach)' : ''}`,
         })
       } catch (crmErr) {
         console.warn('[generate-mealplan] CRM activity log error:', crmErr)
