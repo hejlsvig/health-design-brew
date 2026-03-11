@@ -392,9 +392,10 @@ For LONGEVITY / WELLNESS:
   - Rich seasonal imagery, vibrant natural scenes, powerful symbolic compositions
 
 COMPOSITION:
-Create a full, edge-to-edge image with visual interest across the entire frame.
-Slightly favor the CENTER and RIGHT for the primary focal point, but do NOT leave the left side empty or faded.
-The website adds a subtle dark gradient for text readability — the image itself should look complete and natural as a whole.
+The LEFT ~30% of the image will have a title overlay with a subtle dark gradient on the website.
+Keep the left side visually SIMPLER — fewer elements, softer focus, or gentle continuation of the scene — but NOT empty, NOT a blank wall, and NOT a hard visual cutoff. It should flow naturally from the rest of the image.
+Place the PRIMARY FOCAL POINT and richest visual detail in the CENTER and RIGHT 70%.
+Keep the overall number of distinct objects/elements moderate (3-6 key elements, not 15+). Quality over quantity — a few beautiful, well-composed elements beat a cluttered frame.
 
 RULES:
 - NEVER create boring, generic, or stock-photo-like images
