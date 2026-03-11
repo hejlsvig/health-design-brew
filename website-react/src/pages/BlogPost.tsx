@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import DOMPurify from 'dompurify'
-import { ArrowLeft, Clock, ExternalLink, Tag, BookOpen, Edit3, Play } from 'lucide-react'
+import { ArrowLeft, Clock, ExternalLink, Tag, BookOpen, Edit3, Play, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { getCategoryLabel, getTagLabel } from '@/lib/articleCategories'
@@ -36,6 +36,8 @@ export default function BlogPost() {
   const [article, setArticle] = useState<Article | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [videoExpanded, setVideoExpanded] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     if (slug) fetchArticle(slug)
@@ -209,30 +211,85 @@ export default function BlogPost() {
         </div>
       </section>
 
-      {/* ── Explainer video (if available for current language) ── */}
-      {article.video_url && article.video_url[lang] && (
-        <section className="bg-charcoal/50 border-b border-border">
-          <div className="container max-w-3xl py-6 md:py-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Play className="h-4 w-4 text-accent" />
-              <span className="text-sm font-medium text-[hsl(var(--charcoal-foreground))]/80">
-                {t('blog.explainerVideo', 'Se video-forklaring')}
-              </span>
+      {/* ── Explainer video (with language fallback: lang → da → first available) ── */}
+      {(() => {
+        const videoSrc = article.video_url?.[lang]
+          || article.video_url?.['da']
+          || (article.video_url ? Object.values(article.video_url)[0] : null)
+        if (!videoSrc) return null
+
+        return (
+          <section className="border-b border-border bg-charcoal/30">
+            <div className="container max-w-3xl py-5 md:py-6">
+              {!videoExpanded ? (
+                /* ── Compact: thumbnail with play button ── */
+                <button
+                  onClick={() => {
+                    setVideoExpanded(true)
+                    setTimeout(() => videoRef.current?.play(), 100)
+                  }}
+                  className="group flex w-full items-center gap-4 rounded-lg bg-charcoal/60 p-3 transition-colors hover:bg-charcoal/80"
+                >
+                  <div className="relative flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black/60">
+                    <video
+                      src={videoSrc}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="absolute inset-0 h-full w-full object-cover opacity-60"
+                    />
+                    <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-accent/90 text-accent-foreground shadow-lg transition-transform group-hover:scale-110">
+                      <Play className="h-4 w-4 ml-0.5" fill="currentColor" />
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <span className="text-sm font-medium text-[hsl(var(--charcoal-foreground))]">
+                      {t('blog.explainerVideo', 'Se video-forklaring')}
+                    </span>
+                    <span className="block text-xs text-[hsl(var(--charcoal-foreground))]/50 mt-0.5">
+                      {t('blog.clickToPlay', 'Klik for at afspille')}
+                    </span>
+                  </div>
+                </button>
+              ) : (
+                /* ── Expanded: full-width player ── */
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Play className="h-4 w-4 text-accent" />
+                      <span className="text-sm font-medium text-[hsl(var(--charcoal-foreground))]/80">
+                        {t('blog.explainerVideo', 'Se video-forklaring')}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        videoRef.current?.pause()
+                        setVideoExpanded(false)
+                      }}
+                      className="rounded-full p-1.5 text-[hsl(var(--charcoal-foreground))]/50 hover:text-[hsl(var(--charcoal-foreground))] hover:bg-charcoal/50 transition-colors"
+                      aria-label={t('common.close', 'Luk')}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="overflow-hidden rounded-lg shadow-lg bg-black">
+                    <video
+                      ref={videoRef}
+                      src={videoSrc}
+                      controls
+                      preload="metadata"
+                      playsInline
+                      className="w-full max-h-[500px]"
+                    >
+                      {t('blog.videoNotSupported', 'Din browser understøtter ikke video.')}
+                    </video>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="overflow-hidden rounded-lg shadow-lg bg-black">
-              <video
-                src={article.video_url[lang]}
-                controls
-                preload="metadata"
-                playsInline
-                className="w-full max-h-[500px]"
-              >
-                {t('blog.videoNotSupported', 'Din browser understøtter ikke video.')}
-              </video>
-            </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )
+      })()}
 
       {/* ── Article body ── */}
       <article className="container max-w-3xl py-12 md:py-16">
