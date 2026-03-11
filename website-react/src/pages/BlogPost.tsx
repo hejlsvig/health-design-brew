@@ -38,6 +38,7 @@ export default function BlogPost() {
   const [notFound, setNotFound] = useState(false)
   const [videoExpanded, setVideoExpanded] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const videoTimeRef = useRef(0)
 
   useEffect(() => {
     if (slug) fetchArticle(slug)
@@ -219,6 +220,9 @@ export default function BlogPost() {
         if (!videoSrc) return null
 
         const collapseVideo = () => {
+          if (videoRef.current) {
+            videoTimeRef.current = videoRef.current.currentTime
+          }
           videoRef.current?.pause()
           setVideoExpanded(false)
         }
@@ -231,7 +235,13 @@ export default function BlogPost() {
                 <button
                   onClick={() => {
                     setVideoExpanded(true)
-                    setTimeout(() => videoRef.current?.play(), 150)
+                    setTimeout(() => {
+                      const v = videoRef.current
+                      if (v) {
+                        if (videoTimeRef.current > 0) v.currentTime = videoTimeRef.current
+                        v.play()
+                      }
+                    }, 150)
                   }}
                   className="group relative w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
                 >
@@ -286,15 +296,19 @@ export default function BlogPost() {
                       playsInline
                       className="w-full max-h-[500px]"
                       onPause={() => {
-                        // Auto-collapse when paused (but not when seeking)
                         const v = videoRef.current
+                        if (v) videoTimeRef.current = v.currentTime
+                        // Auto-collapse when paused (but not when seeking)
                         if (v && (v.ended || (v.paused && !v.seeking))) {
                           setTimeout(() => {
                             if (videoRef.current?.paused) setVideoExpanded(false)
                           }, 600)
                         }
                       }}
-                      onEnded={() => setVideoExpanded(false)}
+                      onEnded={() => {
+                        videoTimeRef.current = 0
+                        setVideoExpanded(false)
+                      }}
                     >
                       {t('blog.videoNotSupported', 'Din browser understøtter ikke video.')}
                     </video>
