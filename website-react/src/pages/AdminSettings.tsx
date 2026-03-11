@@ -1285,14 +1285,16 @@ export default function AdminSettings() {
                     type="text"
                     value={seoGoogleVerification}
                     onChange={e => setSeoGoogleVerification(e.target.value)}
-                    placeholder="google-site-verification=XXXX..."
+                    placeholder="uPdpWcJYFdnc01r3..."
                     className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Meta-tag content fra{' '}
+                    Kun verifikationskoden — ikke hele &quot;google-site-verification=&quot; strengen. Find den i{' '}
                     <a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
                       Google Search Console
-                    </a>.
+                    </a>{' '}→ Indstillinger → Ejerskabsbekræftelse → HTML-tag.
+                    <br />
+                    <strong>OBS:</strong> Ændringer kræver redeploy (værdien er statisk i index.html).
                   </p>
                 </div>
 
@@ -1309,7 +1311,9 @@ export default function AdminSettings() {
                     GA4 Measurement ID fra{' '}
                     <a href="https://analytics.google.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
                       Google Analytics
-                    </a>. Lad feltet stå tomt for at deaktivere tracking.
+                    </a>. Format: G-XXXXXXXXXX.
+                    <br />
+                    <strong>OBS:</strong> Ændringer kræver redeploy (scriptet er statisk i index.html).
                   </p>
                 </div>
               </div>

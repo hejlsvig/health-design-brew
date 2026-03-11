@@ -38,26 +38,15 @@ async function loadConfig() {
 
 /** Pre-load config (call once on app boot) */
 export async function initSEO() {
-  const cfg = await loadConfig()
+  await loadConfig()
 
-  // Inject Google Analytics if configured
-  if (cfg.gaId && !document.getElementById('ga-script')) {
-    const script = document.createElement('script')
-    script.id = 'ga-script'
-    script.async = true
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${cfg.gaId}`
-    document.head.appendChild(script)
-
-    const inline = document.createElement('script')
-    inline.id = 'ga-inline'
-    inline.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${cfg.gaId}');`
-    document.head.appendChild(inline)
-  }
-
-  // Inject Google Search Console verification if configured
+  // GA4 and Google verification are now static in index.html for crawler visibility.
+  // Dynamic fallback: update meta tag if DB value differs from static one.
   const s = await getSettings()
   if (s.seo_google_verification) {
-    setMeta('google-site-verification', s.seo_google_verification)
+    // Strip "google-site-verification=" prefix if user pasted the full string
+    const verificationCode = s.seo_google_verification.replace(/^google-site-verification=/, '')
+    setMeta('google-site-verification', verificationCode)
   }
 }
 
