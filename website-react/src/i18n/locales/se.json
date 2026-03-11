@@ -448,16 +448,23 @@
     "source": "Källa",
     "filter": {
       "all": "Alla",
-      "keto": "Keto",
-      "fasting": "Fasta",
-      "metabolic_health": "Metabolisk Hälsa",
-      "gut_biome": "Tarmflora",
-      "sleep_recovery": "Sömn & Återhämtning",
-      "hormones": "Hormoner",
-      "mental_health": "Mental Hälsa",
-      "inflammation": "Inflammation",
-      "exercise_movement": "Träning & Rörelse",
-      "longevity": "Livslängd"
+      "categories": "Kategorier",
+      "clear": "Återställ",
+      "clearAll": "Visa alla artiklar"
+    },
+    "searchPlaceholder": "Sök i artiklar...",
+    "articleSingular": "artikel",
+    "articlePlural": "artiklar",
+    "explainerVideo": "Se videoförklaring",
+    "videoNotSupported": "Din webbläsare stöder inte video.",
+    "catGroup": {
+      "lifestyle": "Livsstil",
+      "metabolic": "Metabolisk",
+      "body": "Kropp & organ",
+      "conditions": "Sjukdomar",
+      "performance": "Prestation",
+      "supplements": "Kosttillskott",
+      "wellbeing": "Välbefinnande"
     },
     "originallyPublished": "Ursprungligen publicerad",
     "sitePublished": "Publicerad"
@@ -497,6 +504,18 @@
     "emptyNotice": "Våra användarvillkor håller på att utarbetas. Kontakta oss gärna för frågor."
   },
   "admin": {
+    "video": {
+      "title": "Förklaringsvideo",
+      "description": "Ladda upp en förklaringsvideo per språk. Visas ovanför artikeln. Max 100 MB per video.",
+      "languages": "språk",
+      "invalidType": "Bara MP4, WebM och MOV filer är tillåtna",
+      "tooLarge": "Video får vara max 100 MB",
+      "preparing": "Förbereder video...",
+      "uploading": "Laddar upp video till server...",
+      "uploadPrompt": "Klicka för att ladda upp video",
+      "notSupported": "Din webbläsare stöder inte videouppspelning.",
+      "aiGenerate": "AI Videogenerator — kommer snart"
+    },
     "blogTitle": "Bloggadministration",
     "guidesTitle": "Guideadministration",
     "newArticle": "Ny Artikel",

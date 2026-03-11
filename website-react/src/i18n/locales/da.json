@@ -448,16 +448,23 @@
     "source": "Kilde",
     "filter": {
       "all": "Alle",
-      "keto": "Keto",
-      "fasting": "Faste",
-      "metabolic_health": "Metabolisk Sundhed",
-      "gut_biome": "Gut Biome",
-      "sleep_recovery": "Søvn & Restitution",
-      "hormones": "Hormoner",
-      "mental_health": "Mental Sundhed",
-      "inflammation": "Inflammation",
-      "exercise_movement": "Træning & Bevægelse",
-      "longevity": "Longevity"
+      "categories": "Kategorier",
+      "clear": "Nulstil",
+      "clearAll": "Vis alle artikler"
+    },
+    "searchPlaceholder": "Søg i artikler...",
+    "articleSingular": "artikel",
+    "articlePlural": "artikler",
+    "explainerVideo": "Se video-forklaring",
+    "videoNotSupported": "Din browser understøtter ikke video.",
+    "catGroup": {
+      "lifestyle": "Livsstil",
+      "metabolic": "Metabolisk",
+      "body": "Krop & organer",
+      "conditions": "Sygdomme",
+      "performance": "Krop & præstation",
+      "supplements": "Tilskud",
+      "wellbeing": "Velvære"
     },
     "originallyPublished": "Oprindeligt udgivet",
     "sitePublished": "Publiceret"
@@ -497,6 +504,18 @@
     "emptyNotice": "Vores servicevilkår er under udarbejdelse. Kontakt os venligst for spørgsmål."
   },
   "admin": {
+    "video": {
+      "title": "Explainer Video",
+      "description": "Upload en explainer-video per sprog. Vises øverst i artiklen. Max 100 MB per video.",
+      "languages": "sprog",
+      "invalidType": "Kun MP4, WebM og MOV filer er tilladt",
+      "tooLarge": "Video må max være 100 MB",
+      "preparing": "Forbereder video...",
+      "uploading": "Uploader video til server...",
+      "uploadPrompt": "Klik for at uploade video",
+      "notSupported": "Din browser understøtter ikke video-afspilning.",
+      "aiGenerate": "AI Video Generator — kommer snart"
+    },
     "blogTitle": "Blog Administration",
     "guidesTitle": "Guide Administration",
     "newArticle": "Ny Artikel",

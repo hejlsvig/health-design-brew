@@ -15,6 +15,7 @@ import { processImage, getProcessingOptions, formatBytes } from '@/lib/imageProc
 import ImagePreviewWithSafeZone from '@/components/ImagePreviewWithSafeZone'
 import SocialShareModal from '@/components/SocialShareModal'
 import AiImageGenerator from '@/components/AiImageGenerator'
+import VideoUploader from '@/components/VideoUploader'
 
 interface Article {
   id: string
@@ -33,6 +34,8 @@ interface Article {
   original_published_at: string | null
   seo_title: Record<string, string> | null
   seo_description: Record<string, string> | null
+  video_url: Record<string, string> | null
+  video_type: string
   created_at: string
   updated_at: string
 }
@@ -55,6 +58,8 @@ const EMPTY_ARTICLE: EditorArticle = {
   original_published_at: null,
   seo_title: { da: '', en: '', se: '' },
   seo_description: { da: '', en: '', se: '' },
+  video_url: null,
+  video_type: 'none',
 }
 
 const LANGS = [
@@ -172,6 +177,8 @@ export default function AdminBlog() {
       original_published_at: (article as any).original_published_at || null,
       seo_title: article.seo_title || { da: '', en: '', se: '' },
       seo_description: article.seo_description || { da: '', en: '', se: '' },
+      video_url: article.video_url || null,
+      video_type: article.video_type || 'none',
     })
     setTagsInput((article.tags || []).join(', '))
     setEditorLang('da')
@@ -444,6 +451,8 @@ export default function AdminBlog() {
         original_published_at: form.original_published_at || null,
         seo_title: form.seo_title,
         seo_description: form.seo_description,
+        video_url: form.video_url || null,
+        video_type: form.video_type || 'none',
         created_by: user?.id || null,
       }
 
@@ -848,6 +857,17 @@ export default function AdminBlog() {
                 />
               )}
             </div>
+          </div>
+
+          {/* Explainer Video */}
+          <div className="rounded-md border border-border p-4">
+            <VideoUploader
+              videoUrl={form.video_url}
+              articleSlug={form.slug}
+              onChange={(videoUrl, videoType) =>
+                setForm(prev => ({ ...prev, video_url: videoUrl, video_type: videoType }))
+              }
+            />
           </div>
 
           {/* Source */}

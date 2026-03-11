@@ -1,14 +1,16 @@
 /**
  * Supabase Edge Function: upload-image-ftp
  *
- * Downloads an image from a URL and uploads it to one.com via SFTP.
+ * Uploads images or videos to one.com via SFTP.
  * Uses npm:ssh2-sftp-client (pure JS, no native dependencies).
  *
  * Request body:
- *   { url: string, folder: "articles" | "recipes", filename?: string }
+ *   Images: { imageBase64: string, imageContentType: string, folder: "articles" | "recipes", filename?: string }
+ *   Videos: { videoBase64: string, videoContentType: string, folder: "videos", filename?: string }
+ *   Legacy: { url: string, folder: "articles" | "recipes", filename?: string }
  *
  * Returns:
- *   { publicUrl: string, path: string }
+ *   { publicUrl: string, path: string, verified: boolean }
  *
  * SFTP credentials are read from admin_settings:
  *   sftp_host, sftp_username, sftp_password (falls back to ftp_* keys for backwards compat)
@@ -58,7 +60,7 @@ serve(async (req) => {
     // Mode 1 (preferred): { imageBase64, imageContentType, folder, filename }
     // Mode 2 (legacy):    { url, folder, filename }
     const body = await req.json()
-    const { url, imageBase64, imageContentType, folder, filename } = body
+    const { url, imageBase64, imageContentType, videoBase64, videoContentType, folder, filename } = body
 
     if (!folder) {
       return new Response(
@@ -67,16 +69,17 @@ serve(async (req) => {
       )
     }
 
-    if (!url && !imageBase64) {
+    if (!url && !imageBase64 && !videoBase64) {
       return new Response(
-        JSON.stringify({ error: 'Missing required field: url or imageBase64' }),
+        JSON.stringify({ error: 'Missing required field: url, imageBase64, or videoBase64' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    if (!['articles', 'recipes'].includes(folder)) {
+    const allowedFolders = ['articles', 'recipes', 'videos']
+    if (!allowedFolders.includes(folder)) {
       return new Response(
-        JSON.stringify({ error: 'folder must be "articles" or "recipes"' }),
+        JSON.stringify({ error: `folder must be one of: ${allowedFolders.join(', ')}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -145,14 +148,23 @@ serve(async (req) => {
       )
     }
 
-    // Get image data — either from base64 (preferred) or by downloading URL (legacy)
-    let imageBuffer: Buffer
+    // Get media data — image (base64 or URL) or video (base64)
+    let mediaBuffer: Buffer
     let detectedExt = 'png'
+    const isVideo = !!videoBase64
 
-    if (imageBase64) {
-      // ── Mode 1: Base64 image data (no download needed) ──
+    if (videoBase64) {
+      // ── Mode: Video base64 data ──
+      console.log(`[upload-sftp] Received base64 video data (${videoBase64.length} chars), content-type: ${videoContentType || 'unknown'}`)
+      mediaBuffer = Buffer.from(videoBase64, 'base64')
+      const ct = videoContentType || 'video/mp4'
+      if (ct.includes('webm')) detectedExt = 'webm'
+      else if (ct.includes('mov')) detectedExt = 'mov'
+      else detectedExt = 'mp4'
+    } else if (imageBase64) {
+      // ── Mode 1: Image base64 data (no download needed) ──
       console.log(`[upload-sftp] Received base64 image data (${imageBase64.length} chars), content-type: ${imageContentType || 'unknown'}`)
-      imageBuffer = Buffer.from(imageBase64, 'base64')
+      mediaBuffer = Buffer.from(imageBase64, 'base64')
       const ct = imageContentType || 'image/png'
       if (ct.includes('webp')) detectedExt = 'webp'
       else if (ct.includes('jpeg') || ct.includes('jpg')) detectedExt = 'jpg'
@@ -172,7 +184,7 @@ serve(async (req) => {
         )
       }
 
-      imageBuffer = Buffer.from(await imgResponse.arrayBuffer())
+      mediaBuffer = Buffer.from(await imgResponse.arrayBuffer())
       const contentType = imgResponse.headers.get('Content-Type') || 'image/png'
       if (contentType.includes('webp')) detectedExt = 'webp'
       else if (contentType.includes('jpeg') || contentType.includes('jpg')) detectedExt = 'jpg'
@@ -180,7 +192,8 @@ serve(async (req) => {
     }
 
     // Build filename
-    const finalFilename = filename || `ai-${Date.now()}.${detectedExt}`
+    const prefix = isVideo ? 'video' : 'ai'
+    const finalFilename = filename || `${prefix}-${Date.now()}.${detectedExt}`
 
     console.log(`[upload-sftp] Connecting to ${sftpHost}:${sftpPort} ...`)
 
@@ -273,24 +286,31 @@ serve(async (req) => {
         console.log(`[upload-sftp] Using webroot: ${webRoot}`)
       }
 
-      // Ensure images/folder directory exists
-      const imagesDir = `${webRoot}/images`
-      const folderDir = `${webRoot}/images/${folder}`
-
-      if (!(await sftp.exists(imagesDir))) {
-        console.log(`[upload-sftp] Creating: ${imagesDir}`)
-        await sftp.mkdir(imagesDir, true)
+      // Ensure target directory exists
+      // Videos go to /videos/{filename}, images go to /images/{folder}/{filename}
+      let remotePath: string
+      if (isVideo) {
+        const videosDir = `${webRoot}/videos`
+        if (!(await sftp.exists(videosDir))) {
+          console.log(`[upload-sftp] Creating: ${videosDir}`)
+          await sftp.mkdir(videosDir, true)
+        }
+        remotePath = `${videosDir}/${finalFilename}`
+      } else {
+        const imagesDir = `${webRoot}/images`
+        const folderDir = `${webRoot}/images/${folder}`
+        if (!(await sftp.exists(imagesDir))) {
+          console.log(`[upload-sftp] Creating: ${imagesDir}`)
+          await sftp.mkdir(imagesDir, true)
+        }
+        if (!(await sftp.exists(folderDir))) {
+          console.log(`[upload-sftp] Creating: ${folderDir}`)
+          await sftp.mkdir(folderDir, true)
+        }
+        remotePath = `${folderDir}/${finalFilename}`
       }
-
-      if (!(await sftp.exists(folderDir))) {
-        console.log(`[upload-sftp] Creating: ${folderDir}`)
-        await sftp.mkdir(folderDir, true)
-      }
-
-      // Upload the file
-      const remotePath = `${folderDir}/${finalFilename}`
-      console.log(`[upload-sftp] Uploading ${imageBuffer.length} bytes to ${remotePath}`)
-      await sftp.put(imageBuffer, remotePath)
+      console.log(`[upload-sftp] Uploading ${mediaBuffer.length} bytes to ${remotePath}`)
+      await sftp.put(mediaBuffer, remotePath)
       await sftp.end()
 
       console.log(`[upload-sftp] SFTP upload complete`)
@@ -304,7 +324,8 @@ serve(async (req) => {
     }
 
     // Build public URL
-    const publicUrl = `${siteUrl.replace(/\/$/, '')}/images/${folder}/${finalFilename}`
+    const urlPath = isVideo ? `videos/${finalFilename}` : `images/${folder}/${finalFilename}`
+    const publicUrl = `${siteUrl.replace(/\/$/, '')}/${urlPath}`
 
     console.log(`[upload-sftp] Upload complete: ${publicUrl}`)
 
@@ -322,7 +343,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ publicUrl, path: `images/${folder}/${finalFilename}`, verified }),
+      JSON.stringify({ publicUrl, path: urlPath, verified }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
 

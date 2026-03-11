@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Settings, Key, Cpu, Save, Loader2, Check, ArrowLeft, Eye, EyeOff, Image, Server, MessageSquare, RotateCcw, Share2, Instagram, Youtube, Facebook, FileText, ImageIcon, ExternalLink, Sparkles, Shield, Globe, Search, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Mail, Bell, UtensilsCrossed } from 'lucide-react'
+import { Settings, Key, Cpu, Save, Loader2, Check, ArrowLeft, Eye, EyeOff, Image, Server, MessageSquare, RotateCcw, Share2, Instagram, Youtube, Facebook, FileText, ImageIcon, ExternalLink, Sparkles, Shield, Globe, Search, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Mail, Bell, UtensilsCrossed, Video } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSettings, saveSetting, AVAILABLE_MODELS, DEFAULT_ARTICLE_PROMPT } from '@/lib/openai'
 import { supabase } from '@/lib/supabase'
 import { DEFAULT_PROMPTS } from '@/lib/chatai'
-import { DEFAULT_IMAGE_PROMPT_RECIPE, DEFAULT_IMAGE_PROMPT_ARTICLE } from '@/lib/kieai'
+import { DEFAULT_IMAGE_PROMPT_RECIPE, DEFAULT_IMAGE_PROMPT_ARTICLE, DEFAULT_VIDEO_PROMPT_ARTICLE, DEFAULT_VIDEO_PROMPT_RECIPE } from '@/lib/kieai'
 import { cn } from '@/lib/utils'
 
 /** Reusable save button for individual sections */
@@ -116,11 +116,13 @@ export default function AdminSettings() {
   const [chatPromptEn, setChatPromptEn] = useState('')
   const [chatPromptSe, setChatPromptSe] = useState('')
   const [promptTab, setPromptTab] = useState<'da' | 'en' | 'se'>('da')
-  const [promptSection, setPromptSection] = useState<'chat' | 'article' | 'image' | 'mealplan'>('chat')
+  const [promptSection, setPromptSection] = useState<'chat' | 'article' | 'image' | 'video' | 'mealplan'>('chat')
   const [articlePrompt, setArticlePrompt] = useState('')
   const [mealPlanPrompt, setMealPlanPrompt] = useState('')
   const [imagePromptRecipe, setImagePromptRecipe] = useState('')
   const [imagePromptArticle, setImagePromptArticle] = useState('')
+  const [videoPromptArticle, setVideoPromptArticle] = useState('')
+  const [videoPromptRecipe, setVideoPromptRecipe] = useState('')
 
   // Social media
   const [socialInstagram, setSocialInstagram] = useState('')
@@ -233,6 +235,8 @@ export default function AdminSettings() {
       setArticlePrompt(s.article_system_prompt || '')
       setImagePromptRecipe(s.image_prompt_recipe || '')
       setImagePromptArticle(s.image_prompt_article || '')
+      setVideoPromptArticle(s.video_prompt_article || '')
+      setVideoPromptRecipe(s.video_prompt_recipe || '')
       setMealPlanPrompt(s.mealplan_system_prompt || '')
 
       // Social media
@@ -376,6 +380,14 @@ export default function AdminSettings() {
   const saveImagePromptArticle = useCallback(async () => {
     await saveSetting('image_prompt_article', imagePromptArticle, user?.id)
   }, [imagePromptArticle, user?.id])
+
+  const saveVideoPromptArticle = useCallback(async () => {
+    await saveSetting('video_prompt_article', videoPromptArticle, user?.id)
+  }, [videoPromptArticle, user?.id])
+
+  const saveVideoPromptRecipe = useCallback(async () => {
+    await saveSetting('video_prompt_recipe', videoPromptRecipe, user?.id)
+  }, [videoPromptRecipe, user?.id])
 
   const saveMealPlanPrompt = useCallback(async () => {
     await saveSetting('mealplan_system_prompt', mealPlanPrompt, user?.id)
@@ -835,6 +847,18 @@ export default function AdminSettings() {
                   <ImageIcon className="h-3.5 w-3.5" />
                   Billeder
                 </button>
+                <button
+                  onClick={() => setPromptSection('video')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                    promptSection === 'video'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-sage/20'
+                  )}
+                >
+                  <Video className="h-3.5 w-3.5" />
+                  Video
+                </button>
               </div>
 
               {/* Chat Prompts (with language tabs) */}
@@ -992,6 +1016,71 @@ export default function AdminSettings() {
                       {imagePromptArticle ? 'Brugertilpasset' : 'Standard-prompt'} — Editorial/konceptuel fotografi til forskningsartikler
                     </p>
                     <SectionSaveButton onSave={saveImagePromptArticle} label="Gem artikel billed-prompt" />
+                  </div>
+                </div>
+              )}
+
+              {/* Video Prompts */}
+              {promptSection === 'video' && (
+                <div className="space-y-6">
+                  <div className="rounded-md bg-sage/10 border border-sage/20 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Video-prompts bruges til at generere AI-videoscripts</strong> for explainer-videoer.
+                      Artikelprompten laver konceptuelle explainer-videoer. Opskriftprompten laver madlavningsvideoer med automatisk valg af køkkentype (Nordisk, Middelhavet, Fransk, Asiatisk, Moderne).
+                      Stil-variationer injiceres automatisk for visuelt varierede resultater.
+                    </p>
+                  </div>
+
+                  {/* Article Video Prompt */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-medium">
+                        Artikler — Video-prompt
+                      </label>
+                      <button
+                        onClick={() => setVideoPromptArticle('')}
+                        className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Nulstil
+                      </button>
+                    </div>
+                    <textarea
+                      value={videoPromptArticle || DEFAULT_VIDEO_PROMPT_ARTICLE}
+                      onChange={e => setVideoPromptArticle(e.target.value === DEFAULT_VIDEO_PROMPT_ARTICLE ? '' : e.target.value)}
+                      rows={10}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[150px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {videoPromptArticle ? 'Brugertilpasset' : 'Standard-prompt'} — Explainer-videoer med Hook → Context → Key Insight → Closing struktur
+                    </p>
+                    <SectionSaveButton onSave={saveVideoPromptArticle} label="Gem artikel video-prompt" />
+                  </div>
+
+                  {/* Recipe Video Prompt */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-medium">
+                        Opskrifter — Video-prompt
+                      </label>
+                      <button
+                        onClick={() => setVideoPromptRecipe('')}
+                        className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Nulstil
+                      </button>
+                    </div>
+                    <textarea
+                      value={videoPromptRecipe || DEFAULT_VIDEO_PROMPT_RECIPE}
+                      onChange={e => setVideoPromptRecipe(e.target.value === DEFAULT_VIDEO_PROMPT_RECIPE ? '' : e.target.value)}
+                      rows={10}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[150px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {videoPromptRecipe ? 'Brugertilpasset' : 'Standard-prompt'} — Madlavningsvideoer med 5 kulturelle køkkener og appetitsvækkende visuals
+                    </p>
+                    <SectionSaveButton onSave={saveVideoPromptRecipe} label="Gem opskrift video-prompt" />
                   </div>
                 </div>
               )}

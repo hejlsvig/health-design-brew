@@ -1,10 +1,19 @@
 /**
- * Kie.ai Nanobanana Pro integration for AI image generation.
+ * Kie.ai Nanobanana Pro integration for AI image & video generation.
  * Uses Gemini 3.0 Pro via Kie.ai's API.
  *
- * Flow:
- * 1. generateImagePrompt() - uses OpenAI to create a visual prompt from article content
+ * Flow (images):
+ * 1. generateImagePrompt() - uses OpenAI to create a visual prompt from article/recipe content
  * 2. generateImage() - sends prompt to proxy-kieai Edge Function, polls for result, returns image URL
+ *
+ * Flow (videos — prepared, not yet active):
+ * 1. generateVideoPrompt() - uses OpenAI to create a video script from article/recipe content
+ * 2. generateVideo() - TODO: connect AI video generator when provider is chosen
+ *
+ * All prompts are configurable via admin_settings:
+ *   image_prompt_article, image_prompt_recipe, video_prompt_article, video_prompt_recipe
+ *
+ * Style variations are automatically injected for visual diversity.
  *
  * All Kie.ai API calls are proxied through a Supabase Edge Function (proxy-kieai)
  * to avoid CORS issues and keep the API key secure.
@@ -85,6 +94,215 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   }
+}
+
+// -- Variation system for diverse image generation --
+
+/** Style variations injected into prompts to ensure diverse, non-repetitive images */
+const ARTICLE_STYLE_VARIATIONS = [
+  'Use a MACRO CLOSE-UP approach — extreme close-up on a single symbolic object with shallow depth of field. Think scientific macro photography with warm natural light.',
+  'Use an AERIAL / TOP-DOWN perspective — a flat-lay arrangement of symbolic objects on a textured surface (marble, linen, weathered wood). Clean, organized, editorial.',
+  'Use a GOLDEN HOUR LANDSCAPE style — wide establishing shot with warm golden light, long shadows, and a sense of space and possibility. Minimal elements, maximum atmosphere.',
+  'Use a SPLIT COMPOSITION — the image divided into two contrasting halves (light/dark, full/empty, natural/processed). Strong conceptual metaphor.',
+  'Use a DREAMY BOKEH style — soft focus background with one sharp foreground element. Lots of warm light orbs, lens flare, ethereal and calming.',
+  'Use a MINIMALIST NEGATIVE SPACE approach — vast empty space (white, cream, or sage) with one small but powerful focal element. Less is more. Museum-quality simplicity.',
+  'Use a TEXTURAL ABSTRACT approach — extreme close-up on natural textures (water droplets, leaf veins, honey dripping, ice crystals). Abstract but recognizable. Rich tactile quality.',
+  'Use a VINTAGE FILM style — slightly desaturated, warm grain, shot as if on 35mm Kodak Portra. Nostalgic and timeless. Soft vignette edges.',
+  'Use a LABORATORY EDITORIAL style — scientific instruments, glass vessels with colorful liquids, petri dishes with natural elements. Clean white background, precise lighting.',
+  'Use a NATURE STILL LIFE approach — arranged natural elements (stones, leaves, seeds, water) in an intentional composition. Like a Dutch Golden Age painting but bright and modern.',
+  'Use a MOTION BLUR / DYNAMIC style — a sense of movement and energy. Flowing fabrics, splashing water, or wind-swept elements. Capture a decisive moment with warm tones.',
+  'Use an ARCHITECTURAL / GEOMETRIC approach — clean lines, repetitive patterns, structural elements. Think modern wellness clinic or Scandinavian spa interior with natural light.',
+]
+
+const RECIPE_STYLE_VARIATIONS = [
+  'Shot from a LOW ANGLE — camera at table level looking slightly up, making the dish heroic and dramatic. Shallow depth of field on the background.',
+  'Use MOODY SIDE LIGHTING — dark, atmospheric, a single directional light source from the left. Chiaroscuro effect. Like a Rembrandt painting of food.',
+  'BRIGHT OVERHEAD FLAT-LAY — top-down view of the complete spread with all ingredients artfully arranged around the main dish. Clean, organized, Instagram-worthy.',
+  'EXTREME CLOSE-UP — macro shot showing the texture and details of the dish. Steam rising, sauce dripping, crust cracking. Trigger the appetite.',
+  'RUSTIC IN-PROGRESS — the dish being assembled. Flour-dusted surfaces, a hand (out of frame) holding a utensil, ingredients mid-preparation. Story-telling.',
+  'WINDOW LIGHT — natural side light through a large window, casting soft shadows. The dish on a simple wooden table with minimal props. Calm and inviting.',
+  'DIAGONAL COMPOSITION — the plate placed at 45 degrees with props flowing from corner to corner. Dynamic and editorial. Magazine cover energy.',
+  'ENVIRONMENTAL — pull back to show the full table scene or kitchen corner. The dish in context. Storytelling about the meal, not just the food.',
+]
+
+// -- Video style variations --
+
+const ARTICLE_VIDEO_STYLE_VARIATIONS = [
+  'WHITEBOARD EXPLAINER — animated hand-drawn diagrams appearing on a white background. Arrows, icons, and simple illustrations build up as the narration progresses. Clean, educational, Khan Academy-inspired.',
+  'CINEMATIC B-ROLL MONTAGE — slow-motion clips of relevant imagery (nature, lab scenes, food prep, human movement) with smooth transitions. Ken Burns-effect on still images. Professional documentary feel.',
+  'INFOGRAPHIC ANIMATION — data points, charts, and statistics animate in with smooth motion graphics. Numbers count up, bars grow, timelines scroll. Clean modern design with the brand color palette.',
+  'MICROSCOPIC JOURNEY — zoom from macro to micro level. Start with everyday objects and zoom into cellular/molecular animations. Scientific but accessible. Think "Powers of Ten" meets wellness.',
+  'SPLIT-SCREEN COMPARISON — side-by-side before/after or this-vs-that format. Two scenarios playing simultaneously to illustrate contrasts. Clean dividing line, consistent framing.',
+  'STORYTELLING NARRATIVE — follow a day-in-the-life sequence. Morning to evening, showing how the topic integrates into daily routines. Warm, relatable, lifestyle-documentary style.',
+  'MINIMAL KINETIC TYPOGRAPHY — key phrases and statistics animate on screen with smooth transitions. Minimal background imagery, letting the words and numbers carry the message. Bold, impactful.',
+  'NATURE TIMELAPSE METAPHOR — use nature timelapses (sunrise, plant growth, water flow, seasons changing) as visual metaphors for the health concepts being explained. Meditative and beautiful.',
+]
+
+const RECIPE_VIDEO_STYLE_VARIATIONS = [
+  'OVERHEAD STOP-MOTION — top-down camera, ingredients appear and arrange themselves as if by magic. Quick, playful cuts. Hands occasionally enter frame. Clean countertop background.',
+  'STEP-BY-STEP TUTORIAL — classic cooking show format. Close-ups of each preparation step. Clear, well-lit, professional kitchen setting. Hands visible doing the work.',
+  'CINEMATIC FOOD FILM — dramatic slow-motion of key moments: oil sizzling, herbs falling, steam rising, sauce drizzling. Moody lighting, shallow depth of field. Restaurant-quality.',
+  'INGREDIENT SPOTLIGHT — each ingredient gets its own hero moment before coming together. Macro shots of textures, colors, freshness. Then a satisfying assembly sequence.',
+  'TIMELAPSE TRANSFORMATION — accelerated footage of the full cooking process from raw to plated. Satisfying to watch the dish come together in 30 seconds.',
+]
+
+/** Pick a random style variation */
+function getStyleVariation(variations: string[]): string {
+  const idx = Math.floor(Math.random() * variations.length)
+  return variations[idx]
+}
+
+// -- Video Prompt Generation (via OpenAI) — ready for future AI video integration --
+
+/** Default video prompt for articles — used when admin_settings.video_prompt_article is empty */
+export const DEFAULT_VIDEO_PROMPT_ARTICLE = `You are a video content director for a premium health & wellness platform. Based on the article content provided, create a detailed video script/prompt for AI video generation.
+
+The website covers: keto diets, fasting (intermittent fasting, prolonged fasting), metabolic health, weight loss research, and longevity science.
+
+VIDEO PHILOSOPHY:
+This is an EXPLAINER VIDEO — its purpose is to make the article's key concepts accessible and engaging.
+The video will be displayed ABOVE the article as a visual introduction. Think of it as a 30-60 second summary that hooks the viewer and encourages them to read the full article.
+
+STRUCTURE:
+1. HOOK (0-5 sec): An attention-grabbing visual or statement related to the topic
+2. CONTEXT (5-15 sec): Set the scene — what is this about and why does it matter?
+3. KEY INSIGHT (15-40 sec): The main finding, concept, or actionable takeaway — visualized clearly
+4. CLOSING (40-60 sec): A compelling visual conclusion that motivates reading the full article
+
+LANGUAGE & NARRATION:
+- The video will be generated in a specific language (da/en/se) — adapt the narration accordingly
+- Keep narration conversational and accessible — avoid overly academic language
+- Use rhetorical questions to engage the viewer
+- Numbers and statistics should be visualized, not just spoken
+
+VISUAL GUIDELINES:
+- Prefer warm, bright, optimistic visuals — aligned with the brand aesthetic
+- NO human faces or identifiable people
+- Include smooth transitions between scenes
+- Data and statistics should appear as animated graphics
+- Use natural elements (sunlight, water, plants) as visual metaphors when relevant
+
+RULES:
+- The prompt MUST be in English (the AI video tool works in English)
+- Maximum 300 words
+- Include clear scene-by-scene breakdown with timing
+- Describe both visuals AND narration/text for each scene
+- NEVER include logos, watermarks, or branding elements
+- NEVER show human faces or identifiable people
+
+Return ONLY the video prompt/script, nothing else.`
+
+/** Default video prompt for recipes — used when admin_settings.video_prompt_recipe is empty */
+export const DEFAULT_VIDEO_PROMPT_RECIPE = `You are a culinary video director for a premium keto & wellness food platform. Based on the recipe content provided, create a detailed video script/prompt for AI video generation.
+
+VIDEO PHILOSOPHY:
+This is a RECIPE EXPLAINER VIDEO — it shows the dish being prepared in an appetizing, easy-to-follow format.
+The video will be displayed ABOVE the recipe as a visual guide. Think 30-60 seconds that makes the viewer excited to cook this dish.
+
+KITCHEN SELECTION:
+Based on the recipe's cultural origin, tags, and ingredients, choose THE most appropriate kitchen setting:
+1. NORDIC KITCHEN — clean lines, light wood, white countertops, natural daylight, minimalist. For: Danish, Swedish, Nordic dishes.
+2. MEDITERRANEAN KITCHEN — terracotta tiles, olive wood, warm stone, herbs hanging, golden light. For: Italian, Greek, Spanish, Middle Eastern dishes.
+3. FRENCH BISTRO KITCHEN — zinc/marble surfaces, copper pots, linen towels, soft Parisian light. For: French, Belgian, classic European dishes.
+4. ASIAN KITCHEN — dark wood, bamboo elements, wok station, clean contrast, focused lighting. For: Japanese, Chinese, Thai, Korean, Vietnamese dishes.
+5. MODERN PROFESSIONAL KITCHEN — stainless steel, clean white, professional equipment, bright even lighting. For: general keto, fusion, or unspecified origin dishes.
+
+STRUCTURE:
+1. HERO SHOT (0-3 sec): The finished dish in its full glory — appetite trigger
+2. INGREDIENTS (3-10 sec): Quick montage of key ingredients appearing/being arranged
+3. KEY STEPS (10-45 sec): 3-5 most important preparation steps, each 5-7 seconds
+4. PLATING (45-55 sec): The final assembly/plating moment
+5. FINAL SHOT (55-60 sec): The completed dish with garnish — beauty shot
+
+RULES:
+- The prompt MUST be in English
+- Maximum 300 words
+- Scene-by-scene breakdown with timing
+- Describe camera angles, movements, lighting for each scene
+- NO human faces — hands only when preparing food
+- Include the cultural kitchen setting in every scene description
+- Describe textures, steam, sizzle, drizzle — make it appetizing
+
+Return ONLY the video prompt/script, nothing else.`
+
+/**
+ * Uses OpenAI to generate a video prompt based on article/recipe content.
+ * Ready for use when an AI video generator is connected.
+ */
+export async function generateVideoPrompt(
+  contentType: 'article' | 'recipe',
+  title: string,
+  content: string,
+  categories: string[] = [],
+  language: string = 'da',
+): Promise<string> {
+  const settings = await getSettings()
+
+  if (!settings.openai_api_key) {
+    throw new Error('OpenAI API key mangler. Gå til Admin → Indstillinger for at tilføje den.')
+  }
+
+  // Strip HTML tags for cleaner input
+  const plainContent = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  const trimmed = plainContent.length > 3000 ? plainContent.slice(0, 3000) + '...' : plainContent
+
+  // Pick a random style variation for visual diversity
+  const styleVariation = contentType === 'recipe'
+    ? getStyleVariation(RECIPE_VIDEO_STYLE_VARIATIONS)
+    : getStyleVariation(ARTICLE_VIDEO_STYLE_VARIATIONS)
+
+  const langLabel = language === 'da' ? 'Danish' : language === 'se' ? 'Swedish' : 'English'
+
+  const userPrompt = `Content type: ${contentType}
+Title: ${title}
+Target language for narration/text: ${langLabel}
+${categories.length > 0 ? `Categories / Tags (IMPORTANT — use these to determine cultural context and kitchen setting): ${categories.join(', ')}` : ''}
+
+Content:
+${trimmed}
+
+🎬 STYLE DIRECTIVE FOR THIS VIDEO:
+${styleVariation}
+Apply this specific style directive to your video prompt. It overrides the default style approach for this particular video, ensuring visual variety across the site.
+
+Generate a detailed video script/prompt for this ${contentType === 'recipe' ? 'recipe' : 'article'}. The narration/on-screen text should be appropriate for ${langLabel}-speaking audience.`
+
+  const model = settings.ai_model || 'gpt-5.2-chat-latest'
+
+  console.log(`[KieAI] Generating video prompt via OpenAI (${model}, lang: ${language})...`)
+
+  const systemPrompt = contentType === 'recipe'
+    ? (settings.video_prompt_recipe || DEFAULT_VIDEO_PROMPT_RECIPE)
+    : (settings.video_prompt_article || DEFAULT_VIDEO_PROMPT_ARTICLE)
+
+  const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${settings.openai_api_key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      max_completion_tokens: 800,
+    }),
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `OpenAI API fejl: ${response.status}`)
+  }
+
+  const data = await response.json()
+  const prompt = data.choices?.[0]?.message?.content?.trim()
+
+  if (!prompt) throw new Error('Tom respons fra OpenAI')
+
+  console.log(`[KieAI] Video prompt generated (${prompt.length} chars)`)
+  return prompt
 }
 
 // -- Image Prompt Generation (via OpenAI) --
@@ -205,12 +423,21 @@ export async function generateImagePrompt(
   const plainContent = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   const trimmed = plainContent.length > 3000 ? plainContent.slice(0, 3000) + '...' : plainContent
 
+  // Pick a random style variation for visual diversity
+  const styleVariation = contentType === 'recipe'
+    ? getStyleVariation(RECIPE_STYLE_VARIATIONS)
+    : getStyleVariation(ARTICLE_STYLE_VARIATIONS)
+
   const userPrompt = `Content type: ${contentType}
 Title: ${title}
 ${categories.length > 0 ? `Categories / Tags (IMPORTANT — use these to determine the cultural setting): ${categories.join(', ')}` : ''}
 
 Content:
 ${trimmed}
+
+🎨 STYLE DIRECTIVE FOR THIS IMAGE:
+${styleVariation}
+Apply this specific style directive to your image prompt. It overrides the default style approach for this particular image, ensuring visual variety across the site.
 
 Generate a detailed image prompt for this ${contentType === 'recipe' ? 'recipe' : 'article'}. Pay special attention to the categories/tags for the correct cultural context and styling.`
 

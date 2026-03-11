@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import DOMPurify from 'dompurify'
-import { ArrowLeft, Clock, ExternalLink, Tag, BookOpen, Edit3 } from 'lucide-react'
+import { ArrowLeft, Clock, ExternalLink, Tag, BookOpen, Edit3, Play } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { getCategoryLabel } from '@/lib/articleCategories'
@@ -24,6 +24,8 @@ interface Article {
   original_published_at: string | null
   seo_title: Record<string, string> | null
   seo_description: Record<string, string> | null
+  video_url: Record<string, string> | null
+  video_type: string | null
 }
 
 export default function BlogPost() {
@@ -206,6 +208,31 @@ export default function BlogPost() {
           </div>
         </div>
       </section>
+
+      {/* ── Explainer video (if available for current language) ── */}
+      {article.video_url && article.video_url[lang] && (
+        <section className="bg-charcoal/50 border-b border-border">
+          <div className="container max-w-3xl py-6 md:py-8">
+            <div className="flex items-center gap-2 mb-3">
+              <Play className="h-4 w-4 text-accent" />
+              <span className="text-sm font-medium text-[hsl(var(--charcoal-foreground))]/80">
+                {t('blog.explainerVideo', 'Se video-forklaring')}
+              </span>
+            </div>
+            <div className="overflow-hidden rounded-lg shadow-lg bg-black">
+              <video
+                src={article.video_url[lang]}
+                controls
+                preload="metadata"
+                playsInline
+                className="w-full max-h-[500px]"
+              >
+                {t('blog.videoNotSupported', 'Din browser understøtter ikke video.')}
+              </video>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Article body ── */}
       <article className="container max-w-3xl py-12 md:py-16">

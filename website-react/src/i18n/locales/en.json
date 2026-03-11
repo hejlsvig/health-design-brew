@@ -448,16 +448,23 @@
     "source": "Source",
     "filter": {
       "all": "All",
-      "keto": "Keto",
-      "fasting": "Fasting",
-      "metabolic_health": "Metabolic Health",
-      "gut_biome": "Gut Biome",
-      "sleep_recovery": "Sleep & Recovery",
-      "hormones": "Hormones",
-      "mental_health": "Mental Health",
-      "inflammation": "Inflammation",
-      "exercise_movement": "Exercise & Movement",
-      "longevity": "Longevity"
+      "categories": "Categories",
+      "clear": "Reset",
+      "clearAll": "Show all articles"
+    },
+    "searchPlaceholder": "Search articles...",
+    "articleSingular": "article",
+    "articlePlural": "articles",
+    "explainerVideo": "Watch video explainer",
+    "videoNotSupported": "Your browser does not support video.",
+    "catGroup": {
+      "lifestyle": "Lifestyle",
+      "metabolic": "Metabolic",
+      "body": "Body & Organs",
+      "conditions": "Conditions",
+      "performance": "Performance",
+      "supplements": "Supplements",
+      "wellbeing": "Wellbeing"
     },
     "originallyPublished": "Originally published",
     "sitePublished": "Published"
@@ -497,6 +504,18 @@
     "emptyNotice": "Our terms of service are being prepared. Please contact us for questions."
   },
   "admin": {
+    "video": {
+      "title": "Explainer Video",
+      "description": "Upload an explainer video per language. Displayed above the article. Max 100 MB per video.",
+      "languages": "languages",
+      "invalidType": "Only MP4, WebM and MOV files are allowed",
+      "tooLarge": "Video must be under 100 MB",
+      "preparing": "Preparing video...",
+      "uploading": "Uploading video to server...",
+      "uploadPrompt": "Click to upload video",
+      "notSupported": "Your browser does not support video playback.",
+      "aiGenerate": "AI Video Generator — coming soon"
+    },
     "blogTitle": "Blog Administration",
     "guidesTitle": "Guide Administration",
     "newArticle": "New Article",
