@@ -218,36 +218,44 @@ export default function BlogPost() {
           || (article.video_url ? Object.values(article.video_url)[0] : null)
         if (!videoSrc) return null
 
+        const collapseVideo = () => {
+          videoRef.current?.pause()
+          setVideoExpanded(false)
+        }
+
         return (
-          <section className="border-b border-border bg-charcoal/30">
+          <section className="border-b border-border bg-muted/60">
             <div className="container max-w-3xl py-5 md:py-6">
               {!videoExpanded ? (
-                /* ── Compact: thumbnail with play button ── */
+                /* ── Compact: preview card with play overlay ── */
                 <button
                   onClick={() => {
                     setVideoExpanded(true)
-                    setTimeout(() => videoRef.current?.play(), 100)
+                    setTimeout(() => videoRef.current?.play(), 150)
                   }}
-                  className="group flex w-full items-center gap-4 rounded-lg bg-charcoal/60 p-3 transition-colors hover:bg-charcoal/80"
+                  className="group relative w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
                 >
-                  <div className="relative flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black/60">
+                  <div className="relative aspect-video max-h-48 w-full bg-black/80">
                     <video
                       src={videoSrc}
                       preload="metadata"
                       muted
                       playsInline
-                      className="absolute inset-0 h-full w-full object-cover opacity-60"
+                      className="absolute inset-0 h-full w-full object-cover opacity-50"
                     />
-                    <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-accent/90 text-accent-foreground shadow-lg transition-transform group-hover:scale-110">
-                      <Play className="h-4 w-4 ml-0.5" fill="currentColor" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/90 text-accent-foreground shadow-lg transition-transform group-hover:scale-110">
+                        <Play className="h-6 w-6 ml-0.5" fill="currentColor" />
+                      </div>
                     </div>
                   </div>
-                  <div className="text-left">
-                    <span className="text-sm font-medium text-[hsl(var(--charcoal-foreground))]">
+                  <div className="flex items-center gap-2 px-4 py-2.5 text-left">
+                    <Play className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <span className="text-sm font-medium text-foreground">
                       {t('blog.explainerVideo', 'Se video-forklaring')}
                     </span>
-                    <span className="block text-xs text-[hsl(var(--charcoal-foreground))]/50 mt-0.5">
-                      {t('blog.clickToPlay', 'Klik for at afspille')}
+                    <span className="text-xs text-muted-foreground">
+                      — {t('blog.clickToPlay', 'Klik for at afspille')}
                     </span>
                   </div>
                 </button>
@@ -257,22 +265,19 @@ export default function BlogPost() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Play className="h-4 w-4 text-accent" />
-                      <span className="text-sm font-medium text-[hsl(var(--charcoal-foreground))]/80">
+                      <span className="text-sm font-medium text-foreground/80">
                         {t('blog.explainerVideo', 'Se video-forklaring')}
                       </span>
                     </div>
                     <button
-                      onClick={() => {
-                        videoRef.current?.pause()
-                        setVideoExpanded(false)
-                      }}
-                      className="rounded-full p-1.5 text-[hsl(var(--charcoal-foreground))]/50 hover:text-[hsl(var(--charcoal-foreground))] hover:bg-charcoal/50 transition-colors"
+                      onClick={collapseVideo}
+                      className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                       aria-label={t('common.close', 'Luk')}
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="overflow-hidden rounded-lg shadow-lg bg-black">
+                  <div className="overflow-hidden rounded-lg border border-border shadow-lg bg-black">
                     <video
                       ref={videoRef}
                       src={videoSrc}
@@ -280,6 +285,16 @@ export default function BlogPost() {
                       preload="metadata"
                       playsInline
                       className="w-full max-h-[500px]"
+                      onPause={() => {
+                        // Auto-collapse when paused (but not when seeking)
+                        const v = videoRef.current
+                        if (v && (v.ended || (v.paused && !v.seeking))) {
+                          setTimeout(() => {
+                            if (videoRef.current?.paused) setVideoExpanded(false)
+                          }, 600)
+                        }
+                      }}
+                      onEnded={() => setVideoExpanded(false)}
                     >
                       {t('blog.videoNotSupported', 'Din browser understøtter ikke video.')}
                     </video>
