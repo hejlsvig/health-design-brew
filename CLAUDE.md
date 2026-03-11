@@ -306,7 +306,7 @@ Rækkefølge: 001 → 027. Alle migrations er idempotente (`IF NOT EXISTS`, `ON 
 - **Advisors/sikkerhedstjek** — Kør `get_advisors` efter DDL-ændringer
 
 ### Anders kører selv:
-- **`git push`** — VM'en har ingen GitHub-autentificering
+- **`git push`** — VM'en har ingen GitHub-autentificering. Anders' repo-sti: `cd /Users/andershejlsvig/Desktop/Bog\ /CRM_Web && git push`
 - **Browser-test** — Visuelt tjek af ændringer på shiftingsource.com
 - **Supabase CLI secrets** — `supabase secrets set ...` (kræver lokal CLI + auth)
 - **Google Search Console / GA verificering** — Log ind og verificer i Googles dashboards
