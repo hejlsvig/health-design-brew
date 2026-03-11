@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { handleImageError } from '@/lib/imageFallback'
+import { getTagLabel } from '@/lib/articleCategories'
 
 interface Guide {
   id: string
@@ -198,7 +199,7 @@ export default function GuidePost() {
                 className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground"
               >
                 <Tag className="h-3 w-3" />
-                {tag}
+                {getTagLabel(tag, lang)}
               </span>
             ))}
           </div>

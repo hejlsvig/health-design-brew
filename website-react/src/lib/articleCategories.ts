@@ -123,6 +123,43 @@ export function getCategoryLabel(slug: string, lang: string): string {
   return labels[lang] || labels['da'] || labels['en'] || slug
 }
 
+/**
+ * Get a localized label for a free-text tag.
+ * Tries to match the tag to a known category by:
+ *   1. Exact slug match (e.g. "ampk" → AMPK)
+ *   2. Normalized slug match (e.g. "insulin resistance" → "insulin_resistance")
+ *   3. Reverse label match in any language (e.g. "Fat Oxidation" → "Fedtforbrænding")
+ * Falls back to the raw tag text if no match is found.
+ */
+export function getTagLabel(tag: string, lang: string): string {
+  const trimmed = tag.trim()
+  const lower = trimmed.toLowerCase()
+
+  // 1. Direct slug match
+  if (CATEGORY_LABELS[lower as ArticleCategory]) {
+    return getCategoryLabel(lower, lang)
+  }
+
+  // 2. Normalized slug match (spaces/hyphens → underscores)
+  const normalized = lower.replace(/[\s-]+/g, '_')
+  if (CATEGORY_LABELS[normalized as ArticleCategory]) {
+    return getCategoryLabel(normalized, lang)
+  }
+
+  // 3. Reverse label match — find category whose label (in any lang) matches the tag
+  for (const cat of ARTICLE_CATEGORIES) {
+    const labels = CATEGORY_LABELS[cat]
+    for (const l of Object.values(labels)) {
+      if (l.toLowerCase() === lower) {
+        return getCategoryLabel(cat, lang)
+      }
+    }
+  }
+
+  // No match — return raw tag with first letter capitalized
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+}
+
 /** Get all categories with their labels for a given language */
 export function getCategoryOptions(lang: string): { value: ArticleCategory; label: string }[] {
   return ARTICLE_CATEGORIES.map(cat => ({

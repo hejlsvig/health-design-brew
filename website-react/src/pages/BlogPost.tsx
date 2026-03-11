@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify'
 import { ArrowLeft, Clock, ExternalLink, Tag, BookOpen, Edit3, Play } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import { getCategoryLabel } from '@/lib/articleCategories'
+import { getCategoryLabel, getTagLabel } from '@/lib/articleCategories'
 import { setSEO, setArticleJsonLd, clearSEO } from '@/lib/seo'
 import { handleImageError } from '@/lib/imageFallback'
 
@@ -274,7 +274,7 @@ export default function BlogPost() {
                 className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground"
               >
                 <Tag className="h-3 w-3" />
-                {tag}
+                {getTagLabel(tag, lang)}
               </span>
             ))}
           </div>
