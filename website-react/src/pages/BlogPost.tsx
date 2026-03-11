@@ -140,7 +140,7 @@ export default function BlogPost() {
           <img
             src={article.featured_image}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-30"
+            className="absolute inset-0 h-full w-full object-cover opacity-50"
             onError={handleImageError}
           />
         )}

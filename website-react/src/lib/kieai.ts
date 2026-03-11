@@ -391,10 +391,10 @@ For LONGEVITY / WELLNESS:
   - The beauty of nature and time — but make it DRAMATIC
   - Rich seasonal imagery, vibrant natural scenes, powerful symbolic compositions
 
-COMPOSITION — TEXT OVERLAY ZONE:
-The LEFT ~40% of the image will have a title overlay on the website.
-Place the main focal point in the CENTER or RIGHT side.
-The LEFT side should have softer, less busy content (gradients, bokeh, or simpler textures) — but NOT empty white space. It should still have visual interest, just not competing with text.
+COMPOSITION:
+Create a full, edge-to-edge image with visual interest across the entire frame.
+Slightly favor the CENTER and RIGHT for the primary focal point, but do NOT leave the left side empty or faded.
+The website adds a subtle dark gradient for text readability — the image itself should look complete and natural as a whole.
 
 RULES:
 - NEVER create boring, generic, or stock-photo-like images

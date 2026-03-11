@@ -80,7 +80,7 @@
 }
 
 .overlay-gradient {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.25), transparent 60%);
 }
 
 /* ═══ TIPTAP EDITOR STYLES — uses site design system ═══ */
