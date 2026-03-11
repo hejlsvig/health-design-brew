@@ -100,18 +100,18 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 /** Style variations injected into prompts to ensure diverse, non-repetitive images */
 const ARTICLE_STYLE_VARIATIONS = [
-  'Use a MACRO CLOSE-UP approach — extreme close-up on a single symbolic object with shallow depth of field. Think scientific macro photography with warm natural light.',
-  'Use an AERIAL / TOP-DOWN perspective — a flat-lay arrangement of symbolic objects on a textured surface (marble, linen, weathered wood). Clean, organized, editorial.',
-  'Use a GOLDEN HOUR LANDSCAPE style — wide establishing shot with warm golden light, long shadows, and a sense of space and possibility. Minimal elements, maximum atmosphere.',
-  'Use a SPLIT COMPOSITION — the image divided into two contrasting halves (light/dark, full/empty, natural/processed). Strong conceptual metaphor.',
-  'Use a DREAMY BOKEH style — soft focus background with one sharp foreground element. Lots of warm light orbs, lens flare, ethereal and calming.',
-  'Use a MINIMALIST NEGATIVE SPACE approach — vast empty space (white, cream, or sage) with one small but powerful focal element. Less is more. Museum-quality simplicity.',
-  'Use a TEXTURAL ABSTRACT approach — extreme close-up on natural textures (water droplets, leaf veins, honey dripping, ice crystals). Abstract but recognizable. Rich tactile quality.',
-  'Use a VINTAGE FILM style — slightly desaturated, warm grain, shot as if on 35mm Kodak Portra. Nostalgic and timeless. Soft vignette edges.',
-  'Use a LABORATORY EDITORIAL style — scientific instruments, glass vessels with colorful liquids, petri dishes with natural elements. Clean white background, precise lighting.',
-  'Use a NATURE STILL LIFE approach — arranged natural elements (stones, leaves, seeds, water) in an intentional composition. Like a Dutch Golden Age painting but bright and modern.',
-  'Use a MOTION BLUR / DYNAMIC style — a sense of movement and energy. Flowing fabrics, splashing water, or wind-swept elements. Capture a decisive moment with warm tones.',
-  'Use an ARCHITECTURAL / GEOMETRIC approach — clean lines, repetitive patterns, structural elements. Think modern wellness clinic or Scandinavian spa interior with natural light.',
+  'EXPLODING INGREDIENTS — a dynamic explosion of colorful ingredients flying outward from center. Avocados, nuts, berries, oils, herbs caught mid-air in a dramatic burst. High-speed photography feel, vivid colors against a dark or contrasting background. Energy and abundance.',
+  'SURREAL FOOD LANDSCAPE — a miniature fantasy world built from foods and natural ingredients. Think tiny trees made of broccoli, rivers of olive oil, mountains of nuts. Tilt-shift perspective, dreamlike, imaginative, richly colored. Makes you stop scrolling.',
+  'BOLD COLOR BLOCKS — a striking color-blocked composition. Rich sections of deep green, amber gold, and warm terracotta filled with relevant natural elements. Graphic design meets photography. Strong visual impact, almost poster-like.',
+  'DRAMATIC OVERHEAD ABUNDANCE — a rich, overflowing spread shot from directly above. Multiple colorful ingredients, textures, and natural elements filling the entire frame edge-to-edge. Organized chaos. Think National Geographic food photography meets art installation.',
+  'CROSS-SECTION REVEAL — dramatic cross-sections of fruits, vegetables, or natural elements revealing their hidden interior beauty. Macro detail, vibrant colors, almost scientific but deeply beautiful. Like seeing nature\'s hidden architecture.',
+  'LIQUID ART — dynamic liquid photography with colorful oils, juices, or water in motion. Splashes, drops, swirls of color colliding. High-speed capture, vivid colors, abstract but clearly food/nature-related. Gallery-worthy.',
+  'FIRE AND WARMTH — warm flames, glowing embers, candlelight, or golden firelight illuminating ingredients and natural elements. Cozy but dramatic. Rich oranges, deep reds, warm ambers. Primal and inviting.',
+  'SEASONAL TAPESTRY — a rich seasonal composition that tells a story. Autumn leaves with spices and warm foods, or summer abundance with bright fruits and herbs. Layered, textured, multiple depths. Like peering into a still life painting.',
+  'NEON NATURE — natural ingredients and elements lit with unexpected, vibrant colored lighting (cyan, magenta, amber). Creates a modern, almost futuristic look while keeping organic subjects. Edgy wellness.',
+  'SMOKE AND MYSTERY — wisps of steam, smoke, or mist swirling around key ingredients or symbolic objects. Atmospheric, intriguing, cinematic. Dark background with spotlit subjects emerging from the haze.',
+  'GEOMETRIC FOOD ART — ingredients meticulously arranged into geometric patterns, gradients, or mandalas. Perfectly organized by color and size. Satisfying, precise, Instagram-worthy. The beauty of order in nature.',
+  'DOUBLE EXPOSURE BLEND — a creative double-exposure effect merging a landscape or nature scene with close-up food/ingredient imagery. Two worlds overlapping. Dreamy, artistic, conceptual. Think album cover meets wellness magazine.',
 ]
 
 const RECIPE_STYLE_VARIATIONS = [
@@ -349,58 +349,61 @@ export const DEFAULT_IMAGE_PROMPT_ARTICLE = `You are an editorial art director f
 The website covers: keto diets, fasting (intermittent fasting, prolonged fasting), metabolic health, weight loss research, and longevity science.
 
 ARTICLE IMAGE PHILOSOPHY:
-Articles are NOT recipes. They are about research, studies, guides, science, and lifestyle concepts.
-The image should be CONCEPTUAL and EDITORIAL — like a beautiful magazine feature image.
-Think warm editorial photography, bright conceptual still life, or inviting lifestyle shots — NOT food plating on a table.
+You create SCROLL-STOPPING, VISUALLY STUNNING images for a premium health & wellness magazine.
+These are NOT boring stock photos. Every image should make someone pause their scrolling and think "wow."
+Think bold, vibrant, creative, and unexpected — like the cover of a high-end food or science magazine.
 
-OVERALL MOOD & LIGHTING:
-- Prefer BRIGHT, WARM, and INVITING imagery — think morning light, golden hour, natural daylight
-- Avoid dark, moody, or dramatic lighting unless the topic specifically calls for it
-- Use soft natural light, warm tones (amber, golden, sage green), and clean backgrounds
-- The feel should be optimistic, healthy, and approachable — like a premium wellness brand
+CRITICAL RULE — BE BOLD, NOT BORING:
+- NEVER generate plain, single-object-on-plain-background images (a glass bottle, a single leaf, one pill)
+- NEVER generate generic stock-photo imagery (handshake, lightbulb, clipboard, stethoscope)
+- ALWAYS fill the frame with visual richness — color, texture, depth, movement, or abundance
+- ALWAYS make the image visually complex enough to be interesting at both thumbnail and full size
+- Think "would I click on this?" — if no, make it bolder
 
-STYLE APPROACHES (choose the best fit based on the article topic):
+MOOD & ENERGY:
+- VIBRANT and RICH colors — saturated greens, deep ambers, warm golds, vivid berries, rich earth tones
+- HIGH VISUAL ENERGY — movement, abundance, texture, contrast, layers of depth
+- The image should feel ALIVE — not sterile, clinical, or empty
+- Mix warmth with boldness. It should feel premium AND exciting
 
-For RESEARCH / STUDY articles (comparisons, clinical trials, meta-analyses):
-  - Clean conceptual imagery: e.g. two contrasting paths, symbolic objects representing the study's comparison
-  - Scientific editorial: laboratory glassware with colorful liquids, petri dishes with food elements, a scale balancing different foods
-  - Data-inspired: geometric patterns, flowing organic shapes, clean minimalist compositions with bright backgrounds
+SUBJECT MATTER BY TOPIC:
+
+For RESEARCH / SCIENCE articles:
+  - Show the SUBJECT of the research, not "science" itself. An article about ketosis should show vibrant keto foods in a creative way, not a test tube
+  - Make it conceptual and creative: dramatic compositions, unexpected perspectives, surreal arrangements
+  - Combine natural ingredients with dynamic energy — explosions of color, dramatic lighting, creative arrangements
 
 For FASTING articles:
-  - Empty plate on a beautiful sunlit surface, a single glass of water, an hourglass in morning light, sunrise through a window
-  - Time-focused: clock elements, transitions from dawn to morning, bright airy atmosphere
-  - Minimalism and negative space with warm tones — the emptiness feels peaceful, not stark
+  - NOT an empty plate. Instead: dramatic time-related imagery, transformation concepts, the beauty of simplicity but done BOLDLY
+  - Contrast and drama: light vs shadow, full vs empty, but visually striking
 
-For KETO / LOW-CARB LIFESTYLE articles:
-  - Abundance of healthy fats: avocados, olive oil, nuts — shot as an artistic arrangement with natural light
-  - Macro close-ups: the texture of an avocado half, oil droplets catching light, cross-section of a nut
-  - Lifestyle mood: morning coffee with butter, a bright calm kitchen scene at golden hour
+For KETO / NUTRITION articles:
+  - Rich abundance of colorful ingredients in creative, artistic arrangements
+  - Think food art installations, dramatic overhead spreads, surreal food landscapes
+  - Make healthy fats look LUXURIOUS — glistening oils, perfectly cut avocados, rich textures
 
-For WEIGHT LOSS / BODY COMPOSITION articles:
-  - Symbolic: a measuring tape loosely coiled, transformation imagery with light
-  - Movement and energy: sense of progress, vitality, open bright spaces
-  - Nature and renewal: fresh morning light, open landscapes, sense of freedom
+For DISEASE / HEALTH CONDITION articles:
+  - Focus on HEALING and VITALITY, not sickness
+  - Vibrant ingredients known for the condition, arranged dramatically
+  - Transformation imagery: darkness to light, wilted to fresh, but always beautiful
 
-For LONGEVITY / HEALTH SCIENCE:
-  - Timeless imagery: hourglasses in sunlight, tree rings, flowing water
-  - Vitality: vibrant colors, fresh natural elements, sense of energy and youth
-  - Lab-meets-nature: scientific elements alongside organic, natural materials in bright settings
+For LONGEVITY / WELLNESS:
+  - The beauty of nature and time — but make it DRAMATIC
+  - Rich seasonal imagery, vibrant natural scenes, powerful symbolic compositions
 
 COMPOSITION — TEXT OVERLAY ZONE:
-The LEFT ~40% of the image will have a title/text overlay on the website's full-size view.
-Therefore: place the main focal point in the CENTER or RIGHT side of the frame.
-The LEFT side should be kept clean — soft gradients, out-of-focus areas, gentle negative space, or light simple textures — so text remains readable on top of it.
-Think of it like a magazine spread: the visual impact is right-of-center, and the left provides a calm light backdrop for the headline.
+The LEFT ~40% of the image will have a title overlay on the website.
+Place the main focal point in the CENTER or RIGHT side.
+The LEFT side should have softer, less busy content (gradients, bokeh, or simpler textures) — but NOT empty white space. It should still have visual interest, just not competing with text.
 
 RULES:
-- NEVER make it look like a recipe photo with food plated on a table
-- Think magazine editorial, conceptual art, or warm lifestyle photography
-- Prefer natural light and warm tones over dramatic or moody lighting
-- Embrace negative space, unusual angles, macro photography, or abstract composition
+- NEVER create boring, generic, or stock-photo-like images
+- NEVER use a single small object on a plain background
+- ALWAYS fill the frame with visual richness and color
 - The prompt MUST be in English
 - Maximum 200 words
 - NEVER mention text, logos, watermarks, or human faces/hands/bodies
-- NEVER describe specific food dishes being served or plated
+- NEVER describe a plated dish on a dining table (it's not a recipe)
 
 Return ONLY the image prompt text, nothing else.`
 
