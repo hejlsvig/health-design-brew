@@ -33,7 +33,7 @@ const CATEGORY_GROUPS: { labelKey: string; fallback: string; cats: readonly Arti
   {
     labelKey: 'blog.catGroup.metabolic',
     fallback: 'Metabolisk',
-    cats: ['metabolic_health', 'insulin_resistance', 'autophagy', 'mitochondria', 'ampk', 'mtor', 'ketones'],
+    cats: ['metabolic_health', 'insulin_resistance', 'autophagy', 'mitochondria', 'ampk', 'mtor', 'sirt1', 'ketones'],
   },
   {
     labelKey: 'blog.catGroup.body',

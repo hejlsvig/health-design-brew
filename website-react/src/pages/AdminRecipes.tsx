@@ -57,7 +57,7 @@ interface Instruction {
   step_text: string
 }
 
-/* (resolveIngredients / resolveInstructions / wrapMultiLang removed â multi-lang editing is now native) */
+/* (resolveIngredients / resolveInstructions / wrapMultiLang removed · multi-lang editing is now native) */
 
 type EditorRecipe = {
   slug: string
@@ -429,14 +429,14 @@ export default function AdminRecipes() {
       const updatedCategories = { ...form.categories, [editorLang]: categoriesInput.split(',').map(s => s.trim()).filter(Boolean) }
       const updatedTags = { ...form.tags, [editorLang]: tagsInput.split(',').map(s => s.trim()).filter(Boolean) }
 
-      // Clean ingredients per language â remove empty rows
+      // Clean ingredients per language · remove empty rows
       const cleanIngredients: Record<string, Ingredient[]> = {}
       for (const lang of Object.keys(form.ingredients)) {
         const cleaned = (form.ingredients[lang] || []).filter(ing => ing.full_text.trim() || ing.name.trim())
         if (cleaned.length > 0) cleanIngredients[lang] = cleaned
       }
 
-      // Clean instructions per language â remove empty rows
+      // Clean instructions per language · remove empty rows
       const cleanInstructions: Record<string, Instruction[]> = {}
       for (const lang of Object.keys(form.instructions)) {
         const cleaned = (form.instructions[lang] || [])
@@ -445,7 +445,7 @@ export default function AdminRecipes() {
         if (cleaned.length > 0) cleanInstructions[lang] = cleaned
       }
 
-      // Clean tips â only include non-empty languages
+      // Clean tips · only include non-empty languages
       const cleanTips: Record<string, string> = {}
       for (const lang of Object.keys(form.tips)) {
         if (form.tips[lang]?.trim()) cleanTips[lang] = form.tips[lang].trim()
@@ -706,7 +706,7 @@ export default function AdminRecipes() {
                   ) : imageUploading ? (
                     <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">{t('admin.uploading')}</span></>
                   ) : (
-                    <><ImagePlus className="h-6 w-6" /><span className="text-sm">{t('admin.clickToUpload')}</span><span className="text-xs">Resizes automatisk â JPG, PNG, WebP</span></>
+                    <><ImagePlus className="h-6 w-6" /><span className="text-sm">{t('admin.clickToUpload')}</span><span className="text-xs">Resizes automatisk · JPG, PNG, WebP</span></>
                   )}
                 </button>
                 <input
@@ -1029,7 +1029,7 @@ export default function AdminRecipes() {
                     {recipe.title?.da || recipe.title?.en || t('admin.untitled')}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    /{recipe.slug} â {recipe.total_time ? `${recipe.total_time} min` : ''} â {recipe.calories ? `${recipe.calories} kcal` : ''}
+                    /{recipe.slug} · {recipe.total_time ? `${recipe.total_time} min` : ''} · {recipe.calories ? `${recipe.calories} kcal` : ''}
                   </p>
                 </div>
               </div>

@@ -381,19 +381,18 @@ For LONGEVITY / WELLNESS:
   - Convey energy and health through color and light
 
 COMPOSITION:
-The LEFT ~30% of the image will have a title overlay with a subtle dark gradient on the website.
-Keep the left side visually SIMPLER — fewer elements, softer focus, or gentle continuation of the scene — but NOT empty, NOT a blank wall, and NOT a hard visual cutoff. It should flow naturally from the rest of the image.
-Place the PRIMARY FOCAL POINT and richest visual detail in the CENTER and RIGHT 70%.
-Keep the overall number of distinct objects/elements moderate (3-6 key elements, not 15+). Quality over quantity — a few beautiful, well-composed elements beat a cluttered frame.
+Keep it SIMPLE and CALM. Fewer elements, more breathing room.
+Place the main subject roughly centered. The image will have a subtle text overlay, so avoid overly busy or cluttered compositions.
+Aim for 2-4 key elements maximum — quality over quantity. Think editorial minimalism.
 
 RULES:
-- ALWAYS keep it BRIGHT — no dark, moody, or heavily shadowed images
+- ALWAYS keep it BRIGHT — natural daylight, morning light, or warm golden tones
 - ALWAYS make it look NATURAL — like a real photograph, not digital art or CGI
 - NEVER use generic stock imagery (stethoscopes, lightbulbs, handshakes, clipboards)
 - NEVER make it look like a plated recipe on a dining table (it's an article, not a recipe)
-- Keep it SIMPLE — 2-5 key elements, not a crowded scene
+- Keep it MINIMAL and CALM — 2-4 key elements, lots of negative space
 - The prompt MUST be in English
-- Maximum 200 words
+- Maximum 150 words
 - NEVER mention text, logos, watermarks, or human faces/hands/bodies
 
 Return ONLY the image prompt text, nothing else.`

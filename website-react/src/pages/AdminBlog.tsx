@@ -1031,7 +1031,11 @@ export default function AdminBlog() {
               key={article.id}
               className="flex items-center justify-between p-4 rounded-md border border-border bg-card hover:bg-muted/50 transition-colors"
             >
-              <div className="flex-1 min-w-0 mr-4">
+              <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
+                {article.featured_image && (
+                  <img src={article.featured_image} alt="" className="h-14 w-14 rounded-md object-cover shrink-0" />
+                )}
+                <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={cn(
                     'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase',
@@ -1059,8 +1063,9 @@ export default function AdminBlog() {
                   {article.title?.da || article.title?.en || t('admin.untitled')}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  /{article.slug} — {new Date(article.updated_at).toLocaleDateString('da-DK')}
+                  /{article.slug} · {new Date(article.updated_at).toLocaleDateString('da-DK')}
                 </p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {article.status === 'published' && (

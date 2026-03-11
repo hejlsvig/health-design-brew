@@ -677,7 +677,11 @@ export default function AdminGuides() {
               key={guide.id}
               className="flex items-center justify-between p-4 rounded-md border border-border bg-card hover:bg-muted/50 transition-colors"
             >
-              <div className="flex-1 min-w-0 mr-4">
+              <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
+                {guide.featured_image && (
+                  <img src={guide.featured_image} alt="" className="h-14 w-14 rounded-md object-cover shrink-0" />
+                )}
+                <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={cn(
                     'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase',
@@ -700,8 +704,9 @@ export default function AdminGuides() {
                   {guide.title?.da || guide.title?.en || t('admin.untitled')}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  /{guide.slug} — {new Date(guide.updated_at).toLocaleDateString('da-DK')}
+                  /{guide.slug} · {new Date(guide.updated_at).toLocaleDateString('da-DK')}
                 </p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {guide.status === 'published' && (

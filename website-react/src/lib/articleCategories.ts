@@ -17,6 +17,7 @@ export const ARTICLE_CATEGORIES = [
   'mitochondria',
   'ampk',
   'mtor',
+  'sirt1',
   'ketones',
 
   // ── Body systems ──
@@ -74,6 +75,7 @@ const CATEGORY_LABELS: Record<ArticleCategory, Record<string, string>> = {
   mitochondria:       { da: 'Mitokondrier',            en: 'Mitochondria',           se: 'Mitokondrier' },
   ampk:               { da: 'AMPK',                    en: 'AMPK',                   se: 'AMPK' },
   mtor:               { da: 'mTOR',                    en: 'mTOR',                   se: 'mTOR' },
+  sirt1:              { da: 'SIRT1',                   en: 'SIRT1',                  se: 'SIRT1' },
   ketones:            { da: 'Ketonstoffer',             en: 'Ketones',                se: 'Ketoner' },
 
   // Body systems
