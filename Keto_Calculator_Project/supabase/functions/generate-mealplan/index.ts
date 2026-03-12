@@ -100,10 +100,14 @@ function markdownToHtml(md: string, meta: { name: string; calories: number; days
     return `<ol${start > 1 ? ` start="${start}"` : ''}>${cleaned}</ol>`
   })
 
-  // Horizontal rules and paragraph breaks
-  bodyHtml = bodyHtml
-    .replace(/^---$/gm, '<hr/>')
-    .replace(/\n\n/g, '<br/><br/>')
+  // Horizontal rules
+  bodyHtml = bodyHtml.replace(/^---$/gm, '<hr/>')
+
+  // Remove empty lines between block elements (h1-h3, ul, ol, hr, div) to avoid extra spacing
+  bodyHtml = bodyHtml.replace(/(<\/(?:h[123]|ul|ol|hr|div)>)\n+(<(?:h[123]|ul|ol|hr|div|br))/g, '$1\n$2')
+
+  // Remaining double newlines become paragraph breaks (but not <br><br>)
+  bodyHtml = bodyHtml.replace(/\n\n/g, '</p><p>')
 
   // Detect shopping list section: match from shopping-list header to the NEXT h1
   // (shopping list is typically at the end, or before a new day/major section)
@@ -798,7 +802,14 @@ Deno.serve(async (req: Request) => {
     if (health_anti_inflammatory) healthNotes.push('Anti-inflammatorisk fokus: omega-3, gurkemeje, ingefær.')
     if (health_avoid_processed) healthNotes.push('Undgå forarbejdede fødevarer: kun hele, uforarbejdede ingredienser.')
 
-    const userPrompt = `Lav en personlig ${num_days}-dages keto madplan på ${langMap[language] || 'dansk'}.
+    // Language-specific instruction block
+    const langInstructions: Record<string, string> = {
+      da: '',
+      en: `\n\n🔴 MANDATORY LANGUAGE: Write the ENTIRE meal plan in ENGLISH. Every heading, ingredient, instruction, and note must be in English. Do NOT use any Danish or Swedish words anywhere.`,
+      se: `\n\n🔴 OBLIGATORISKT SPRÅK: Skriv HELA matplanen på SVENSKA. Alla rubriker, ingredienser, instruktioner och kommentarer ska vara på svenska. Använd INTE danska eller engelska ord någonstans. Exempel: "Frukost" (inte "Morgenmad"), "Lunch" (inte "Frokost"), "Middag" (inte "Aftensmad"), "Tillagning" (inte "Tilberedning"), "Näringsvärde" (inte "Næringsværdi"), "Inköpslista" (inte "Indkøbsliste"), "Grönsaker" (inte "Grøntsager"), "Dag" (inte "Dag" — detta är samma), "Daglig total" → "Daglig total".`,
+    }
+
+    const userPrompt = `Lav en personlig ${num_days}-dages keto madplan på ${langMap[language] || 'dansk'}.${langInstructions[language] || ''}
 
 PERSON PROFIL:
 - Navn: ${name}
@@ -834,7 +845,12 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
   excludedList !== 'ingen' ? `\n\n⚠️ KRITISK: ALDRIG bruge: ${excludedList}. Brug alternativer!` : ''
 }`
 
-    const defaultSystemPrompt = 'Du er en professionel keto ernæringsekspert og kok. Du laver personlige, detaljerede madplaner med nøjagtige opskrifter, ingredienslister og næringsværdier.'
+    const systemPromptLang: Record<string, string> = {
+      da: 'Du er en professionel keto ernæringsekspert og kok. Du laver personlige, detaljerede madplaner med nøjagtige opskrifter, ingredienslister og næringsværdier.',
+      en: 'You are a professional keto nutrition expert and chef. You create personalized, detailed meal plans with exact recipes, ingredient lists, and nutritional values. Always respond in English.',
+      se: 'Du är en professionell keto-nutritionsexpert och kock. Du skapar personliga, detaljerade matplaner med exakta recept, ingredienslistor och näringsvärden. Svara ALLTID på svenska.',
+    }
+    const defaultSystemPrompt = systemPromptLang[language] || systemPromptLang['da']
     const systemPrompt = settings.mealplan_system_prompt || defaultSystemPrompt
 
     const excludedWarning = excludedList !== 'ingen'
@@ -842,24 +858,31 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
       : ''
 
     // Dynamic token limit: 7-day plan with full prep needs ~30K+ tokens
+    // GPT-5.x models don't support max_tokens or max_completion_tokens
     const maxTokens = Math.min(64000, Math.max(16000, num_days * 5000))
+    const isGpt5 = model.startsWith('gpt-5') || model.startsWith('o3') || model.startsWith('o4')
 
-    console.log(`[generate-mealplan] model=${model}, calories=${daily_calories}, days=${num_days}, maxTokens=${maxTokens}, user=${user?.email || email}`)
+    console.log(`[generate-mealplan] model=${model}, isGpt5=${isGpt5}, calories=${daily_calories}, days=${num_days}, maxTokens=${isGpt5 ? 'auto' : maxTokens}, user=${user?.email || email}`)
 
     // ── 4. Call OpenAI ──
     const startTime = Date.now()
 
+    const requestBody: Record<string, unknown> = {
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt + excludedWarning },
+        { role: 'user', content: userPrompt },
+      ],
+    }
+    // Only add token limit for models that support it (GPT-4.x and earlier)
+    if (!isGpt5) {
+      requestBody.max_completion_tokens = maxTokens
+    }
+
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt + excludedWarning },
-          { role: 'user', content: userPrompt },
-        ],
-        max_completion_tokens: maxTokens,
-      }),
+      body: JSON.stringify(requestBody),
     })
 
     if (!openaiResponse.ok) {

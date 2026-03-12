@@ -11,7 +11,7 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 # ─── Security Headers ───
 <IfModule mod_headers.c>
     # Content Security Policy — forhindrer XSS og uautoriseret script-loading
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' https:; connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://api.openai.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' https: blob:; connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://api.openai.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 
     # Strict Transport Security — tving HTTPS i 1 år
     Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -35,6 +35,15 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     Header unset X-Powered-By
     Header unset Server
 </IfModule>
+
+# ─── Remove restrictive headers from media files ───
+# CSP/X-Frame-Options kan forstyrre video-streaming i browsere
+<FilesMatch "\.(mp4|webm|mov|mp3|ogg|wav)$">
+    <IfModule mod_headers.c>
+        Header unset Content-Security-Policy
+        Header unset X-Frame-Options
+    </IfModule>
+</FilesMatch>
 
 # ─── Caching for static assets ───
 <IfModule mod_expires.c>
