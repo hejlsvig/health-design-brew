@@ -199,8 +199,6 @@ export default function Home() {
 }
 
 /* ═══ HERO SECTION ═══ */
-const PAUSE_DURATION = 5000 // ms to hold on last frame before restart
-
 function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: any, fb?: string) => string }) {
   const bgImage = content.bg_image
   const bgVideo = content.bg_video
@@ -211,14 +209,25 @@ function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: 
     if (!v) return
 
     const onEnded = () => {
-      // Fade out via CSS transition
-      v.style.opacity = '0'
-      // Wait for fade-out (1.5s) + pause, then restart
+      // 1) Hold last frame for 5 seconds
       setTimeout(() => {
-        v.currentTime = 0
-        v.play().catch(() => {})
-        v.style.opacity = '1'
-      }, PAUSE_DURATION)
+        // 2) Fade to 80% opacity over 15 seconds
+        v.style.transition = 'opacity 15s ease-in-out'
+        v.style.opacity = '0.8'
+
+        // 3) After 15s fade completes, restart
+        setTimeout(() => {
+          v.style.transition = 'none'
+          v.style.opacity = '0'
+          v.currentTime = 0
+          v.play().catch(() => {})
+          // Quick fade in
+          requestAnimationFrame(() => {
+            v.style.transition = 'opacity 1.5s ease-in-out'
+            v.style.opacity = '1'
+          })
+        }, 15000)
+      }, 5000)
     }
 
     v.addEventListener('ended', onEnded)
@@ -234,7 +243,6 @@ function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: 
           muted
           playsInline
           className="absolute inset-0 h-full w-full object-cover"
-          style={{ transition: 'opacity 1.5s ease-in-out' }}
           poster={bgImage || undefined}
         >
           <source src={bgVideo} type="video/mp4" />
