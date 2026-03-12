@@ -211,22 +211,17 @@ function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: 
     const onEnded = () => {
       // 1) Hold last frame for 5 seconds
       setTimeout(() => {
-        // 2) Fade to 25% opacity over 20 seconds
-        v.style.transition = 'opacity 20s ease-in-out'
+        // 2) Fade to 25% opacity over 10 seconds
+        v.style.transition = 'opacity 10s ease-in-out'
         v.style.opacity = '0.25'
 
-        // 3) After 20s fade completes, restart
+        // 3) Stay at 25% for 25 seconds, then fade in and restart
         setTimeout(() => {
-          v.style.transition = 'none'
-          v.style.opacity = '0'
           v.currentTime = 0
           v.play().catch(() => {})
-          // Quick fade in
-          requestAnimationFrame(() => {
-            v.style.transition = 'opacity 1.5s ease-in-out'
-            v.style.opacity = '1'
-          })
-        }, 20000)
+          v.style.transition = 'opacity 1.5s ease-in-out'
+          v.style.opacity = '1'
+        }, 10000 + 25000)
       }, 5000)
     }
 
