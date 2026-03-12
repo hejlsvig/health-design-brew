@@ -201,9 +201,21 @@ export default function Home() {
 /* ═══ HERO SECTION ═══ */
 function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: any, fb?: string) => string }) {
   const bgImage = content.bg_image
+  const bgVideo = content.bg_video
   return (
     <section className="relative overflow-hidden bg-charcoal mt-2.5">
-      {bgImage ? (
+      {bgVideo ? (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover"
+          poster={bgImage || undefined}
+        >
+          <source src={bgVideo} type="video/mp4" />
+        </video>
+      ) : bgImage ? (
         <img src={bgImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : null}
       <div className="absolute inset-0 overlay-gradient" />
