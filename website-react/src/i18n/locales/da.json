@@ -55,22 +55,22 @@
   },
   "calculator": {
     "title": "Kostplan",
-    "subtitle": "Beregn dit kaloriebehov og få en skræddersyet måltidsplan på få minutter.",
+    "subtitle": "Beregn dit kaloriebehov og få en personlig måltidsplan på få minutter.",
     "mealPlanTitle": "Personlig Madplan",
-    "mealPlanSubtitle": "Få en skræddersyet keto-madplan baseret på dine præferencer.",
+    "mealPlanSubtitle": "Få en personlig keto-madplan baseret på dine præferencer.",
     "resultsReady": "Dine Resultater",
     "resultsDescription": "Her er dit daglige kaloriebehov baseret på dine oplysninger.",
     "done": "Færdig",
     "saveToProfile": "Gem på profil",
     "continueMealPlan": "Få en personlig madplan",
-    "continueMealPlanDesc": "Vil du have en skræddersyet keto-madplan sendt til din email? Fortsæt med at vælge dine præferencer.",
+    "continueMealPlanDesc": "Vil du have en personlig keto-madplan sendt til din email? Fortsæt med at vælge dine præferencer.",
     "phase": "Del",
     "calorieCalculator": "Kalorie-beregner",
     "guide": {
       "title": "Sådan fungerer det",
       "step1": "Indtast dine oplysninger — alder, vægt, højde og aktivitetsniveau.",
       "step2": "Få dit personlige kalorie- og makromål beregnet automatisk.",
-      "step3": "Lav en skræddersyet måltidsplan med opskrifter og indkøbsliste."
+      "step3": "Få en personlig måltidsplan med opskrifter og indkøbsliste."
     },
     "mealPlanner": "Madplan",
     "step": "Trin",
