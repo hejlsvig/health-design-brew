@@ -211,11 +211,11 @@ function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: 
     const onEnded = () => {
       // 1) Hold last frame for 5 seconds
       setTimeout(() => {
-        // 2) Fade to 80% opacity over 15 seconds
-        v.style.transition = 'opacity 15s ease-in-out'
-        v.style.opacity = '0.8'
+        // 2) Fade to 25% opacity over 20 seconds
+        v.style.transition = 'opacity 20s ease-in-out'
+        v.style.opacity = '0.25'
 
-        // 3) After 15s fade completes, restart
+        // 3) After 20s fade completes, restart
         setTimeout(() => {
           v.style.transition = 'none'
           v.style.opacity = '0'
@@ -226,7 +226,7 @@ function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: 
             v.style.transition = 'opacity 1.5s ease-in-out'
             v.style.opacity = '1'
           })
-        }, 15000)
+        }, 20000)
       }, 5000)
     }
 
