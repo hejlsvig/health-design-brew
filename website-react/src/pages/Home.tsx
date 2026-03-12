@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Flame, Heart, Clock, Utensils, BookOpen, ChevronDown } from 'lucide-react'
@@ -199,50 +199,31 @@ export default function Home() {
 }
 
 /* ═══ HERO SECTION ═══ */
-const FADE_DURATION = 1.5 // seconds for fade in/out
-const PAUSE_DURATION = 5000 // ms to hold on last frame
+const PAUSE_DURATION = 5000 // ms to hold on last frame before restart
 
 function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: any, fb?: string) => string }) {
   const bgImage = content.bg_image
   const bgVideo = content.bg_video
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [videoOpacity, setVideoOpacity] = useState(1)
-
-  const restartVideo = useCallback(() => {
-    const v = videoRef.current
-    if (!v) return
-    v.currentTime = 0
-    v.play().catch(() => {})
-    // Fade in
-    setVideoOpacity(1)
-  }, [])
 
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
 
-    const onTimeUpdate = () => {
-      if (!v.duration) return
-      const remaining = v.duration - v.currentTime
-      if (remaining <= FADE_DURATION) {
-        // Fade out proportionally
-        setVideoOpacity(remaining / FADE_DURATION)
-      }
-    }
-
     const onEnded = () => {
-      setVideoOpacity(0)
-      // Hold on last frame for PAUSE_DURATION, then restart
-      setTimeout(restartVideo, PAUSE_DURATION)
+      // Fade out via CSS transition
+      v.style.opacity = '0'
+      // Wait for fade-out (1.5s) + pause, then restart
+      setTimeout(() => {
+        v.currentTime = 0
+        v.play().catch(() => {})
+        v.style.opacity = '1'
+      }, PAUSE_DURATION)
     }
 
-    v.addEventListener('timeupdate', onTimeUpdate)
     v.addEventListener('ended', onEnded)
-    return () => {
-      v.removeEventListener('timeupdate', onTimeUpdate)
-      v.removeEventListener('ended', onEnded)
-    }
-  }, [restartVideo])
+    return () => v.removeEventListener('ended', onEnded)
+  }, [])
 
   return (
     <section className="relative overflow-hidden bg-charcoal mt-2.5">
@@ -252,8 +233,8 @@ function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: 
           autoPlay
           muted
           playsInline
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-500"
-          style={{ opacity: videoOpacity }}
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ transition: 'opacity 1.5s ease-in-out' }}
           poster={bgImage || undefined}
         >
           <source src={bgVideo} type="video/mp4" />
