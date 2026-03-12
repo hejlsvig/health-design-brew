@@ -209,20 +209,17 @@ function HeroSection({ content, loc }: { content: Record<string, any>; loc: (f: 
     if (!v) return
 
     const onEnded = () => {
-      // 1) Hold last frame for 5 seconds
-      setTimeout(() => {
-        // 2) Fade to 25% opacity over 10 seconds
-        v.style.transition = 'opacity 10s ease-in-out'
-        v.style.opacity = '0.25'
+      // 1) Fade to 25% opacity over 10 seconds
+      v.style.transition = 'opacity 10s ease-in-out'
+      v.style.opacity = '0.25'
 
-        // 3) Stay at 25% for 25 seconds, then fade in and restart
-        setTimeout(() => {
-          v.currentTime = 0
-          v.play().catch(() => {})
-          v.style.transition = 'opacity 1.5s ease-in-out'
-          v.style.opacity = '1'
-        }, 10000 + 25000)
-      }, 5000)
+      // 2) Stay at 25% for 25 seconds, then fade in over 2s and restart
+      setTimeout(() => {
+        v.currentTime = 0
+        v.play().catch(() => {})
+        v.style.transition = 'opacity 2s ease-in-out'
+        v.style.opacity = '1'
+      }, 10000 + 25000)
     }
 
     v.addEventListener('ended', onEnded)
