@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
+import { setSEO, clearSEO } from '@/lib/seo'
 import { ChevronRight, ChevronLeft, Check, Loader2, Download } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -60,6 +61,16 @@ export default function MealPlan() {
     return urlCalories ? parseInt(urlCalories) : ''
   })
 
+  // SEO
+  useEffect(() => {
+    setSEO({
+      title: t('mealplan.title', 'Meal Plan Generator') + ' — Keto',
+      description: t('mealplan.seo_description', 'Get a personalized keto meal plan with recipes, shopping list, and nutrition info. Free and delivered to your email.'),
+      path: '/meal-plan',
+    })
+    return () => clearSEO()
+  }, [t])
+
   // Load user data if logged in (overrides URL params)
   useEffect(() => {
     if (user && profile) {
@@ -79,6 +90,14 @@ export default function MealPlan() {
       }
     }
   }, [user, profile])
+
+  // Sync i18n language with URL ?lang= parameter
+  useEffect(() => {
+    const langParam = searchParams.get('lang')
+    if (langParam && ['da', 'en', 'se'].includes(langParam) && i18n.language !== langParam) {
+      i18n.changeLanguage(langParam)
+    }
+  }, [searchParams, i18n])
 
   const handleNext = () => {
     if (validateMealPlanStep(state, currentStep)) {

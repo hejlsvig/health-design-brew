@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { setSEO, clearSEO } from '@/lib/seo'
 
 /* ─── Types ─── */
 interface PageSection {
@@ -24,6 +25,15 @@ export default function About() {
     if (!field) return fallback
     return field[lang] || field['da'] || field['en'] || fallback
   }
+
+  useEffect(() => {
+    setSEO({
+      title: t('about.title', 'About Us'),
+      description: t('about.seo_description', 'Learn about Shifting Source — your guide to a keto and fasting lifestyle.'),
+      path: '/about',
+    })
+    return () => clearSEO()
+  }, [t])
 
   useEffect(() => {
     supabase.from('page_sections')

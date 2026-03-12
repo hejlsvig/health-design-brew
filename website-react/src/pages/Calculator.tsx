@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { setSEO, clearSEO } from '@/lib/seo'
 import { ChevronRight, ChevronLeft, Check, UtensilsCrossed, Calculator as CalcIcon, Save } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -40,6 +41,16 @@ export default function Calculator() {
       units,
     }
   })
+
+  // SEO
+  useEffect(() => {
+    setSEO({
+      title: t('calculator.title', 'Keto Calculator') + ' — TDEE & Macros',
+      description: t('calculator.seo_description', 'Free keto calculator. Calculate your daily calories, TDEE, BMR, and macros for a ketogenic diet.'),
+      path: '/calculator',
+    })
+    return () => clearSEO()
+  }, [t])
 
   // Load user data if logged in
   useEffect(() => {

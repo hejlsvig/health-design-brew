@@ -2,14 +2,14 @@ import { useEffect, useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  Users, UserPlus, Target, Dumbbell, Search,
-  ChevronRight, ArrowUpDown
+  Users, Target, Dumbbell, Search,
+  ChevronRight, ArrowUpDown, Mail
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import {
-  fetchLeads, fetchCrmStats,
+  fetchLeads, fetchCrmStats, fetchSubscribers,
   statusLabel, statusColor,
-  type LeadRow, type LeadStatusValue, type LeadSource, type CrmStats
+  type LeadRow, type LeadStatusValue, type LeadSource, type CrmStats, type SubscriberRow
 } from '@/lib/crm'
 
 export default function AdminCRM() {
@@ -18,13 +18,15 @@ export default function AdminCRM() {
   const navigate = useNavigate()
 
   const [leads, setLeads] = useState<LeadRow[]>([])
-  const [stats, setStats] = useState<CrmStats>({ totalLeads: 0, newThisWeek: 0, qualified: 0, activeCoaching: 0 })
+  const [subscribers, setSubscribers] = useState<SubscriberRow[]>([])
+  const [stats, setStats] = useState<CrmStats & { totalSubscribers: number }>({ totalLeads: 0, newThisWeek: 0, qualified: 0, activeCoaching: 0, totalSubscribers: 0 })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<LeadStatusValue | ''>('')
   const [filterSource, setFilterSource] = useState<LeadSource | ''>('')
   const [sortBy, setSortBy] = useState<'created_at' | 'lead_score' | 'last_contact_date'>('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [activeTab, setActiveTab] = useState<'leads' | 'subscribers'>('leads')
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) navigate('/login')
@@ -38,12 +40,14 @@ export default function AdminCRM() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [leadsData, statsData] = await Promise.all([
+      const [leadsData, statsData, subsData] = await Promise.all([
         fetchLeads(),
         fetchCrmStats(),
+        fetchSubscribers(),
       ])
       setLeads(leadsData)
       setStats(statsData)
+      setSubscribers(subsData)
     } catch (err) {
       console.error('CRM load error:', err)
     } finally {
@@ -89,9 +93,24 @@ export default function AdminCRM() {
 
   if (!isAdmin) return null
 
+  // Filtered subscribers
+  const filteredSubs = useMemo(() => {
+    let result = [...subscribers]
+    if (search) {
+      const s = search.toLowerCase()
+      result = result.filter(r =>
+        r.email?.toLowerCase().includes(s) || r.name?.toLowerCase().includes(s),
+      )
+    }
+    if (filterSource) {
+      result = result.filter(r => r.source === filterSource)
+    }
+    return result
+  }, [subscribers, search, filterSource])
+
   const statCards = [
     { icon: <Users className="h-5 w-5" />, label: 'Total leads', value: stats.totalLeads, color: 'text-primary' },
-    { icon: <UserPlus className="h-5 w-5" />, label: 'Nye denne uge', value: stats.newThisWeek, color: 'text-blue-600' },
+    { icon: <Mail className="h-5 w-5" />, label: 'Subscribers', value: stats.totalSubscribers, color: 'text-indigo-600' },
     { icon: <Target className="h-5 w-5" />, label: 'Kvalificerede', value: stats.qualified, color: 'text-green-600' },
     { icon: <Dumbbell className="h-5 w-5" />, label: 'Aktiv coaching', value: stats.activeCoaching, color: 'text-accent' },
   ]
@@ -100,7 +119,7 @@ export default function AdminCRM() {
     'new', 'contacted', 'qualified', 'coaching_active',
     'coaching_paused', 'coaching_completed', 'inactive', 'opted_out'
   ]
-  const allSources: LeadSource[] = ['calculator', 'newsletter', 'website_signup', 'manual', 'imported']
+  const allSources: LeadSource[] = ['calculator', 'newsletter', 'website_signup', 'meal_plan', 'manual', 'imported']
 
   return (
     <div className="container py-8 max-w-6xl">
@@ -135,6 +154,30 @@ export default function AdminCRM() {
         ))}
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 border-b border-border">
+        <button
+          onClick={() => setActiveTab('leads')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'leads'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Leads ({leads.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('subscribers')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'subscribers'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Subscribers ({subscribers.length})
+        </button>
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="relative flex-1 min-w-[200px]">
@@ -148,16 +191,18 @@ export default function AdminCRM() {
           />
         </div>
 
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value as LeadStatusValue | '')}
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-        >
-          <option value="">Alle statuser</option>
-          {allStatuses.map(s => (
-            <option key={s} value={s}>{statusLabel(s)}</option>
-          ))}
-        </select>
+        {activeTab === 'leads' && (
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value as LeadStatusValue | '')}
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+          >
+            <option value="">Alle statuser</option>
+            {allStatuses.map(s => (
+              <option key={s} value={s}>{statusLabel(s)}</option>
+            ))}
+          </select>
+        )}
 
         <select
           value={filterSource}
@@ -171,105 +216,184 @@ export default function AdminCRM() {
         </select>
       </div>
 
-      {/* Table */}
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
-      ) : filteredLeads.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          Ingen leads fundet.
-        </div>
-      ) : (
-        <div className="rounded-md border border-border overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Bruger</th>
-                <th className="text-left px-4 py-3 font-medium">Kilde</th>
-                <th className="text-left px-4 py-3 font-medium">
-                  <button onClick={() => toggleSort('created_at')} className="flex items-center gap-1 hover:text-foreground">
-                    Status <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="text-left px-4 py-3 font-medium">
-                  <button onClick={() => toggleSort('lead_score')} className="flex items-center gap-1 hover:text-foreground">
-                    Score <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
-                  <button onClick={() => toggleSort('last_contact_date')} className="flex items-center gap-1 hover:text-foreground">
-                    Sidst kontakt <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Samtykke</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredLeads.map(lead => {
-                const p = (lead as any).profile
-                return (
-                  <tr
-                    key={lead.user_id}
-                    className="hover:bg-muted/30 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/admin/crm/${lead.user_id}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">{p?.name || 'Ingen navn'}</p>
-                        <p className="text-xs text-muted-foreground">{p?.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{lead.source}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor(lead.status)}`}>
-                        {statusLabel(lead.status)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-accent transition-all"
-                            style={{ width: `${lead.lead_score}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{lead.lead_score}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell text-xs text-muted-foreground">
-                      {lead.last_contact_date
-                        ? new Date(lead.last_contact_date).toLocaleDateString('da-DK')
-                        : '–'}
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      <div className="flex gap-1">
-                        {p?.newsletter_consent && (
-                          <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded" title="Nyhedsbrev">NB</span>
-                        )}
-                        {p?.marketing_consent && (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded" title="Marketing">MK</span>
-                        )}
-                        {p?.coaching_contact_consent && (
-                          <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded" title="Coaching">CO</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </td>
+      {/* Leads Table */}
+      {activeTab === 'leads' && (
+        <>
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              Ingen leads fundet.
+            </div>
+          ) : (
+            <div className="rounded-md border border-border overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium">Bruger</th>
+                    <th className="text-left px-4 py-3 font-medium">Kilde</th>
+                    <th className="text-left px-4 py-3 font-medium">
+                      <button onClick={() => toggleSort('created_at')} className="flex items-center gap-1 hover:text-foreground">
+                        Status <ArrowUpDown className="h-3 w-3" />
+                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium">
+                      <button onClick={() => toggleSort('lead_score')} className="flex items-center gap-1 hover:text-foreground">
+                        Score <ArrowUpDown className="h-3 w-3" />
+                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
+                      <button onClick={() => toggleSort('last_contact_date')} className="flex items-center gap-1 hover:text-foreground">
+                        Sidst kontakt <ArrowUpDown className="h-3 w-3" />
+                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Samtykke</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredLeads.map(lead => {
+                    const p = (lead as any).profile
+                    return (
+                      <tr
+                        key={lead.user_id}
+                        className="hover:bg-muted/30 cursor-pointer transition-colors"
+                        onClick={() => navigate(`/admin/crm/${lead.user_id}`)}
+                      >
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="font-medium">{p?.name || 'Ingen navn'}</p>
+                            <p className="text-xs text-muted-foreground">{p?.email}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{lead.source}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor(lead.status)}`}>
+                            {statusLabel(lead.status)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-accent transition-all"
+                                style={{ width: `${lead.lead_score}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">{lead.lead_score}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell text-xs text-muted-foreground">
+                          {lead.last_contact_date
+                            ? new Date(lead.last_contact_date).toLocaleDateString('da-DK')
+                            : '–'}
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <div className="flex gap-1">
+                            {p?.newsletter_consent && (
+                              <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded" title="Nyhedsbrev">NB</span>
+                            )}
+                            {p?.marketing_consent && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded" title="Marketing">MK</span>
+                            )}
+                            {p?.coaching_contact_consent && (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded" title="Coaching">CO</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-3">
+            Viser {filteredLeads.length} af {leads.length} leads
+          </p>
+        </>
       )}
 
-      <p className="text-xs text-muted-foreground mt-3">
-        Viser {filteredLeads.length} af {leads.length} leads
-      </p>
+      {/* Subscribers Table */}
+      {activeTab === 'subscribers' && (
+        <>
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
+          ) : filteredSubs.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              Ingen subscribers fundet.
+            </div>
+          ) : (
+            <div className="rounded-md border border-border overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium">Subscriber</th>
+                    <th className="text-left px-4 py-3 font-medium">Kilde</th>
+                    <th className="text-left px-4 py-3 font-medium">Sprog</th>
+                    <th className="text-left px-4 py-3 font-medium">Tags</th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Status</th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Oprettet</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredSubs.map(sub => (
+                    <tr key={sub.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium">{sub.name || 'Ingen navn'}</p>
+                          <p className="text-xs text-muted-foreground">{sub.email}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{sub.source}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs">{sub.language?.toUpperCase()}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {sub.tags?.map(tag => (
+                            <span
+                              key={tag}
+                              className={`text-xs px-1.5 py-0.5 rounded ${
+                                tag === 'newsletter' ? 'bg-green-100 text-green-700' :
+                                tag === 'contact_ok' ? 'bg-purple-100 text-purple-700' :
+                                tag === 'meal_plan' ? 'bg-amber-100 text-amber-700' :
+                                'bg-muted text-muted-foreground'
+                              }`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          sub.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                        }`}>
+                          {sub.is_active ? 'Aktiv' : 'Inaktiv'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell text-xs text-muted-foreground">
+                        {new Date(sub.created_at).toLocaleDateString('da-DK')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-3">
+            Viser {filteredSubs.length} af {subscribers.length} subscribers
+          </p>
+        </>
+      )}
     </div>
   )
 }

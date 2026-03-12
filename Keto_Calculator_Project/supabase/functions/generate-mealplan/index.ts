@@ -90,14 +90,11 @@ function markdownToHtml(md: string, meta: { name: string; calories: number; days
     `<ul>${match.replace(/ class="ul"/g, '')}</ul>`,
   )
 
-  // Ordered lists: capture the number so we can set <ol start="N">
-  bodyHtml = bodyHtml.replace(/^(\d+)\. (.+)$/gm, '<li class="ol" data-n="$1">$2</li>')
-  bodyHtml = bodyHtml.replace(/((?:<li class="ol"[^>]*>.*<\/li>\n?)+)/g, (match) => {
-    // Extract the first item's number to set start attribute
-    const startMatch = match.match(/data-n="(\d+)"/)
-    const start = startMatch ? parseInt(startMatch[1], 10) : 1
-    const cleaned = match.replace(/ class="ol" data-n="\d+"/g, '')
-    return `<ol${start > 1 ? ` start="${start}"` : ''}>${cleaned}</ol>`
+  // Ordered lists: always restart numbering from 1 (ignore GPT's numbering)
+  bodyHtml = bodyHtml.replace(/^(\d+)\. (.+)$/gm, '<li class="ol">$2</li>')
+  bodyHtml = bodyHtml.replace(/((?:<li class="ol">.*<\/li>\n?)+)/g, (match) => {
+    const cleaned = match.replace(/ class="ol"/g, '')
+    return `<ol>${cleaned}</ol>`
   })
 
   // Horizontal rules
@@ -754,37 +751,53 @@ Deno.serve(async (req: Request) => {
 
     // ── Build the user prompt ──
     const langMap: Record<string, string> = { da: 'dansk', en: 'engelsk', se: 'svensk' }
-    const activityMap: Record<string, string> = {
-      sedentary: 'stillesiddende', light: 'let aktiv', moderate: 'moderat aktiv',
-      active: 'meget aktiv', very_active: 'ekstrem aktiv',
-    }
-    const prepTimeMap: Record<string, string> = {
-      quick: 'hurtige retter (15-20 min)', medium: 'medium (20-40 min)',
-      long: 'ingen tidsbegrænsning (40+ min)', mix: 'blandet',
-    }
-    const budgetMap: Record<string, string> = {
-      cheap: 'billigt (fokusér på prisbillige ingredienser)',
-      medium: 'moderat budget (god variation)',
-      expensive: 'højt budget (premium ingredienser)',
-      mixed: 'blandet (variér mellem budget- og premium-dage)',
-    }
-    const leftoversMap: Record<string, string> = {
-      daily: 'Lav frisk mad hver dag',
-      batch: 'Batch-cooking: større portioner, brug resterne næste dag',
-      mixed: 'Blandet: Nogle dage frisk, andre dage med rester',
-    }
-    const weightGoalMap = (goal: number): string => {
-      if (goal < -0.3) return 'Vægttab (kalorieunderskud)'
-      if (goal > 0.3) return 'Vægtøgning (kalorieoverskud)'
-      return 'Vægtvedligehold'
-    }
-    const countryMap: Record<string, string> = {
-      da: 'Danmark — brug ingredienser fra danske supermarkeder',
-      en: 'International/UK/US',
-      se: 'Sverige — brug ingredienser fra svenske supermarkeder',
+
+    // ── Localized labels for the prompt (so GPT gets instructions in the target language) ──
+    const promptLabels: Record<string, {
+      activityMap: Record<string, string>
+      prepTimeMap: Record<string, string>
+      budgetMap: Record<string, string>
+      leftoversMap: Record<string, string>
+      weightGoalMap: (goal: number) => string
+      countryNote: string
+      measurementNote: (u: string) => string
+      noExcluded: string
+    }> = {
+      da: {
+        activityMap: { sedentary: 'stillesiddende', light: 'let aktiv', moderate: 'moderat aktiv', active: 'meget aktiv', very_active: 'ekstrem aktiv' },
+        prepTimeMap: { quick: 'hurtige retter (15-20 min)', medium: 'medium (20-40 min)', long: 'ingen tidsbegrænsning (40+ min)', mix: 'blandet' },
+        budgetMap: { cheap: 'billigt (fokusér på prisbillige ingredienser)', medium: 'moderat budget (god variation)', expensive: 'højt budget (premium ingredienser)', mixed: 'blandet (variér mellem budget- og premium-dage)' },
+        leftoversMap: { daily: 'Lav frisk mad hver dag', batch: 'Batch-cooking: større portioner, brug resterne næste dag', mixed: 'Blandet: Nogle dage frisk, andre dage med rester' },
+        weightGoalMap: (goal: number) => goal < -0.3 ? 'Vægttab (kalorieunderskud)' : goal > 0.3 ? 'Vægtøgning (kalorieoverskud)' : 'Vægtvedligehold',
+        countryNote: 'Danmark — brug ingredienser fra danske supermarkeder',
+        measurementNote: (u: string) => u === 'imperial' ? 'Brug IMPERIALE mål (oz, lbs, cups, tbsp). Temperaturer i °F.' : 'Brug METRISKE mål (gram, dl, ml, spsk). Temperaturer i °C.',
+        noExcluded: 'ingen',
+      },
+      en: {
+        activityMap: { sedentary: 'sedentary', light: 'lightly active', moderate: 'moderately active', active: 'very active', very_active: 'extremely active' },
+        prepTimeMap: { quick: 'quick meals (15-20 min)', medium: 'medium (20-40 min)', long: 'no time limit (40+ min)', mix: 'mixed' },
+        budgetMap: { cheap: 'budget-friendly (affordable ingredients)', medium: 'moderate budget (good variety)', expensive: 'high budget (premium ingredients)', mixed: 'mixed (alternate budget and premium days)' },
+        leftoversMap: { daily: 'Cook fresh every day', batch: 'Batch-cooking: larger portions, use leftovers the next day', mixed: 'Mixed: some days fresh, other days with leftovers' },
+        weightGoalMap: (goal: number) => goal < -0.3 ? 'Weight loss (calorie deficit)' : goal > 0.3 ? 'Weight gain (calorie surplus)' : 'Weight maintenance',
+        countryNote: 'International/UK/US',
+        measurementNote: (u: string) => u === 'imperial' ? 'Use IMPERIAL measurements (oz, lbs, cups, tbsp). Temperatures in °F.' : 'Use METRIC measurements (grams, dl, ml, tbsp). Temperatures in °C.',
+        noExcluded: 'none',
+      },
+      se: {
+        activityMap: { sedentary: 'stillasittande', light: 'lätt aktiv', moderate: 'måttligt aktiv', active: 'mycket aktiv', very_active: 'extremt aktiv' },
+        prepTimeMap: { quick: 'snabba rätter (15-20 min)', medium: 'medium (20-40 min)', long: 'ingen tidsbegränsning (40+ min)', mix: 'blandat' },
+        budgetMap: { cheap: 'billigt (fokusera på prisvärda ingredienser)', medium: 'måttlig budget (bra variation)', expensive: 'hög budget (premium-ingredienser)', mixed: 'blandat (variera mellan budget- och premium-dagar)' },
+        leftoversMap: { daily: 'Laga färsk mat varje dag', batch: 'Batch-cooking: större portioner, använd resterna nästa dag', mixed: 'Blandat: Vissa dagar färskt, andra dagar med rester' },
+        weightGoalMap: (goal: number) => goal < -0.3 ? 'Viktnedgång (kaloriunderskott)' : goal > 0.3 ? 'Viktuppgång (kaloriöverskott)' : 'Viktunderhåll',
+        countryNote: 'Sverige — använd ingredienser från svenska matbutiker (ICA, Coop, Willys)',
+        measurementNote: (u: string) => u === 'imperial' ? 'Använd IMPERIALA mått (oz, lbs, cups, tbsp). Temperaturer i °F.' : 'Använd METRISKA mått (gram, dl, ml, msk). Temperaturer i °C.',
+        noExcluded: 'inga',
+      },
     }
 
-    let excludedList = 'ingen'
+    const pl = promptLabels[language] || promptLabels['da']
+
+    let excludedList = pl.noExcluded
     if (excluded_ingredients) {
       try {
         const parsed = typeof excluded_ingredients === 'string' ? JSON.parse(excluded_ingredients) : excluded_ingredients
@@ -794,55 +807,221 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const measurementNote = units === 'imperial'
-      ? 'Brug IMPERIALE mål (oz, lbs, cups, tbsp). Temperaturer i °F.'
-      : 'Brug METRISKE mål (gram, dl, ml, spsk). Temperaturer i °C.'
+    const measurementNote = pl.measurementNote(units)
 
     const healthNotes: string[] = []
     if (health_anti_inflammatory) healthNotes.push('Anti-inflammatorisk fokus: omega-3, gurkemeje, ingefær.')
     if (health_avoid_processed) healthNotes.push('Undgå forarbejdede fødevarer: kun hele, uforarbejdede ingredienser.')
 
-    // Language-specific instruction block
-    const langInstructions: Record<string, string> = {
-      da: '',
-      en: `\n\n🔴 MANDATORY LANGUAGE: Write the ENTIRE meal plan in ENGLISH. Every heading, ingredient, instruction, and note must be in English. Do NOT use any Danish or Swedish words anywhere.`,
-      se: `\n\n🔴 OBLIGATORISKT SPRÅK: Skriv HELA matplanen på SVENSKA. Alla rubriker, ingredienser, instruktioner och kommentarer ska vara på svenska. Använd INTE danska eller engelska ord någonstans. Exempel: "Frukost" (inte "Morgenmad"), "Lunch" (inte "Frokost"), "Middag" (inte "Aftensmad"), "Tillagning" (inte "Tilberedning"), "Näringsvärde" (inte "Næringsværdi"), "Inköpslista" (inte "Indkøbsliste"), "Grönsaker" (inte "Grøntsager"), "Dag" (inte "Dag" — detta är samma), "Daglig total" → "Daglig total".`,
+    // ── Build fully-localized user prompt ──
+
+    const promptTemplates: Record<string, {
+      intro: string
+      profile: string
+      genderM: string; genderF: string
+      age: string; weight: string; height: string
+      activity: string; goal: string; calories: string; meals: string
+      prepTime: string; budgetLabel: string; leftoversLabel: string
+      excluded: string; dietType: string; country: string; measurement: string
+      healthPrefs: string
+      rules: string[]
+      writeAll: string
+      neverExcluded: string
+      format: string
+    }> = {
+      da: {
+        intro: `Lav en personlig ${num_days}-dages keto madplan på dansk.`,
+        profile: 'PERSON PROFIL',
+        genderM: 'Mand', genderF: 'Kvinde',
+        age: 'år', weight: units === 'imperial' ? 'lbs' : 'kg', height: units === 'imperial' ? 'inches' : 'cm',
+        activity: 'Aktivitetsniveau', goal: 'Mål', calories: 'Dagligt kaloriebehov',
+        meals: 'Antal måltider per dag', prepTime: 'Tilberedningstid', budgetLabel: 'Budget',
+        leftoversLabel: 'Rester-strategi', excluded: 'Ekskluderede ingredienser',
+        dietType: 'Diet type', country: 'Land/tilgængelighed', measurement: 'Måleenheder',
+        healthPrefs: 'SUNDHEDSPRÆFERENCER',
+        rules: [
+          `MORGENMAD: æg, omeletter, pandekager (keto), smoothies, yoghurt-skåle. ALDRIG tungt kød/supper.`,
+          `FROKOST: lettere retter — salater, wraps, supper, rester.`,
+          `AFTENSMAD: hovedmåltidet — bøffer, stege, gratiner, gryderetter.`,
+          `Korrekt kaloriefordeling så total matcher ${daily_calories} kcal (±50 kcal per dag).`,
+          `Variér proteinkilder — aldrig samme protein 2+ dage i træk.`,
+          `INGEN snacks — kun ${meals_per_day} hovedmåltider.`,
+          `ALDRIG inkluder marketing, reklame, upsell eller forslag om yderligere planer/services.`,
+          `For HVER dag: KOMPLETTE tilberedningsinstruktioner for ALLE måltider med trin-for-trin vejledning. IKKE kun dag 1 — ALLE ${num_days} dage skal have fulde opskrifter.`,
+          `Indkøbslisten organiseres efter kategori (Kød & Fisk, Mejeriprodukter, Grøntsager, Fedtstoffer & Olier, Krydderier & Andet).`,
+        ],
+        writeAll: `Skriv ALLE ${num_days} dage KOMPLET med fulde opskrifter og tilberedningsinstruktioner for hvert eneste måltid. Stop IKKE halvvejs.`,
+        neverExcluded: `⚠️ KRITISK: ALDRIG bruge: ${excludedList}. Brug alternativer!`,
+        format: `FORMATERING — brug PRÆCIS dette markdown-format:
+# Dag 1
+## Morgenmad: [Rettens navn]
+### Ingredienser
+- ingrediens 1 (mængde)
+- ingrediens 2 (mængde)
+### Tilberedning
+1. Første trin.
+2. Andet trin.
+3. Tredje trin.
+### Næringsvärdi
+- Kalorier: X kcal | Fedt: Xg | Protein: Xg | Kulhydrater: Xg
+
+## Frokost: [Rettens navn]
+(samme struktur)
+
+## Aftensmad: [Rettens navn]
+(samme struktur)
+
+**Daglig total: X kcal | Fedt: Xg | Protein: Xg | Kulhydrater: Xg**
+
+---
+
+# Dag 2
+(osv. for alle ${num_days} dage)
+
+# Indkøbsliste
+## Kød & Fisk
+- ...`,
+      },
+      en: {
+        intro: `Create a personal ${num_days}-day keto meal plan in English.`,
+        profile: 'PERSON PROFILE',
+        genderM: 'Male', genderF: 'Female',
+        age: 'years', weight: units === 'imperial' ? 'lbs' : 'kg', height: units === 'imperial' ? 'inches' : 'cm',
+        activity: 'Activity level', goal: 'Goal', calories: 'Daily calorie target',
+        meals: 'Meals per day', prepTime: 'Prep time', budgetLabel: 'Budget',
+        leftoversLabel: 'Leftover strategy', excluded: 'Excluded ingredients',
+        dietType: 'Diet type', country: 'Country/availability', measurement: 'Measurement units',
+        healthPrefs: 'HEALTH PREFERENCES',
+        rules: [
+          `BREAKFAST: eggs, omelettes, keto pancakes, smoothies, yoghurt bowls. NEVER heavy meats/soups.`,
+          `LUNCH: lighter dishes — salads, wraps, soups, leftovers.`,
+          `DINNER: the main meal — steaks, roasts, gratins, stews.`,
+          `Correct calorie distribution so daily total matches ${daily_calories} kcal (±50 kcal per day).`,
+          `Vary protein sources — never the same protein 2+ days in a row.`,
+          `NO snacks — only ${meals_per_day} main meals.`,
+          `NEVER include marketing, upselling, or suggestions to order additional plans/services.`,
+          `For EVERY day: COMPLETE cooking instructions for ALL meals with step-by-step directions. NOT just day 1 — ALL ${num_days} days must have full recipes.`,
+          `Shopping list organized by category (Meat & Fish, Dairy, Vegetables, Fats & Oils, Spices & Other).`,
+        ],
+        writeAll: `Write ALL ${num_days} days COMPLETELY with full recipes and cooking instructions for every single meal. Do NOT stop halfway.`,
+        neverExcluded: `⚠️ CRITICAL: NEVER use: ${excludedList}. Use alternatives!`,
+        format: `FORMATTING — use EXACTLY this markdown format:
+# Day 1
+## Breakfast: [Dish name]
+### Ingredients
+- ingredient 1 (amount)
+- ingredient 2 (amount)
+### Cooking Instructions
+1. First step.
+2. Second step.
+3. Third step.
+### Nutrition
+- Calories: X kcal | Fat: Xg | Protein: Xg | Carbs: Xg
+
+## Lunch: [Dish name]
+(same structure)
+
+## Dinner: [Dish name]
+(same structure)
+
+**Daily total: X kcal | Fat: Xg | Protein: Xg | Carbs: Xg**
+
+---
+
+# Day 2
+(etc. for all ${num_days} days)
+
+# Shopping List
+## Meat & Fish
+- ...`,
+      },
+      se: {
+        intro: `Skapa en personlig ${num_days}-dagars keto matplan på svenska.`,
+        profile: 'PERSONPROFIL',
+        genderM: 'Man', genderF: 'Kvinna',
+        age: 'år', weight: units === 'imperial' ? 'lbs' : 'kg', height: units === 'imperial' ? 'inches' : 'cm',
+        activity: 'Aktivitetsnivå', goal: 'Mål', calories: 'Dagligt kaloribehov',
+        meals: 'Antal måltider per dag', prepTime: 'Tillagningstid', budgetLabel: 'Budget',
+        leftoversLabel: 'Rester-strategi', excluded: 'Exkluderade ingredienser',
+        dietType: 'Diettyp', country: 'Land/tillgänglighet', measurement: 'Måttenheter',
+        healthPrefs: 'HÄLSOPREFERENSER',
+        rules: [
+          `FRUKOST: ägg, omeletter, pannkakor (keto), smoothies, yoghurtskålar. ALDRIG tungt kött/soppor.`,
+          `LUNCH: lättare rätter — sallader, wraps, soppor, rester.`,
+          `MIDDAG: huvudmåltiden — biffar, stekar, gratänger, grytor.`,
+          `Korrekt kalorifördelning så daglig total matchar ${daily_calories} kcal (±50 kcal per dag).`,
+          `Variera proteinkällor — aldrig samma protein 2+ dagar i rad.`,
+          `INGA mellanmål — bara ${meals_per_day} huvudmåltider.`,
+          `ALDRIG inkludera marknadsföring, merförsäljning eller förslag om ytterligare planer/tjänster.`,
+          `För VARJE dag: KOMPLETTA tillagningsinstruktioner för ALLA måltider med steg-för-steg-anvisningar. INTE bara dag 1 — ALLA ${num_days} dagar ska ha fullständiga recept.`,
+          `Inköpslistan organiseras efter kategori (Kött & Fisk, Mejeriprodukter, Grönsaker, Fetter & Oljor, Kryddor & Övrigt).`,
+        ],
+        writeAll: `Skriv ALLA ${num_days} dagar KOMPLETT med fullständiga recept och tillagningsinstruktioner för varje enskild måltid. Sluta INTE halvvägs.`,
+        neverExcluded: `⚠️ KRITISKT: ALDRIG använda: ${excludedList}. Använd alternativ!`,
+        format: `FORMATERING — använd EXAKT detta markdown-format:
+# Dag 1
+## Frukost: [Rättens namn]
+### Ingredienser
+- ingrediens 1 (mängd)
+- ingrediens 2 (mängd)
+### Tillagning
+1. Första steget.
+2. Andra steget.
+3. Tredje steget.
+### Näringsvärde
+- Kalorier: X kcal | Fett: Xg | Protein: Xg | Kolhydrater: Xg
+
+## Lunch: [Rättens namn]
+(samma struktur)
+
+## Middag: [Rättens namn]
+(samma struktur)
+
+**Daglig total: X kcal | Fett: Xg | Protein: Xg | Kolhydrater: Xg**
+
+---
+
+# Dag 2
+(osv. för alla ${num_days} dagar)
+
+# Inköpslista
+## Kött & Fisk
+- ...`,
+      },
     }
 
-    const userPrompt = `Lav en personlig ${num_days}-dages keto madplan på ${langMap[language] || 'dansk'}.${langInstructions[language] || ''}
+    const pt = promptTemplates[language] || promptTemplates['da']
 
-PERSON PROFIL:
-- Navn: ${name}
-- Køn: ${gender === 'male' ? 'Mand' : 'Kvinde'}
-- Alder: ${age} år
-- Vægt: ${weight} ${units === 'imperial' ? 'lbs' : 'kg'}
-- Højde: ${height} ${units === 'imperial' ? 'inches' : 'cm'}
-- Aktivitetsniveau: ${activityMap[activity] || activity}
-- Mål: ${weightGoalMap(weight_goal)}
-- Dagligt kaloriebehov: ${daily_calories} kcal (SKAL overholdes ±50 kcal per dag)
-- Antal måltider per dag: ${meals_per_day}
-- Tilberedningstid: ${prepTimeMap[prep_time] || prep_time}
-- Budget: ${budgetMap[budget] || budget}
-- Rester-strategi: ${leftovers_strategy ? (leftoversMap[leftovers_strategy] || leftovers_strategy) : (leftovers ? 'Batch-cooking med rester' : 'Frisk mad hver dag')}
-- Ekskluderede ingredienser: ${excludedList}
-- Diet type: ${diet_type}
-- Land/tilgængelighed: ${countryMap[language] || countryMap['da']}
-- Måleenheder: ${measurementNote}
-${healthNotes.length > 0 ? '\nSUNDHEDSPRÆFERENCER:\n' + healthNotes.map(n => `- ${n}`).join('\n') : ''}
+    const leftoversText = leftovers_strategy
+      ? (pl.leftoversMap[leftovers_strategy] || leftovers_strategy)
+      : (leftovers ? pl.leftoversMap['batch'] : pl.leftoversMap['daily'])
 
-VIGTIGE REGLER:
-1. MORGENMAD: æg, omeletter, pandekager (keto), smoothies, yoghurt-skåle. ALDRIG tungt kød/supper.
-2. FROKOST: lettere retter — salater, wraps, supper, rester.
-3. AFTENSMAD: hovedmåltidet — bøffer, stege, gratiner, gryderetter.
-4. Korrekt kaloriefordeling så total matcher ${daily_calories} kcal.
-5. Variér proteinkilder — aldrig samme protein 2+ dage i træk.
-6. INGEN snacks — kun ${meals_per_day} hovedmåltider.
-7. ALDRIG inkluder marketing, reklame, upsell eller forslag om at bestille yderligere planer/services. Ingen sætninger som "kontakt os", "bestil en længere plan", "7-dages version" osv. Kun madplanen.
-8. For HVER dag skal du inkludere KOMPLETTE tilberedningsinstruktioner for ALLE måltider — ikke kun dag 1. Hver opskrift skal have en trin-for-trin tilberedningsvejledning med alle trin.
-9. Indkøbslisten skal organiseres efter kategori (Kød & Fisk, Mejeriprodukter, Grøntsager, Fedtstoffer & Olier, Krydderier & Andet).
+    const userPrompt = `${pt.intro}
 
-Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner for hvert enkelt måltid.${
-  excludedList !== 'ingen' ? `\n\n⚠️ KRITISK: ALDRIG bruge: ${excludedList}. Brug alternativer!` : ''
+${pt.profile}:
+- ${name}
+- ${gender === 'male' ? pt.genderM : pt.genderF}
+- ${age} ${pt.age}
+- ${weight} ${pt.weight}, ${height} ${pt.height}
+- ${pt.activity}: ${pl.activityMap[activity] || activity}
+- ${pt.goal}: ${pl.weightGoalMap(weight_goal)}
+- ${pt.calories}: ${daily_calories} kcal
+- ${pt.meals}: ${meals_per_day}
+- ${pt.prepTime}: ${pl.prepTimeMap[prep_time] || prep_time}
+- ${pt.budgetLabel}: ${pl.budgetMap[budget] || budget}
+- ${pt.leftoversLabel}: ${leftoversText}
+- ${pt.excluded}: ${excludedList}
+- ${pt.dietType}: ${diet_type}
+- ${pt.country}: ${pl.countryNote}
+- ${pt.measurement}: ${measurementNote}
+${healthNotes.length > 0 ? '\n' + pt.healthPrefs + ':\n' + healthNotes.map(n => `- ${n}`).join('\n') : ''}
+
+${pt.format}
+
+${pt.rules.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+
+${pt.writeAll}${
+  excludedList !== pl.noExcluded ? `\n\n${pt.neverExcluded}` : ''
 }`
 
     const systemPromptLang: Record<string, string> = {
@@ -853,8 +1032,8 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
     const defaultSystemPrompt = systemPromptLang[language] || systemPromptLang['da']
     const systemPrompt = settings.mealplan_system_prompt || defaultSystemPrompt
 
-    const excludedWarning = excludedList !== 'ingen'
-      ? `\n\nKRITISK REGEL: ALDRIG bruge: ${excludedList}. Brug alternativer!`
+    const excludedWarning = excludedList !== pl.noExcluded
+      ? `\n\n${pt.neverExcluded}`
       : ''
 
     // Dynamic token limit: 7-day plan with full prep needs ~30K+ tokens
@@ -869,6 +1048,7 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
 
     const requestBody: Record<string, unknown> = {
       model,
+      temperature: 0.7,
       messages: [
         { role: 'system', content: systemPrompt + excludedWarning },
         { role: 'user', content: userPrompt },
@@ -985,7 +1165,8 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
     if (email) {
       try {
         // 8a. Upsert newsletter_subscriber (as a lead from meal_plan)
-        const { error: subErr } = await supabase.from('newsletter_subscribers').upsert(
+        // Use .select() to get the subscriber_id for consent_log
+        const { data: subData, error: subErr } = await supabase.from('newsletter_subscribers').upsert(
           {
             email,
             name: name || null,
@@ -999,11 +1180,20 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
             ],
           },
           { onConflict: 'email' },
-        )
+        ).select('id').single()
+
+        let subscriberId: string | null = subData?.id || null
         if (subErr) {
           console.error(`[generate-mealplan] newsletter_subscribers upsert FAILED:`, subErr.message, subErr.code)
+          // Try to fetch existing subscriber_id as fallback
+          const { data: existing } = await supabase
+            .from('newsletter_subscribers')
+            .select('id')
+            .eq('email', email)
+            .single()
+          subscriberId = existing?.id || null
         } else {
-          console.log(`[generate-mealplan] Lead upserted: ${email}`)
+          console.log(`[generate-mealplan] Lead upserted: ${email} (subscriber_id: ${subscriberId})`)
         }
 
         // 8b. If user is logged in, also upsert lead_status
@@ -1019,10 +1209,11 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
           ).then(() => {}, () => {}) // best-effort
         }
 
-        // 8c. Log consent entries in consent_log
+        // 8c. Log consent entries in consent_log (with subscriber_id for non-auth users)
         const consentEntries = [
           {
             user_id: user?.id || null,
+            subscriber_id: subscriberId,
             consent_type: 'meal_plan_delivery',
             granted: gdpr_consent,
             source: 'meal_plan',
@@ -1033,6 +1224,7 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
         if (newsletter_consent) {
           consentEntries.push({
             user_id: user?.id || null,
+            subscriber_id: subscriberId,
             consent_type: 'newsletter',
             granted: true,
             source: 'meal_plan',
@@ -1043,6 +1235,7 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
         if (contact_consent) {
           consentEntries.push({
             user_id: user?.id || null,
+            subscriber_id: subscriberId,
             consent_type: 'contact_permission',
             granted: true,
             source: 'meal_plan',
@@ -1054,7 +1247,7 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
         if (consentErr) {
           console.error(`[generate-mealplan] consent_log insert FAILED:`, consentErr.message, consentErr.code)
         } else {
-          console.log(`[generate-mealplan] Consent logged: ${consentEntries.length} entries`)
+          console.log(`[generate-mealplan] Consent logged: ${consentEntries.length} entries for subscriber ${subscriberId}`)
         }
 
         // 8d. Log CRM activity (if logged in)

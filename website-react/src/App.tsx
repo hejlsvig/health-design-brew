@@ -5,9 +5,6 @@ import { SubscriptionProvider } from '@/contexts/SubscriptionContext'
 import { initSEO } from '@/lib/seo'
 import Layout from '@/components/Layout'
 import Home from '@/pages/Home'
-import Calculator from '@/pages/Calculator'
-import MealPlan from '@/pages/MealPlan'
-import Recipes from '@/pages/Recipes'
 import Blog from '@/pages/Blog'
 import BlogPost from '@/pages/BlogPost'
 import Login from '@/pages/Login'
@@ -18,6 +15,11 @@ import About from '@/pages/About'
 import Privacy from '@/pages/Privacy'
 import Terms from '@/pages/Terms'
 import NotFound from '@/pages/NotFound'
+
+// Lazy-load heavy public pages (Calculator, MealPlan, Recipes)
+const Calculator = lazy(() => import('@/pages/Calculator'))
+const MealPlan = lazy(() => import('@/pages/MealPlan'))
+const Recipes = lazy(() => import('@/pages/Recipes'))
 
 // Lazy-load admin pages (they use Tiptap which may not be installed yet)
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
@@ -35,9 +37,10 @@ const AdminCRMDetail = lazy(() => import('@/pages/AdminCRMDetail'))
 const AdminSocialPublisher = lazy(() => import('@/pages/AdminSocialPublisher'))
 const CheckIn = lazy(() => import('@/pages/CheckIn'))
 
-const AdminFallback = (
+const PageFallback = (
   <div className="container py-20 text-center text-muted-foreground">Loading…</div>
 )
+const AdminFallback = PageFallback
 
 export default function App() {
   // Load SEO config (site URL, GA, etc.) from database on boot
@@ -55,9 +58,9 @@ export default function App() {
           />
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
-            <Route path="/calculator" element={<Calculator />} />
-            <Route path="/meal-plan" element={<MealPlan />} />
-            <Route path="/recipes" element={<Recipes />} />
+            <Route path="/calculator" element={<Suspense fallback={PageFallback}><Calculator /></Suspense>} />
+            <Route path="/meal-plan" element={<Suspense fallback={PageFallback}><MealPlan /></Suspense>} />
+            <Route path="/recipes" element={<Suspense fallback={PageFallback}><Recipes /></Suspense>} />
             <Route path="/guides" element={<Guides />} />
             <Route path="/guides/:slug" element={<GuidePost />} />
             <Route path="/about" element={<About />} />

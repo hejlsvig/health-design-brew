@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { setSEO, clearSEO } from '@/lib/seo'
 
 /* ─── Types ─── */
 interface PageSection {
@@ -25,6 +26,15 @@ export default function Privacy() {
     if (!field) return fallback
     return field[lang] || field['da'] || field['en'] || fallback
   }
+
+  useEffect(() => {
+    setSEO({
+      title: t('privacy.title', 'Privacy Policy'),
+      description: t('privacy.seo_description', 'Read our privacy policy. Learn how we handle your data in compliance with GDPR.'),
+      path: '/privacy',
+    })
+    return () => clearSEO()
+  }, [t])
 
   useEffect(() => {
     supabase.from('page_sections')

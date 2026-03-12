@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { setSEO, clearSEO } from '@/lib/seo'
 
 /* ─── Types ─── */
 interface PageSection {
@@ -25,6 +26,15 @@ export default function Terms() {
     if (!field) return fallback
     return field[lang] || field['da'] || field['en'] || fallback
   }
+
+  useEffect(() => {
+    setSEO({
+      title: t('terms.title', 'Terms of Service'),
+      description: t('terms.seo_description', 'Read our terms of service for using the platform.'),
+      path: '/terms',
+    })
+    return () => clearSEO()
+  }, [t])
 
   useEffect(() => {
     supabase.from('page_sections')

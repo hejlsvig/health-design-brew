@@ -15,7 +15,7 @@ export type LeadStatusValue =
   | 'inactive'
   | 'opted_out'
 
-export type LeadSource = 'calculator' | 'newsletter' | 'website_signup' | 'manual' | 'imported'
+export type LeadSource = 'calculator' | 'newsletter' | 'website_signup' | 'manual' | 'imported' | 'meal_plan'
 
 export interface LeadRow {
   user_id: string
@@ -58,6 +58,18 @@ export interface CrmStats {
   newThisWeek: number
   qualified: number
   activeCoaching: number
+}
+
+export interface SubscriberRow {
+  id: string
+  email: string
+  name: string | null
+  source: string
+  language: string
+  is_active: boolean
+  tags: string[]
+  created_at: string
+  updated_at: string
 }
 
 // ─── Queries ─────────────────────────────────────────────────
@@ -139,16 +151,49 @@ export async function fetchLeadDetail(userId: string) {
   }
 }
 
-/** Get CRM dashboard stats */
-export async function fetchCrmStats(): Promise<CrmStats> {
+/** Fetch all newsletter subscribers (guests from meal_plan, footer, etc.) */
+export async function fetchSubscribers(filters?: {
+  source?: string
+  search?: string
+  activeOnly?: boolean
+}) {
+  let query = supabase
+    .from('newsletter_subscribers')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (filters?.source) {
+    query = query.eq('source', filters.source)
+  }
+  if (filters?.activeOnly) {
+    query = query.eq('is_active', true)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+
+  let results = (data || []) as SubscriberRow[]
+  if (filters?.search) {
+    const s = filters.search.toLowerCase()
+    results = results.filter(r =>
+      r.email?.toLowerCase().includes(s) || r.name?.toLowerCase().includes(s),
+    )
+  }
+
+  return results
+}
+
+/** Get CRM dashboard stats (includes subscribers count) */
+export async function fetchCrmStats(): Promise<CrmStats & { totalSubscribers: number }> {
   const now = new Date()
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [totalRes, newRes, qualifiedRes, coachingRes] = await Promise.all([
+  const [totalRes, newRes, qualifiedRes, coachingRes, subsRes] = await Promise.all([
     supabase.from('lead_status').select('id', { count: 'exact', head: true }),
     supabase.from('lead_status').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
     supabase.from('lead_status').select('id', { count: 'exact', head: true }).eq('status', 'qualified'),
     supabase.from('lead_status').select('id', { count: 'exact', head: true }).eq('status', 'coaching_active'),
+    supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).eq('is_active', true),
   ])
 
   return {
@@ -156,6 +201,7 @@ export async function fetchCrmStats(): Promise<CrmStats> {
     newThisWeek: newRes.count || 0,
     qualified: qualifiedRes.count || 0,
     activeCoaching: coachingRes.count || 0,
+    totalSubscribers: subsRes.count || 0,
   }
 }
 
@@ -321,6 +367,7 @@ export function activityLabel(type: string): string {
     coaching_paused: 'Coaching pauset',
     coaching_completed: 'Coaching afsluttet',
     note_added: 'Note tilføjet',
+    meal_plan_generated: 'Kostplan genereret',
     status_changed: 'Status ændret',
     consent_changed: 'Samtykke ændret',
     data_exported: 'Data eksporteret',
