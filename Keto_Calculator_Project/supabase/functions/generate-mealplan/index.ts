@@ -985,7 +985,7 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
     if (email) {
       try {
         // 8a. Upsert newsletter_subscriber (as a lead from meal_plan)
-        await supabase.from('newsletter_subscribers').upsert(
+        const { error: subErr } = await supabase.from('newsletter_subscribers').upsert(
           {
             email,
             name: name || null,
@@ -1000,7 +1000,11 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
           },
           { onConflict: 'email' },
         )
-        console.log(`[generate-mealplan] Lead upserted: ${email}`)
+        if (subErr) {
+          console.error(`[generate-mealplan] newsletter_subscribers upsert FAILED:`, subErr.message, subErr.code)
+        } else {
+          console.log(`[generate-mealplan] Lead upserted: ${email}`)
+        }
 
         // 8b. If user is logged in, also upsert lead_status
         if (user) {
@@ -1046,7 +1050,12 @@ Lav ALLE ${num_days} dage med komplette opskrifter og tilberedningsinstruktioner
           })
         }
 
-        await supabase.from('consent_log').insert(consentEntries).then(() => {}, () => {})
+        const { error: consentErr } = await supabase.from('consent_log').insert(consentEntries)
+        if (consentErr) {
+          console.error(`[generate-mealplan] consent_log insert FAILED:`, consentErr.message, consentErr.code)
+        } else {
+          console.log(`[generate-mealplan] Consent logged: ${consentEntries.length} entries`)
+        }
 
         // 8d. Log CRM activity (if logged in)
         if (user) {
