@@ -25,6 +25,8 @@ export interface CalculatorState {
   email: string
   name: string
   gdprConsent: boolean
+  newsletterConsent: boolean
+  contactConsent: boolean
 }
 
 export const INITIAL_STATE: CalculatorState = {
@@ -49,6 +51,8 @@ export const INITIAL_STATE: CalculatorState = {
   email: '',
   name: '',
   gdprConsent: false,
+  newsletterConsent: false,
+  contactConsent: false,
 }
 
 /**

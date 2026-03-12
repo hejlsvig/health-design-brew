@@ -158,7 +158,8 @@ export default function MealPlan() {
         prep_time: state.prepTime ? (prepTimeMap[state.prepTime] || state.prepTime) : null,
         selected_ingredients: state.selectedIngredients,
         gdpr_consent: state.gdprConsent,
-        marketing_consent: state.gdprConsent,
+        marketing_consent: state.newsletterConsent,
+        contact_consent: state.contactConsent,
         source: 'meal_plan',
         profile_type: 'meal_plan',
         daily_calories: dailyCalories,
@@ -203,6 +204,10 @@ export default function MealPlan() {
         health_avoid_processed: state.healthPreferences?.avoidProcessed || false,
         weight_goal: state.weightGoal ?? 0,
         units: state.units || 'metric',
+        // Consent flags
+        gdpr_consent: state.gdprConsent,
+        newsletter_consent: state.newsletterConsent,
+        contact_consent: state.contactConsent,
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hllprmlkuchhfmexzpad.supabase.co'
@@ -703,19 +708,52 @@ export default function MealPlan() {
                 />
               </div>
 
-              {/* GDPR Consent */}
-              <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={state.gdprConsent}
-                    onChange={() => setState(prev => ({ ...prev, gdprConsent: !prev.gdprConsent }))}
-                    className="w-5 h-5 rounded mt-1"
-                  />
-                  <span className="text-sm text-charcoal">
-                    {t('calculator.steps.7.gdprConsent') || 'Jeg accepterer at modtage min personaliserede kostplan via email. Jeg forstår, at mine data behandles i henhold til vores privatlivspolitik.'}
-                  </span>
-                </label>
+              {/* Consent checkboxes */}
+              <div className="mb-6 space-y-3">
+                {/* 1. Meal plan delivery — required */}
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={state.gdprConsent}
+                      onChange={() => setState(prev => ({ ...prev, gdprConsent: !prev.gdprConsent }))}
+                      className="w-5 h-5 rounded mt-1 flex-shrink-0"
+                    />
+                    <span className="text-sm text-charcoal">
+                      {t('calculator.steps.7.gdprConsent') || 'Jeg accepterer at modtage min personaliserede kostplan via email. Jeg forstår, at mine data behandles i henhold til vores privatlivspolitik.'} <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                </div>
+
+                {/* 2. Newsletter — optional */}
+                <div className="p-3 px-4 bg-gray-50/50 border border-gray-100 rounded-lg">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={state.newsletterConsent}
+                      onChange={() => setState(prev => ({ ...prev, newsletterConsent: !prev.newsletterConsent }))}
+                      className="w-5 h-5 rounded mt-0.5 flex-shrink-0"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {t('calculator.steps.7.newsletterConsent') || 'Ja tak, jeg vil gerne modtage tips, opskrifter og nyheder om keto livsstil via email.'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* 3. Contact permission — optional */}
+                <div className="p-3 px-4 bg-gray-50/50 border border-gray-100 rounded-lg">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={state.contactConsent}
+                      onChange={() => setState(prev => ({ ...prev, contactConsent: !prev.contactConsent }))}
+                      className="w-5 h-5 rounded mt-0.5 flex-shrink-0"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {t('calculator.steps.7.contactConsent') || 'Jeg vil gerne kontaktes med personlige tilbud og coaching-muligheder.'}
+                    </span>
+                  </label>
+                </div>
               </div>
 
               {/* Error message */}

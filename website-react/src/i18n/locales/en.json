@@ -184,6 +184,8 @@
         "name": "Name",
         "namePlaceholder": "Your name",
         "gdprConsent": "I agree to receive my personalized meal plan by email. I understand that my data is processed in accordance with our privacy policy.",
+        "newsletterConsent": "Yes please, I would like to receive tips, recipes and news about the keto lifestyle via email.",
+        "contactConsent": "I would like to be contacted with personal offers and coaching opportunities.",
         "emailPlaceholder": "your@email.com"
       }
     },

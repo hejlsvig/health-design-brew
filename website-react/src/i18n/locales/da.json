@@ -184,6 +184,8 @@
         "name": "Navn",
         "namePlaceholder": "Dit navn",
         "gdprConsent": "Jeg accepterer at modtage min personaliserede kostplan via email. Jeg forstår, at mine data behandles i henhold til vores privatlivspolitik.",
+        "newsletterConsent": "Ja tak, jeg vil gerne modtage tips, opskrifter og nyheder om keto livsstil via email.",
+        "contactConsent": "Jeg vil gerne kontaktes med personlige tilbud og coaching-muligheder.",
         "emailPlaceholder": "din@email.com"
       }
     },
