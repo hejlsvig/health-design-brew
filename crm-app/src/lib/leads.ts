@@ -56,7 +56,25 @@ export interface LeadFilters {
 // Statuses that belong to the Coaching section, not the Leads list
 const COACHING_STATUSES: LeadStatusValue[] = ['coaching_active', 'coaching_paused', 'coaching_completed']
 
-export async function fetchLeads(filters?: LeadFilters): Promise<LeadRow[]> {
+/**
+ * Unified lead origin — distinguishes authenticated leads from guest subscribers.
+ * 'auth' = has a profiles + lead_status row (logged-in user)
+ * 'subscriber' = only exists in newsletter_subscribers with contact_ok tag (guest)
+ */
+export type LeadOrigin = 'auth' | 'subscriber'
+
+/** Extended lead row that can represent both auth leads and guest subscriber-leads */
+export interface UnifiedLeadRow extends Omit<LeadRow, 'id' | 'user_id' | 'profile'> {
+  id: number | string           // numeric for auth, uuid for subscriber
+  user_id: string               // profile user_id or subscriber id
+  origin: LeadOrigin
+  profile: LeadProfile | null
+  subscriber_id?: string
+  tags?: string[]
+}
+
+export async function fetchLeads(filters?: LeadFilters): Promise<UnifiedLeadRow[]> {
+  // 1. Fetch authenticated leads from lead_status
   let query = supabase
     .from('lead_status')
     .select(`
@@ -81,7 +99,76 @@ export async function fetchLeads(filters?: LeadFilters): Promise<LeadRow[]> {
   const { data, error } = await query
   if (error) throw error
 
-  let results = (data || []) as LeadRow[]
+  // Map auth leads to unified format
+  const authLeads: UnifiedLeadRow[] = ((data || []) as LeadRow[]).map((l) => ({
+    ...l,
+    origin: 'auth' as LeadOrigin,
+  }))
+
+  // 2. Fetch guest subscriber-leads (contact_ok tag, no linked user)
+  // Skip if filtering by a specific status that isn't 'new' (subscribers are always 'new')
+  let subscriberLeads: UnifiedLeadRow[] = []
+  const skipSubscribers = filters?.status && filters.status !== 'new'
+
+  if (!skipSubscribers) {
+    const { data: subs, error: subErr } = await supabase
+      .from('newsletter_subscribers')
+      .select('*')
+      .contains('tags', ['contact_ok'])
+      .eq('is_active', true)
+      .is('linked_user_id', null)
+      .order('created_at', { ascending: false })
+
+    if (subErr) {
+      console.error('Failed to fetch subscriber leads:', subErr)
+    } else {
+      // Build set of auth emails to deduplicate
+      const authEmails = new Set(
+        authLeads.map((l) => l.profile?.email?.toLowerCase()).filter(Boolean)
+      )
+
+      subscriberLeads = (subs || [])
+        .filter((s: any) => !authEmails.has(s.email?.toLowerCase()))
+        .map((s: any) => ({
+          id: s.id,
+          user_id: s.id,               // use subscriber id as identifier
+          origin: 'subscriber' as LeadOrigin,
+          source: (s.source || 'manual') as LeadSource,
+          status: 'new' as LeadStatusValue,
+          lead_score: calcSubscriberScore(s),
+          assigned_to: null,
+          first_contact_date: null,
+          last_contact_date: null,
+          follow_up_date: null,
+          notes: null,
+          created_at: s.created_at,
+          updated_at: s.updated_at || s.created_at,
+          subscriber_id: s.id,
+          tags: s.tags,
+          profile: {
+            email: s.email,
+            name: s.name || null,
+            language: s.language || null,
+            daily_calories: null,
+            tdee: null,
+            bmr: null,
+            weight: null,
+            height: null,
+            age: null,
+            gender: null,
+            activity_level: null,
+            diet_type: null,
+            newsletter_consent: s.tags?.includes('newsletter') || false,
+            marketing_consent: s.tags?.includes('contact_ok') || false,
+            coaching_contact_consent: s.tags?.includes('contact_ok') || false,
+            created_at: s.created_at,
+          },
+        }))
+    }
+  }
+
+  // 3. Merge and filter
+  let results = [...authLeads, ...subscriberLeads]
 
   if (filters?.search) {
     const s = filters.search.toLowerCase()
@@ -95,6 +182,15 @@ export async function fetchLeads(filters?: LeadFilters): Promise<LeadRow[]> {
   }
 
   return results
+}
+
+/** Calculate a basic lead score for a subscriber based on their tags */
+function calcSubscriberScore(sub: any): number {
+  let score = 10
+  if (sub.tags?.includes('meal_plan')) score += 20
+  if (sub.tags?.includes('newsletter')) score += 10
+  if (sub.tags?.includes('contact_ok')) score += 15
+  return Math.min(score, 100)
 }
 
 export async function fetchLeadById(userId: string) {

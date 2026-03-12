@@ -392,6 +392,29 @@ export default function Calculator() {
           </p>
         </div>
 
+        {/* Intro Guide */}
+        {currentStep === 0 && (
+          <div className="bg-white/80 backdrop-blur rounded-xl border border-border p-6 mb-8">
+            <h2 className="font-serif text-lg font-semibold text-primary mb-3">
+              {t('calculator.guide.title')}
+            </h2>
+            <div className="grid sm:grid-cols-3 gap-4 text-sm text-muted-foreground">
+              <div className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">1</span>
+                <p>{t('calculator.guide.step1')}</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">2</span>
+                <p>{t('calculator.guide.step2')}</p>
+              </div>
+              <div className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">3</span>
+                <p>{t('calculator.guide.step3')}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">

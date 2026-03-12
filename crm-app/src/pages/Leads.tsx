@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { fetchLeads, type LeadRow, type LeadStatusValue } from '@/lib/leads'
+import { fetchLeads, type UnifiedLeadRow, type LeadStatusValue } from '@/lib/leads'
 import { fetchCrmUsers, type CrmUserRow } from '@/lib/crmUsers'
 import { Search, Loader2, ChevronRight } from 'lucide-react'
 
@@ -13,7 +13,7 @@ const STATUS_OPTIONS: LeadStatusValue[] = [
 
 export default function Leads() {
   const { t } = useTranslation()
-  const [leads, setLeads] = useState<LeadRow[]>([])
+  const [leads, setLeads] = useState<UnifiedLeadRow[]>([])
   const [crmUsers, setCrmUsers] = useState<CrmUserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -133,12 +133,21 @@ export default function Leads() {
                 {filtered.map((lead) => (
                   <tr key={lead.user_id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3">
-                      <Link
-                        to={`/leads/${lead.user_id}`}
-                        className="text-sm font-medium text-foreground hover:text-primary"
-                      >
-                        {lead.profile?.name || '—'}
-                      </Link>
+                      {lead.origin === 'auth' ? (
+                        <Link
+                          to={`/leads/${lead.user_id}`}
+                          className="text-sm font-medium text-foreground hover:text-primary"
+                        >
+                          {lead.profile?.name || '—'}
+                        </Link>
+                      ) : (
+                        <span className="text-sm font-medium text-foreground">
+                          {lead.profile?.name || '—'}
+                          <span className="ml-1.5 text-[10px] font-normal bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                            GÆST
+                          </span>
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3 text-sm text-muted-foreground">
                       {lead.profile?.email || '—'}

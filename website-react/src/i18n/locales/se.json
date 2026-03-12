@@ -5,7 +5,7 @@
     "blog": "Forskning & Artiklar",
     "guides": "Guider",
     "about": "Om oss",
-    "calculator": "Kaloriräknare",
+    "calculator": "Kostplan",
     "login": "Logga in",
     "profile": "Min Profil",
     "subscribe": "Prenumerera",
@@ -54,8 +54,8 @@
     "terms": "Villkor"
   },
   "calculator": {
-    "title": "Kaloriräknare",
-    "subtitle": "Beräkna ditt dagliga kaloribehov baserat på din kropp och livsstil.",
+    "title": "Kostplan",
+    "subtitle": "Beräkna ditt kaloribehov och få en skräddarsydd måltidsplan på några minuter.",
     "mealPlanTitle": "Personlig Måltidsplan",
     "mealPlanSubtitle": "Få en skräddarsydd keto-måltidsplan baserad på dina preferenser.",
     "resultsReady": "Dina Resultat",
@@ -66,6 +66,12 @@
     "continueMealPlanDesc": "Vill du ha en skräddarsydd keto-måltidsplan skickad till din e-post? Fortsätt för att välja dina preferenser.",
     "phase": "Del",
     "calorieCalculator": "Kaloriräknare",
+    "guide": {
+      "title": "Så fungerar det",
+      "step1": "Ange dina uppgifter — ålder, vikt, längd och aktivitetsnivå.",
+      "step2": "Få ditt personliga kalori- och makromål beräknat automatiskt.",
+      "step3": "Skapa en skräddarsydd måltidsplan med recept och inköpslista."
+    },
     "mealPlanner": "Måltidsplan",
     "step": "Steg",
     "of": "av",

@@ -72,6 +72,37 @@ export interface SubscriberRow {
   updated_at: string
 }
 
+/**
+ * Unified lead row — can represent either an authenticated lead (from lead_status)
+ * or a guest lead (from newsletter_subscribers with contact_ok tag).
+ * Guest leads have `origin: 'subscriber'` and limited fields.
+ */
+export type UnifiedLeadOrigin = 'auth' | 'subscriber'
+
+export interface UnifiedLeadRow {
+  id: string                    // user_id or subscriber id
+  origin: UnifiedLeadOrigin     // where this lead comes from
+  email: string
+  name: string | null
+  source: LeadSource | string
+  status: LeadStatusValue
+  lead_score: number
+  language: string | null
+  created_at: string
+  updated_at: string
+  last_contact_date: string | null
+  follow_up_date: string | null
+  notes: string | null
+  // Consent flags (from profile or subscriber tags)
+  newsletter_consent: boolean
+  marketing_consent: boolean
+  coaching_contact_consent: boolean
+  // Original data for navigation
+  subscriber_id?: string        // set when origin === 'subscriber'
+  user_id?: string              // set when origin === 'auth'
+  tags?: string[]               // subscriber tags
+}
+
 // ─── Queries ─────────────────────────────────────────────────
 
 /** Fetch all leads with their profile data for the CRM list */
@@ -203,6 +234,110 @@ export async function fetchCrmStats(): Promise<CrmStats & { totalSubscribers: nu
     activeCoaching: coachingRes.count || 0,
     totalSubscribers: subsRes.count || 0,
   }
+}
+
+/**
+ * Fetch a unified list of all leads — both authenticated (lead_status)
+ * and guest subscribers who gave contact consent (contact_ok tag).
+ * Guest subscribers without a linked user are shown as "subscriber" origin leads.
+ */
+export async function fetchUnifiedLeads(filters?: {
+  status?: LeadStatusValue
+  source?: LeadSource | string
+  search?: string
+}): Promise<UnifiedLeadRow[]> {
+  // 1. Fetch authenticated leads
+  const authLeads = await fetchLeads(filters?.status ? { status: filters.status } : undefined)
+
+  // 2. Fetch subscriber leads (with contact_ok tag, not linked to a user)
+  let subQuery = supabase
+    .from('newsletter_subscribers')
+    .select('*')
+    .contains('tags', ['contact_ok'])
+    .eq('is_active', true)
+    .is('linked_user_id', null)   // Only guests — linked users already appear via lead_status
+    .order('created_at', { ascending: false })
+
+  const { data: subLeads, error: subErr } = await subQuery
+  if (subErr) console.error('Failed to fetch subscriber leads:', subErr)
+
+  // 3. Get emails of authenticated leads to avoid duplicates
+  const authEmails = new Set(
+    authLeads.map((l: any) => l.profile?.email?.toLowerCase()).filter(Boolean)
+  )
+
+  // 4. Map auth leads to unified format
+  const unified: UnifiedLeadRow[] = authLeads.map((l: any) => ({
+    id: l.user_id,
+    origin: 'auth' as UnifiedLeadOrigin,
+    email: l.profile?.email || '',
+    name: l.profile?.name || null,
+    source: l.source,
+    status: l.status,
+    lead_score: l.lead_score,
+    language: l.profile?.language || null,
+    created_at: l.created_at,
+    updated_at: l.updated_at,
+    last_contact_date: l.last_contact_date,
+    follow_up_date: l.follow_up_date,
+    notes: l.notes,
+    newsletter_consent: l.profile?.newsletter_consent || false,
+    marketing_consent: l.profile?.marketing_consent || false,
+    coaching_contact_consent: l.profile?.coaching_contact_consent || false,
+    user_id: l.user_id,
+  }))
+
+  // 5. Map subscriber leads to unified format (skip if already in auth leads)
+  const subUnified: UnifiedLeadRow[] = (subLeads || [])
+    .filter((s: any) => !authEmails.has(s.email?.toLowerCase()))
+    .map((s: any) => ({
+      id: s.id,
+      origin: 'subscriber' as UnifiedLeadOrigin,
+      email: s.email,
+      name: s.name || null,
+      source: s.source || 'unknown',
+      status: 'new' as LeadStatusValue,
+      lead_score: calcSubscriberScore(s),
+      language: s.language || null,
+      created_at: s.created_at,
+      updated_at: s.updated_at,
+      last_contact_date: null,
+      follow_up_date: null,
+      notes: null,
+      newsletter_consent: s.tags?.includes('newsletter') || false,
+      marketing_consent: s.tags?.includes('contact_ok') || false,
+      coaching_contact_consent: s.tags?.includes('contact_ok') || false,
+      subscriber_id: s.id,
+      tags: s.tags,
+    }))
+
+  let all = [...unified, ...subUnified]
+
+  // 6. Apply filters
+  if (filters?.source) {
+    all = all.filter(l => l.source === filters.source)
+  }
+  if (filters?.search) {
+    const s = filters.search.toLowerCase()
+    all = all.filter(l =>
+      l.email?.toLowerCase().includes(s) || l.name?.toLowerCase()?.includes(s)
+    )
+  }
+  // Status filter already applied for auth leads; apply to subscriber leads too
+  if (filters?.status) {
+    all = all.filter(l => l.status === filters.status)
+  }
+
+  return all
+}
+
+/** Calculate a basic lead score for a subscriber based on their tags/activity */
+function calcSubscriberScore(sub: any): number {
+  let score = 10 // base: gave email
+  if (sub.tags?.includes('meal_plan')) score += 20  // generated a meal plan
+  if (sub.tags?.includes('newsletter')) score += 10 // opted into newsletter
+  if (sub.tags?.includes('contact_ok')) score += 15 // gave contact consent
+  return Math.min(score, 100)
 }
 
 // ─── Mutations ───────────────────────────────────────────────

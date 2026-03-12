@@ -16,6 +16,7 @@ renders, loads, and functions correctly.
 ## Prerequisites
 
 - The dev server must be running at `http://localhost:5173`
+- **VIGTIGT:** CRM'et der skal testes er det LOKALE dev-miljø på `http://localhost:5173` — IKKE produktionssitet på shiftingsource.com. Brug altid localhost-URL'en indtil CRM'et er deployet live.
 - You must be logged in as an admin user
 - Use the Chrome browser tools (tabs_context_mcp, navigate, screenshot, find, etc.)
 

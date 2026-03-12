@@ -5,7 +5,7 @@
     "blog": "Research & Articles",
     "guides": "Guides",
     "about": "About us",
-    "calculator": "Calorie Calculator",
+    "calculator": "Meal Plan",
     "login": "Log in",
     "profile": "My Profile",
     "subscribe": "Subscribe",
@@ -54,8 +54,8 @@
     "terms": "Terms of Service"
   },
   "calculator": {
-    "title": "Calorie Calculator",
-    "subtitle": "Calculate your daily calorie needs based on your body and lifestyle.",
+    "title": "Meal Plan",
+    "subtitle": "Calculate your calorie needs and get a tailored meal plan in minutes.",
     "mealPlanTitle": "Personal Meal Plan",
     "mealPlanSubtitle": "Get a customized keto meal plan based on your preferences.",
     "resultsReady": "Your Results",
@@ -65,7 +65,13 @@
     "continueMealPlan": "Get a personal meal plan",
     "continueMealPlanDesc": "Want a customized keto meal plan sent to your email? Continue to select your preferences.",
     "phase": "Part",
-    "calorieCalculator": "Calorie Calculator",
+    "calorieCalculator": "Calorie calculator",
+    "guide": {
+      "title": "How it works",
+      "step1": "Enter your details — age, weight, height and activity level.",
+      "step2": "Get your personal calorie and macro target calculated automatically.",
+      "step3": "Create a tailored meal plan with recipes and shopping list."
+    },
     "mealPlanner": "Meal Plan",
     "step": "Step",
     "of": "of",

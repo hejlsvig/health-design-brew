@@ -7,9 +7,9 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import {
-  fetchLeads, fetchCrmStats, fetchSubscribers,
+  fetchCrmStats, fetchSubscribers, fetchUnifiedLeads,
   statusLabel, statusColor,
-  type LeadRow, type LeadStatusValue, type LeadSource, type CrmStats, type SubscriberRow
+  type LeadStatusValue, type LeadSource, type CrmStats, type SubscriberRow, type UnifiedLeadRow
 } from '@/lib/crm'
 
 export default function AdminCRM() {
@@ -17,7 +17,7 @@ export default function AdminCRM() {
   const { user, isAdmin, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
-  const [leads, setLeads] = useState<LeadRow[]>([])
+  const [unifiedLeads, setUnifiedLeads] = useState<UnifiedLeadRow[]>([])
   const [subscribers, setSubscribers] = useState<SubscriberRow[]>([])
   const [stats, setStats] = useState<CrmStats & { totalSubscribers: number }>({ totalLeads: 0, newThisWeek: 0, qualified: 0, activeCoaching: 0, totalSubscribers: 0 })
   const [loading, setLoading] = useState(true)
@@ -40,13 +40,13 @@ export default function AdminCRM() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [leadsData, statsData, subsData] = await Promise.all([
-        fetchLeads(),
+      const [unifiedData, statsData, subsData] = await Promise.all([
+        fetchUnifiedLeads(),
         fetchCrmStats(),
         fetchSubscribers(),
       ])
-      setLeads(leadsData)
-      setStats(statsData)
+      setUnifiedLeads(unifiedData)
+      setStats({ ...statsData, totalLeads: unifiedData.length })
       setSubscribers(subsData)
     } catch (err) {
       console.error('CRM load error:', err)
@@ -55,18 +55,17 @@ export default function AdminCRM() {
     }
   }
 
-  // Filtered + sorted leads
+  // Filtered + sorted unified leads
   const filteredLeads = useMemo(() => {
-    let result = [...leads]
+    let result = [...unifiedLeads]
 
     if (filterStatus) result = result.filter(l => l.status === filterStatus)
     if (filterSource) result = result.filter(l => l.source === filterSource)
     if (search) {
       const s = search.toLowerCase()
-      result = result.filter(l => {
-        const p = (l as any).profile
-        return p?.email?.toLowerCase().includes(s) || p?.name?.toLowerCase().includes(s)
-      })
+      result = result.filter(l =>
+        l.email?.toLowerCase().includes(s) || l.name?.toLowerCase()?.includes(s)
+      )
     }
 
     result.sort((a, b) => {
@@ -84,7 +83,7 @@ export default function AdminCRM() {
     })
 
     return result
-  }, [leads, filterStatus, filterSource, search, sortBy, sortDir])
+  }, [unifiedLeads, filterStatus, filterSource, search, sortBy, sortDir])
 
   const toggleSort = (col: typeof sortBy) => {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -164,7 +163,7 @@ export default function AdminCRM() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          Leads ({leads.length})
+          Leads ({unifiedLeads.length})
         </button>
         <button
           onClick={() => setActiveTab('subscribers')}
@@ -252,69 +251,82 @@ export default function AdminCRM() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredLeads.map(lead => {
-                    const p = (lead as any).profile
-                    return (
-                      <tr
-                        key={lead.user_id}
-                        className="hover:bg-muted/30 cursor-pointer transition-colors"
-                        onClick={() => navigate(`/admin/crm/${lead.user_id}`)}
-                      >
-                        <td className="px-4 py-3">
+                  {filteredLeads.map(lead => (
+                    <tr
+                      key={lead.id}
+                      className="hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => {
+                        if (lead.origin === 'auth' && lead.user_id) {
+                          navigate(`/admin/crm/${lead.user_id}`)
+                        }
+                        // Subscriber leads: no detail page yet — could be extended
+                      }}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
                           <div>
-                            <p className="font-medium">{p?.name || 'Ingen navn'}</p>
-                            <p className="text-xs text-muted-foreground">{p?.email}</p>
+                            <p className="font-medium">
+                              {lead.name || 'Ingen navn'}
+                              {lead.origin === 'subscriber' && (
+                                <span className="ml-1.5 text-[10px] font-normal bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded" title="Gæst-lead (ikke logget ind)">GÆST</span>
+                              )}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{lead.email}</p>
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{lead.source}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor(lead.status)}`}>
-                            {statusLabel(lead.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-accent transition-all"
-                                style={{ width: `${lead.lead_score}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground">{lead.lead_score}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{lead.source}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor(lead.status)}`}>
+                          {statusLabel(lead.status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-accent transition-all"
+                              style={{ width: `${lead.lead_score}%` }}
+                            />
                           </div>
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell text-xs text-muted-foreground">
-                          {lead.last_contact_date
-                            ? new Date(lead.last_contact_date).toLocaleDateString('da-DK')
-                            : '–'}
-                        </td>
-                        <td className="px-4 py-3 hidden lg:table-cell">
-                          <div className="flex gap-1">
-                            {p?.newsletter_consent && (
-                              <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded" title="Nyhedsbrev">NB</span>
-                            )}
-                            {p?.marketing_consent && (
-                              <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded" title="Marketing">MK</span>
-                            )}
-                            {p?.coaching_contact_consent && (
-                              <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded" title="Coaching">CO</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
+                          <span className="text-xs text-muted-foreground">{lead.lead_score}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell text-xs text-muted-foreground">
+                        {lead.last_contact_date
+                          ? new Date(lead.last_contact_date).toLocaleDateString('da-DK')
+                          : '–'}
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <div className="flex gap-1">
+                          {lead.newsletter_consent && (
+                            <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded" title="Nyhedsbrev">NB</span>
+                          )}
+                          {lead.marketing_consent && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded" title="Marketing">MK</span>
+                          )}
+                          {lead.coaching_contact_consent && (
+                            <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded" title="Coaching kontakt">CO</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {lead.origin === 'auth' ? (
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </td>
-                      </tr>
-                    )
-                  })}
+                        ) : (
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           )}
           <p className="text-xs text-muted-foreground mt-3">
-            Viser {filteredLeads.length} af {leads.length} leads
+            Viser {filteredLeads.length} af {unifiedLeads.length} leads
           </p>
         </>
       )}

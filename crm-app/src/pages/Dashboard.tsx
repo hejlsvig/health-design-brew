@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchDashboardStats, type DashboardStats } from '@/lib/stats'
-import { fetchLeads, type LeadRow } from '@/lib/leads'
+import { fetchLeads, type UnifiedLeadRow } from '@/lib/leads'
 import {
   Users,
   UserPlus,
@@ -17,7 +17,7 @@ export default function Dashboard() {
   const { t } = useTranslation()
   const { crmUser } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [recentLeads, setRecentLeads] = useState<LeadRow[]>([])
+  const [recentLeads, setRecentLeads] = useState<UnifiedLeadRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -91,26 +91,46 @@ export default function Dashboard() {
           </Link>
         </div>
         <div className="divide-y divide-border">
-          {recentLeads.map((lead) => (
-            <Link
-              key={lead.user_id}
-              to={`/leads/${lead.user_id}`}
-              className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 transition-colors"
-            >
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {lead.profile?.name || lead.profile?.email || 'Unknown'}
-                </p>
-                <p className="text-xs text-muted-foreground">{lead.profile?.email}</p>
+          {recentLeads.map((lead) => {
+            const inner = (
+              <>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {lead.profile?.name || lead.profile?.email || 'Unknown'}
+                    {lead.origin === 'subscriber' && (
+                      <span className="ml-1.5 text-[10px] font-normal bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                        GÆST
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{lead.profile?.email}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={lead.status} />
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(lead.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </>
+            )
+
+            return lead.origin === 'auth' ? (
+              <Link
+                key={lead.user_id}
+                to={`/leads/${lead.user_id}`}
+                className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 transition-colors"
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div
+                key={lead.user_id}
+                className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 transition-colors"
+              >
+                {inner}
               </div>
-              <div className="flex items-center gap-3">
-                <StatusBadge status={lead.status} />
-                <span className="text-xs text-muted-foreground">
-                  {new Date(lead.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </Link>
-          ))}
+            )
+          })}
           {recentLeads.length === 0 && (
             <p className="px-5 py-8 text-center text-muted-foreground text-sm">
               {t('leads.noLeads')}
