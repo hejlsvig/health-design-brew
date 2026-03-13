@@ -258,8 +258,9 @@ export default function AdminCRM() {
                       onClick={() => {
                         if (lead.origin === 'auth' && lead.user_id) {
                           navigate(`/admin/crm/${lead.user_id}`)
+                        } else if (lead.origin === 'subscriber' && lead.subscriber_id) {
+                          navigate(`/admin/crm/${lead.subscriber_id}`)
                         }
-                        // Subscriber leads: no detail page yet — could be extended
                       }}
                     >
                       <td className="px-4 py-3">

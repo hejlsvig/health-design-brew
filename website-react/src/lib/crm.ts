@@ -150,7 +150,8 @@ export async function fetchLeads(filters?: {
   return results
 }
 
-/** Fetch a single lead with full profile, consent log, and activity timeline */
+/** Fetch a single lead with full profile, consent log, and activity timeline.
+ *  If not found in profiles/lead_status, falls back to newsletter_subscribers. */
 export async function fetchLeadDetail(userId: string) {
   const [leadRes, profileRes, consentRes, activityRes, coachingRes] = await Promise.all([
     supabase.from('lead_status').select('*').eq('user_id', userId).single(),
@@ -173,12 +174,52 @@ export async function fetchLeadDetail(userId: string) {
       .limit(1),
   ])
 
+  // If no profile found, try looking up as a subscriber
+  if (!profileRes.data && !leadRes.data) {
+    try {
+      return await fetchSubscriberDetail(userId)
+    } catch {
+      // Not found as subscriber either — return empty
+    }
+  }
+
   return {
+    subscriber: null,
     lead: leadRes.data,
     profile: profileRes.data,
     consentLog: consentRes.data || [],
     activityLog: activityRes.data || [],
     coaching: coachingRes.data?.[0] || null,
+    isSubscriber: false,
+  }
+}
+
+/** Fetch a single subscriber detail (for guest leads without a profile) */
+export async function fetchSubscriberDetail(subscriberId: string) {
+  const { data: subscriber, error } = await supabase
+    .from('newsletter_subscribers')
+    .select('*')
+    .eq('id', subscriberId)
+    .single()
+
+  if (error) throw error
+
+  // Fetch consent log entries by email (subscribers don't have user_id in consent_log,
+  // but the edge function logs with the subscriber email)
+  const { data: consentLog } = await supabase
+    .from('consent_log')
+    .select('*')
+    .eq('details', subscriber.email)
+    .order('created_at', { ascending: false })
+
+  return {
+    subscriber,
+    lead: null,
+    profile: null,
+    consentLog: consentLog || [],
+    activityLog: [],
+    coaching: null,
+    isSubscriber: true,
   }
 }
 

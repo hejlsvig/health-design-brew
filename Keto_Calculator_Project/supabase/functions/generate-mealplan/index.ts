@@ -1048,15 +1048,15 @@ ${pt.writeAll}${
 
     const requestBody: Record<string, unknown> = {
       model,
+      max_completion_tokens: maxTokens,
       messages: [
         { role: 'system', content: systemPrompt + excludedWarning },
         { role: 'user', content: userPrompt },
       ],
     }
-    // GPT-5.x and reasoning models don't support temperature or max_completion_tokens
+    // GPT-5.x models don't support temperature — only default (1) is allowed
     if (!isGpt5) {
       requestBody.temperature = 0.7
-      requestBody.max_completion_tokens = maxTokens
     }
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {

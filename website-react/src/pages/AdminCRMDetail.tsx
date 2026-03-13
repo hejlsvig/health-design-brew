@@ -105,7 +105,7 @@ export default function AdminCRMDetail() {
     )
   }
 
-  if (!data?.profile) {
+  if (!data?.profile && !data?.subscriber) {
     return (
       <div className="container py-12 text-center">
         <p className="text-muted-foreground mb-4">Lead ikke fundet.</p>
@@ -114,7 +114,11 @@ export default function AdminCRMDetail() {
     )
   }
 
-  const { lead, profile, consentLog, activityLog, coaching } = data
+  const { lead, profile, consentLog, activityLog, coaching, subscriber, isSubscriber } = data
+
+  // For subscriber leads, use subscriber data
+  const displayName = isSubscriber ? (subscriber?.name || 'Ingen navn') : (profile?.name || 'Ingen navn')
+  const displayEmail = isSubscriber ? subscriber?.email : profile?.email
   const allStatuses: LeadStatusValue[] = [
     'new', 'contacted', 'qualified', 'coaching_active',
     'coaching_paused', 'coaching_completed', 'inactive', 'opted_out'
@@ -141,8 +145,13 @@ export default function AdminCRMDetail() {
                   <User className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h1 className="font-serif text-xl font-bold">{profile.name || 'Ingen navn'}</h1>
-                  <p className="text-sm text-muted-foreground">{profile.email}</p>
+                  <h1 className="font-serif text-xl font-bold">
+                    {displayName}
+                    {isSubscriber && (
+                      <span className="ml-2 text-xs font-normal bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">GÆST</span>
+                    )}
+                  </h1>
+                  <p className="text-sm text-muted-foreground">{displayEmail}</p>
                 </div>
               </div>
               {lead && (
@@ -150,35 +159,64 @@ export default function AdminCRMDetail() {
                   {statusLabel(lead.status)}
                 </span>
               )}
+              {isSubscriber && !lead && (
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+                  Ny (gæst)
+                </span>
+              )}
             </div>
 
-            {/* Quick info grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-              {profile.daily_calories && (
+            {/* Quick info grid — profile leads */}
+            {profile && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                {profile.daily_calories && (
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-4 w-4 text-accent" />
+                    <span>{profile.daily_calories} kcal</span>
+                  </div>
+                )}
+                {profile.tdee && (
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    <span>TDEE: {profile.tdee}</span>
+                  </div>
+                )}
+                {profile.weight && (
+                  <div className="flex items-center gap-2">
+                    <Scale className="h-4 w-4 text-muted-foreground" />
+                    <span>{Math.round(profile.weight)} kg</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
-                  <Flame className="h-4 w-4 text-accent" />
-                  <span>{profile.daily_calories} kcal</span>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>{new Date(profile.created_at).toLocaleDateString('da-DK')}</span>
                 </div>
-              )}
-              {profile.tdee && (
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" />
-                  <span>TDEE: {profile.tdee}</span>
-                </div>
-              )}
-              {profile.weight && (
-                <div className="flex items-center gap-2">
-                  <Scale className="h-4 w-4 text-muted-foreground" />
-                  <span>{Math.round(profile.weight)} kg</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>{new Date(profile.created_at).toLocaleDateString('da-DK')}</span>
               </div>
-            </div>
+            )}
 
-            {/* Lead info */}
+            {/* Quick info grid — subscriber leads */}
+            {isSubscriber && subscriber && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>{new Date(subscriber.created_at).toLocaleDateString('da-DK')}</span>
+                </div>
+                {subscriber.language && (
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span>Sprog: {subscriber.language.toUpperCase()}</span>
+                  </div>
+                )}
+                {subscriber.source && (
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    <span>Kilde: {subscriber.source}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Lead info — auth leads */}
             {lead && (
               <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-4 text-sm">
                 <div>
@@ -197,9 +235,20 @@ export default function AdminCRMDetail() {
                 )}
               </div>
             )}
+
+            {/* Subscriber tags */}
+            {isSubscriber && subscriber?.tags?.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <span className="text-sm text-muted-foreground mr-2">Tags:</span>
+                {subscriber.tags.map((tag: string) => (
+                  <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full mr-1.5">{tag}</span>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Status change + Actions */}
+          {/* Status change + Actions — only for auth leads */}
+          {!isSubscriber && (
           <div className="rounded-md border border-border bg-card p-4 flex flex-wrap gap-3 items-center">
             <span className="text-sm font-medium mr-2">Ændr status:</span>
             <select
@@ -229,6 +278,7 @@ export default function AdminCRMDetail() {
               </span>
             )}
           </div>
+          )}
 
           {/* Add note */}
           <div className="rounded-md border border-border bg-card p-4">
@@ -309,10 +359,22 @@ export default function AdminCRMDetail() {
             </button>
             {showConsent && (
               <div className="px-4 pb-4 space-y-2">
-                <ConsentBadge label="Nyhedsbrev" granted={profile.newsletter_consent} />
-                <ConsentBadge label="Marketing" granted={profile.marketing_consent} />
-                <ConsentBadge label="Coaching kontakt" granted={profile.coaching_contact_consent} />
-                <ConsentBadge label="GDPR" granted={profile.gdpr_consent} />
+                {profile && (
+                  <>
+                    <ConsentBadge label="Nyhedsbrev" granted={profile.newsletter_consent} />
+                    <ConsentBadge label="Marketing" granted={profile.marketing_consent} />
+                    <ConsentBadge label="Coaching kontakt" granted={profile.coaching_contact_consent} />
+                    <ConsentBadge label="GDPR" granted={profile.gdpr_consent} />
+                  </>
+                )}
+                {isSubscriber && subscriber && (
+                  <>
+                    <ConsentBadge label="Nyhedsbrev" granted={subscriber.tags?.includes('newsletter')} />
+                    <ConsentBadge label="Kontakt OK" granted={subscriber.tags?.includes('contact_ok')} />
+                    <ConsentBadge label="Kostplan" granted={subscriber.tags?.includes('meal_plan')} />
+                    <ConsentBadge label="Aktiv" granted={subscriber.is_active} />
+                  </>
+                )}
 
                 {consentLog.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-border">
@@ -364,6 +426,7 @@ export default function AdminCRMDetail() {
           )}
 
           {/* Profile details */}
+          {profile && (
           <div className="rounded-md border border-border bg-card p-4 space-y-2">
             <h3 className="font-serif font-bold flex items-center gap-2">
               <FileText className="h-4 w-4" /> Profil detaljer
@@ -407,6 +470,40 @@ export default function AdminCRMDetail() {
               )}
             </div>
           </div>
+          )}
+
+          {/* Subscriber details (for guest leads) */}
+          {isSubscriber && subscriber && (
+          <div className="rounded-md border border-border bg-card p-4 space-y-2">
+            <h3 className="font-serif font-bold flex items-center gap-2">
+              <FileText className="h-4 w-4" /> Subscriber detaljer
+            </h3>
+            <div className="text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Sprog:</span>
+                <span>{(subscriber.language || 'da').toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Kilde:</span>
+                <span>{subscriber.source}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Oprettet:</span>
+                <span>{new Date(subscriber.created_at).toLocaleDateString('da-DK')}</span>
+              </div>
+              {subscriber.updated_at && subscriber.updated_at !== subscriber.created_at && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Opdateret:</span>
+                  <span>{new Date(subscriber.updated_at).toLocaleDateString('da-DK')}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Type:</span>
+                <span>Gæst (ikke logget ind)</span>
+              </div>
+            </div>
+          </div>
+          )}
         </div>
       </div>
 
