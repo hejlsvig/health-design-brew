@@ -1048,14 +1048,14 @@ ${pt.writeAll}${
 
     const requestBody: Record<string, unknown> = {
       model,
-      temperature: 0.7,
       messages: [
         { role: 'system', content: systemPrompt + excludedWarning },
         { role: 'user', content: userPrompt },
       ],
     }
-    // Only add token limit for models that support it (GPT-4.x and earlier)
+    // GPT-5.x and reasoning models don't support temperature or max_completion_tokens
     if (!isGpt5) {
+      requestBody.temperature = 0.7
       requestBody.max_completion_tokens = maxTokens
     }
 
