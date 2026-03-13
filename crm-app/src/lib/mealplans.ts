@@ -2,18 +2,28 @@ import { supabase } from './supabase'
 
 export interface MealPlan {
   id: string
-  profile_id: string
+  profile_id: string | null
+  subscriber_id: string | null
+  email: string | null
+  name: string | null
   pdf_filename: string
   pdf_storage_path: string | null
   tokens_used: number | null
   cost_usd: number | null
   model: string
   num_days: number | null
+  daily_calories: number | null
+  meals_per_day: number | null
+  diet_type: string | null
+  language: string | null
+  status: string | null
+  email_sent: boolean | null
+  email_sent_at: string | null
   created_at: string
 }
 
 export async function fetchMealPlansForUser(userId: string): Promise<MealPlan[]> {
-  // Try generated_meal_plans table first
+  // Try by profile_id first
   const { data, error } = await supabase
     .from('generated_meal_plans')
     .select('*')
@@ -24,7 +34,18 @@ export async function fetchMealPlansForUser(userId: string): Promise<MealPlan[]>
     return data as MealPlan[]
   }
 
-  // Fallback: check profiles.meal_plan_pdf_url (edge function saves here)
+  // Try by subscriber_id (for subscriber-only leads)
+  const { data: subData, error: subErr } = await supabase
+    .from('generated_meal_plans')
+    .select('*')
+    .eq('subscriber_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (!subErr && subData && subData.length > 0) {
+    return subData as MealPlan[]
+  }
+
+  // Fallback: check profiles.meal_plan_pdf_url (legacy)
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, meal_plan_pdf_url, updated_at')
@@ -35,12 +56,22 @@ export async function fetchMealPlansForUser(userId: string): Promise<MealPlan[]>
     return [{
       id: `profile-${userId}`,
       profile_id: userId,
+      subscriber_id: null,
+      email: null,
+      name: null,
       pdf_filename: profile.meal_plan_pdf_url.split('/').pop() || 'kostplan.pdf',
       pdf_storage_path: profile.meal_plan_pdf_url,
       tokens_used: null,
       cost_usd: null,
       model: '—',
       num_days: null,
+      daily_calories: null,
+      meals_per_day: null,
+      diet_type: null,
+      language: null,
+      status: null,
+      email_sent: null,
+      email_sent_at: null,
       created_at: profile.updated_at || new Date().toISOString(),
     }]
   }

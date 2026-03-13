@@ -271,31 +271,57 @@ export async function updateLeadStatus(
 }
 
 export async function assignLead(userId: string, coachId: string | null) {
+  // Try user_id first, then subscriber_id
   const { error } = await supabase
     .from('lead_status')
     .update({ assigned_to: coachId })
     .eq('user_id', userId)
 
-  if (error) throw error
+  if (error) {
+    // Fallback: try subscriber_id
+    const { error: subErr } = await supabase
+      .from('lead_status')
+      .update({ assigned_to: coachId })
+      .eq('subscriber_id', userId)
+    if (subErr) throw subErr
+  }
 }
 
 export async function addLeadNote(userId: string, note: string, adminId: string) {
-  const { error } = await supabase.from('lead_activity').insert({
-    user_id: userId,
-    activity_type: 'note_added',
-    notes: note,
-    created_by: adminId,
-  })
+  // Check if this is a subscriber-only lead (no profile)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  const insertData = profile
+    ? { user_id: userId, activity_type: 'note_added' as const, notes: note, created_by: adminId }
+    : { subscriber_id: userId, activity_type: 'note_added' as const, notes: note, created_by: adminId }
+
+  const { error } = await supabase.from('lead_activity').insert(insertData)
   if (error) throw error
 }
 
 export async function fetchLeadActivity(userId: string) {
+  // Try user_id first
   const { data, error } = await supabase
     .from('lead_activity')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return data || []
+  if (!error && data && data.length > 0) {
+    return data
+  }
+
+  // Fallback: try subscriber_id
+  const { data: subData, error: subErr } = await supabase
+    .from('lead_activity')
+    .select('*')
+    .eq('subscriber_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (subErr) throw subErr
+  return subData || []
 }

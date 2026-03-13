@@ -30,14 +30,25 @@ export interface EmailTemplate {
 // ─── Email Sends ───
 
 export async function fetchEmailsForUser(userId: string): Promise<EmailSend[]> {
+  // Try by user_id first
   const { data, error } = await supabase
     .from('email_sends')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return (data || []) as EmailSend[]
+  if (!error && data && data.length > 0) {
+    return data as EmailSend[]
+  }
+
+  // Also try by subscriber_id (for subscriber-only leads)
+  const { data: subData } = await supabase
+    .from('email_sends')
+    .select('*')
+    .eq('subscriber_id', userId)
+    .order('created_at', { ascending: false })
+
+  return (subData || []) as EmailSend[]
 }
 
 export async function fetchAllEmails(limit = 100): Promise<EmailSend[]> {

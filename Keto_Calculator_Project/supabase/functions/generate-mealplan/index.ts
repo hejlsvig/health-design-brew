@@ -1161,11 +1161,10 @@ ${pt.writeAll}${
       }
     }
 
-    // ── 8. Create/update lead + log consent (ALL users, including non-logged-in) ──
+    // ── 8. Full CRM lifecycle logging (ALL users, including non-logged-in) ──
     if (email) {
       try {
         // 8a. Upsert newsletter_subscriber (as a lead from meal_plan)
-        // Use .select() to get the subscriber_id for consent_log
         const { data: subData, error: subErr } = await supabase.from('newsletter_subscribers').upsert(
           {
             email,
@@ -1185,7 +1184,6 @@ ${pt.writeAll}${
         let subscriberId: string | null = subData?.id || null
         if (subErr) {
           console.error(`[generate-mealplan] newsletter_subscribers upsert FAILED:`, subErr.message, subErr.code)
-          // Try to fetch existing subscriber_id as fallback
           const { data: existing } = await supabase
             .from('newsletter_subscribers')
             .select('id')
@@ -1196,50 +1194,76 @@ ${pt.writeAll}${
           console.log(`[generate-mealplan] Lead upserted: ${email} (subscriber_id: ${subscriberId})`)
         }
 
-        // 8b. If user is logged in, also upsert lead_status
+        // 8b. Upsert lead_status for ALL users (auth + subscriber)
+        // Lead scoring: GDPR=10, newsletter=20, contact=30, meal_plan=15
+        const leadScore = (gdpr_consent ? 10 : 0) + (newsletter_consent ? 20 : 0) + (contact_consent ? 30 : 0) + 15
         if (user) {
           await supabase.from('lead_status').upsert(
             {
               user_id: user.id,
+              subscriber_id: subscriberId,
               source: 'meal_plan',
               status: 'new',
+              lead_score: leadScore,
               notes: `Genereret ${num_days}-dages kostplan (${daily_calories} kcal)`,
             },
             { onConflict: 'user_id' },
-          ).then(() => {}, () => {}) // best-effort
+          ).then(() => {}, () => {})
+        } else if (subscriberId) {
+          // Subscriber-only lead: check if lead_status already exists
+          const { data: existingLead } = await supabase
+            .from('lead_status')
+            .select('id')
+            .eq('subscriber_id', subscriberId)
+            .maybeSingle()
+          if (!existingLead) {
+            await supabase.from('lead_status').insert({
+              subscriber_id: subscriberId,
+              source: 'meal_plan',
+              status: 'new',
+              lead_score: leadScore,
+              notes: `Genereret ${num_days}-dages kostplan (${daily_calories} kcal)`,
+            }).then(() => {}, (e: unknown) => console.warn('[generate-mealplan] lead_status insert failed:', e))
+          } else {
+            // Update lead score if higher
+            await supabase.from('lead_status')
+              .update({ lead_score: leadScore, notes: `Genereret ${num_days}-dages kostplan (${daily_calories} kcal)` })
+              .eq('subscriber_id', subscriberId)
+              .then(() => {}, () => {})
+          }
         }
 
-        // 8c. Log consent entries in consent_log (with subscriber_id for non-auth users)
+        // 8c. Log consent entries in consent_log
         const consentEntries = [
           {
-            user_id: user?.id || null,
+            user_id: user?.id || subscriberId,
             subscriber_id: subscriberId,
-            consent_type: 'meal_plan_delivery',
+            consent_type: 'data_processing',
             granted: gdpr_consent,
             source: 'meal_plan',
-            notes: `Email: ${email}, Name: ${name || '-'}`,
+            notes: `GDPR consent for meal plan delivery. Email: ${email}, Name: ${name || '-'}`,
           },
         ]
 
         if (newsletter_consent) {
           consentEntries.push({
-            user_id: user?.id || null,
+            user_id: user?.id || subscriberId,
             subscriber_id: subscriberId,
-            consent_type: 'newsletter',
+            consent_type: 'marketing_email',
             granted: true,
             source: 'meal_plan',
-            notes: `Opted in via meal plan form. Email: ${email}`,
+            notes: `Newsletter opt-in via meal plan form. Email: ${email}`,
           })
         }
 
         if (contact_consent) {
           consentEntries.push({
-            user_id: user?.id || null,
+            user_id: user?.id || subscriberId,
             subscriber_id: subscriberId,
-            consent_type: 'contact_permission',
+            consent_type: 'coaching_contact',
             granted: true,
             source: 'meal_plan',
-            notes: `Opted in via meal plan form. Email: ${email}`,
+            notes: `Coaching/offers contact opt-in via meal plan form. Email: ${email}`,
           })
         }
 
@@ -1247,29 +1271,79 @@ ${pt.writeAll}${
         if (consentErr) {
           console.error(`[generate-mealplan] consent_log insert FAILED:`, consentErr.message, consentErr.code)
         } else {
-          console.log(`[generate-mealplan] Consent logged: ${consentEntries.length} entries for subscriber ${subscriberId}`)
+          console.log(`[generate-mealplan] Consent logged: ${consentEntries.length} entries for ${subscriberId}`)
         }
 
-        // 8d. Log CRM activity (if logged in)
-        if (user) {
-          await supabase.from('lead_activity').insert({
-            user_id: user.id,
-            activity_type: 'meal_plan_generated',
-            activity_details: {
-              calories: daily_calories,
-              days: num_days,
-              meals_per_day,
-              language,
-              model,
-              pdf_url: pdfUrl || null,
-              email_sent: emailSent,
-              tokens: completionData.usage?.total_tokens || 0,
-              newsletter_consent,
-              contact_consent,
-            },
-            notes: `Madplan genereret: ${num_days} dage, ${daily_calories} kcal/dag${coach_id ? ' (sendt af coach)' : ''}`,
-          }).then(() => {}, () => {})
+        // 8d. Save meal plan record to generated_meal_plans (ALL users)
+        const tokensUsed = completionData.usage?.total_tokens || 0
+        await supabase.from('generated_meal_plans').insert({
+          profile_id: user?.id || null,
+          subscriber_id: subscriberId,
+          email,
+          name: name || null,
+          daily_calories,
+          meals_per_day,
+          diet_type,
+          language,
+          num_days,
+          model,
+          tokens_used: tokensUsed,
+          cost_usd: tokensUsed > 0 ? parseFloat((tokensUsed * 0.00001).toFixed(4)) : null,
+          pdf_filename: pdfUrl ? pdfUrl.split('/').pop() : null,
+          pdf_storage_path: pdfUrl || null,
+          status: 'completed',
+          email_sent: emailSent,
+          email_sent_at: emailSent ? new Date().toISOString() : null,
+        }).then(
+          () => console.log(`[generate-mealplan] Meal plan record saved for ${email}`),
+          (e: unknown) => console.warn('[generate-mealplan] generated_meal_plans insert failed:', e),
+        )
+
+        // 8e. Log email send (if email was sent)
+        if (emailSent) {
+          const emailSubjects: Record<string, string> = {
+            da: `Din personlige ${num_days}-dages kostplan`,
+            en: `Your personal ${num_days}-day meal plan`,
+            se: `Din personliga ${num_days}-dagars kostplan`,
+          }
+          await supabase.from('email_sends').insert({
+            user_id: user?.id || subscriberId,
+            subscriber_id: subscriberId,
+            email_address: email,
+            subject: emailSubjects[language] || emailSubjects['da'],
+            email_type: 'meal_plan',
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+          }).then(
+            () => console.log(`[generate-mealplan] Email send logged for ${email}`),
+            (e: unknown) => console.warn('[generate-mealplan] email_sends insert failed:', e),
+          )
         }
+
+        // 8f. Log CRM activity (ALL users, not just logged-in)
+        await supabase.from('lead_activity').insert({
+          user_id: user?.id || subscriberId,
+          subscriber_id: subscriberId,
+          activity_type: 'meal_plan_generated',
+          activity_details: {
+            calories: daily_calories,
+            days: num_days,
+            meals_per_day,
+            language,
+            model,
+            pdf_url: pdfUrl || null,
+            email_sent: emailSent,
+            tokens: completionData.usage?.total_tokens || 0,
+            gdpr_consent,
+            newsletter_consent,
+            contact_consent,
+            lead_score: leadScore,
+          },
+          notes: `Madplan genereret: ${num_days} dage, ${daily_calories} kcal/dag${coach_id ? ' (sendt af coach)' : ''}`,
+        }).then(
+          () => console.log(`[generate-mealplan] CRM activity logged for ${email}`),
+          (e: unknown) => console.warn('[generate-mealplan] lead_activity insert failed:', e),
+        )
       } catch (leadErr) {
         console.warn('[generate-mealplan] Lead/consent log error (non-fatal):', leadErr)
       }

@@ -37,14 +37,15 @@ const COACHING_TO_LEAD_STATUS: Record<string, string> = {
  * When coaching is activated/changed, lead_status is updated so the person
  * only appears in one place (Leads OR Coaching, never both).
  */
-async function syncLeadStatus(userId: string, coachingStatus: string): Promise<void> {
+async function syncLeadStatus(userId: string, coachingStatus: string, isSubscriber = false): Promise<void> {
   const leadStatus = COACHING_TO_LEAD_STATUS[coachingStatus]
   if (!leadStatus) return
 
+  const col = isSubscriber ? 'subscriber_id' : 'user_id'
   await supabase
     .from('lead_status')
     .update({ status: leadStatus, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
+    .eq(col, userId)
 }
 
 export async function fetchCoachingClients(): Promise<CoachingClient[]> {
@@ -102,6 +103,29 @@ export async function updateCoachingStatus(
 
   // Sync lead_status to match
   await syncLeadStatus(profileId, newStatus)
+}
+
+/**
+ * Activate a subscriber-only lead as a coaching client.
+ * Uses subscriber_id instead of profile_id.
+ */
+export async function activateSubscriberCoaching(
+  subscriberId: string,
+  opts?: { package?: string; frequency?: string; coachId?: string }
+) {
+  const { error } = await supabase.from('coaching_clients').insert({
+    subscriber_id: subscriberId,
+    status: 'active',
+    start_date: new Date().toISOString(),
+    coaching_package: opts?.package || null,
+    check_in_frequency: opts?.frequency || 'weekly',
+    coach_id: opts?.coachId || null,
+  })
+
+  if (error) throw error
+
+  // Sync lead_status so person moves from Leads → Coaching
+  await syncLeadStatus(subscriberId, 'active', true)
 }
 
 export async function assignCoach(clientProfileId: string, coachId: string | null): Promise<void> {

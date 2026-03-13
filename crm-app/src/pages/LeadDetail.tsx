@@ -9,7 +9,9 @@ import {
   fetchCheckinsForCoachingClient,
   type FullPersonData,
   type WeeklyCheckin,
+  type SubscriberInfo,
 } from '@/lib/fullPersonView'
+import { activateCoaching, activateSubscriberCoaching } from '@/lib/coaching'
 import EditableProfileForm from '@/components/forms/EditableProfileForm'
 import SubscriptionTab from '@/components/tabs/SubscriptionTab'
 import EmailHistoryTab from '@/components/tabs/EmailHistoryTab'
@@ -163,11 +165,13 @@ export default function LeadDetail() {
     )
   }
 
-  if (!data?.profile) {
+  if (!data?.profile && !data?.subscriber) {
     return <p className="text-center text-muted-foreground py-20">{t('common.noData')}</p>
   }
 
-  const { profile, subscription, coaching } = data
+  const { profile, subscriber, isSubscriberOnly, subscription, coaching } = data
+  const displayName = profile?.name || subscriber?.name || profile?.email || subscriber?.email || 'Lead'
+  const displayEmail = profile?.email || subscriber?.email || ''
   const tier = subscription?.tier || 'free'
   const TierIcon = TIER_ICONS[tier] || Star
 
@@ -181,14 +185,21 @@ export default function LeadDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="font-serif text-2xl text-foreground">
-              {profile.name || profile.email || 'Lead'}
+              {displayName}
             </h1>
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[tier]}`}>
-              <TierIcon className="w-3 h-3" />
-              {tier}
-            </span>
+            {isSubscriberOnly ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                <User className="w-3 h-3" />
+                GÆST
+              </span>
+            ) : (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[tier]}`}>
+                <TierIcon className="w-3 h-3" />
+                {tier}
+              </span>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground">{profile.email}</p>
+          <p className="text-sm text-muted-foreground">{displayEmail}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-muted-foreground">{t('leads.columns.assignedTo')}:</span>
             <select
@@ -244,23 +255,40 @@ export default function LeadDetail() {
       {/* Tab content */}
       <div className="bg-card rounded-xl border border-border p-6">
         {activeTab === 'profile' && (
-          <EditableProfileForm profile={profile} onUpdate={loadData} />
+          isSubscriberOnly && subscriber ? (
+            <SubscriberProfileTab subscriber={subscriber} />
+          ) : profile ? (
+            <EditableProfileForm profile={profile} onUpdate={loadData} />
+          ) : null
         )}
 
         {activeTab === 'nutrition' && (
-          <NutritionTab profile={profile} />
+          profile ? <NutritionTab profile={profile} /> : (
+            <p className="text-center text-muted-foreground py-8">Ingen ernæringsdata — gæst-profil</p>
+          )
         )}
 
         {activeTab === 'coaching' && (
-          <CoachingTab coaching={coaching} checkins={checkins} />
+          <CoachingTab
+            coaching={coaching}
+            checkins={checkins}
+            personId={id!}
+            isSubscriberOnly={data.isSubscriberOnly}
+            coaches={crmUsers.filter(u => u.active)}
+            onActivated={loadData}
+          />
         )}
 
         {activeTab === 'subscription' && (
-          <SubscriptionTab
-            subscription={subscription}
-            profileId={profile.id}
-            onUpdate={loadData}
-          />
+          profile ? (
+            <SubscriptionTab
+              subscription={subscription}
+              profileId={profile.id}
+              onUpdate={loadData}
+            />
+          ) : (
+            <p className="text-center text-muted-foreground py-8">Ingen abonnement — gæst-profil</p>
+          )
         )}
 
         {activeTab === 'emailHistory' && (
@@ -333,7 +361,53 @@ export default function LeadDetail() {
         )}
 
         {activeTab === 'consent' && (
-          <ConsentTab consentLog={data.consentLog} profile={profile} />
+          profile ? (
+            <ConsentTab consentLog={data.consentLog} profile={profile} />
+          ) : subscriber ? (
+            <div className="space-y-6">
+              {/* Summary */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <span className="text-sm text-foreground">GDPR Consent</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${subscriber.gdpr_consent ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                    {subscriber.gdpr_consent ? 'Ja' : 'Nej'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <span className="text-sm text-foreground">Nyhedsbrev</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${subscriber.subscribed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                    {subscriber.subscribed ? 'Ja' : 'Nej'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Consent log history */}
+              {data.consentLog.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Samtykke-historik</h3>
+                  <div className="space-y-2">
+                    {data.consentLog.map((entry) => (
+                      <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+                        <div>
+                          <p className="text-sm font-medium text-foreground capitalize">
+                            {entry.consent_type.replace(/_/g, ' ')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.source && <span className="mr-2">Kilde: {entry.source}</span>}
+                            {new Date(entry.created_at).toLocaleString('da-DK')}
+                          </p>
+                          {entry.notes && <p className="text-xs text-muted-foreground mt-0.5">{entry.notes}</p>}
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${entry.granted ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                          {entry.granted ? 'Ja' : 'Nej'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null
         )}
       </div>
     </div>
@@ -342,7 +416,7 @@ export default function LeadDetail() {
 
 // ─── Sub-components ───
 
-function NutritionTab({ profile }: { profile: FullPersonData['profile'] }) {
+function NutritionTab({ profile }: { profile: NonNullable<FullPersonData['profile']> }) {
   const fields = [
     ['BMR', profile.bmr ? `${profile.bmr} kcal` : null],
     ['TDEE', profile.tdee ? `${profile.tdee} kcal` : null],
@@ -366,14 +440,104 @@ function NutritionTab({ profile }: { profile: FullPersonData['profile'] }) {
   )
 }
 
-function CoachingTab({ coaching, checkins }: { coaching: FullPersonData['coaching']; checkins: WeeklyCheckin[] }) {
+function CoachingTab({ coaching, checkins, personId, isSubscriberOnly, coaches, onActivated }: {
+  coaching: FullPersonData['coaching']
+  checkins: WeeklyCheckin[]
+  personId: string
+  isSubscriberOnly: boolean
+  coaches: CrmUserRow[]
+  onActivated: () => void
+}) {
   const { t } = useTranslation()
+  const [activating, setActivating] = useState(false)
+  const [selectedCoach, setSelectedCoach] = useState('')
+  const [selectedPackage, setSelectedPackage] = useState('')
+  const [showActivateForm, setShowActivateForm] = useState(false)
+
+  async function handleActivate() {
+    setActivating(true)
+    try {
+      const opts = {
+        coachId: selectedCoach || undefined,
+        package: selectedPackage || undefined,
+        frequency: 'weekly',
+      }
+      if (isSubscriberOnly) {
+        await activateSubscriberCoaching(personId, opts)
+      } else {
+        await activateCoaching(personId, opts)
+      }
+      onActivated()
+    } catch (err) {
+      console.error('Activate coaching error:', err)
+    } finally {
+      setActivating(false)
+      setShowActivateForm(false)
+    }
+  }
 
   if (!coaching) {
     return (
-      <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
-        <HeartPulse className="w-8 h-8" />
-        <p>{t('coaching.noClients')}</p>
+      <div className="flex flex-col items-center gap-4 py-12">
+        <HeartPulse className="w-8 h-8 text-muted-foreground" />
+        <p className="text-muted-foreground">{t('coaching.noClients')}</p>
+
+        {!showActivateForm ? (
+          <button
+            onClick={() => setShowActivateForm(true)}
+            className="px-5 py-2.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium text-sm"
+          >
+            Aktivér som coaching-klient
+          </button>
+        ) : (
+          <div className="w-full max-w-md space-y-4 p-4 rounded-lg border border-border bg-card">
+            <h3 className="font-semibold text-foreground">Aktivér coaching</h3>
+
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Coach</label>
+              <select
+                value={selectedCoach}
+                onChange={(e) => setSelectedCoach(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
+              >
+                <option value="">Ingen coach tildelt</option>
+                {coaches.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name || c.email}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Pakke</label>
+              <select
+                value={selectedPackage}
+                onChange={(e) => setSelectedPackage(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
+              >
+                <option value="">Ingen pakke valgt</option>
+                <option value="basic">Basic</option>
+                <option value="standard">Standard</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleActivate}
+                disabled={activating}
+                className="flex-1 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors text-sm font-medium"
+              >
+                {activating ? 'Aktiverer...' : 'Bekræft aktivering'}
+              </button>
+              <button
+                onClick={() => setShowActivateForm(false)}
+                className="px-4 py-2 rounded-lg border border-border text-foreground hover:bg-muted transition-colors text-sm"
+              >
+                Annuller
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -442,7 +606,49 @@ function CoachingTab({ coaching, checkins }: { coaching: FullPersonData['coachin
   )
 }
 
-function ConsentTab({ consentLog, profile }: { consentLog: FullPersonData['consentLog']; profile: FullPersonData['profile'] }) {
+function SubscriberProfileTab({ subscriber }: { subscriber: SubscriberInfo }) {
+  const fields = [
+    ['Email', subscriber.email],
+    ['Navn', subscriber.name],
+    ['Kilde', subscriber.source],
+    ['Sprog', subscriber.language],
+    ['GDPR', subscriber.gdpr_consent ? 'Ja' : 'Nej'],
+    ['Abonnerer', subscriber.subscribed ? 'Ja' : 'Nej'],
+    ['Oprettet', subscriber.created_at ? new Date(subscriber.created_at).toLocaleString() : '—'],
+  ]
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <p className="text-sm text-blue-700 dark:text-blue-300">
+          Denne person er en gæst (subscriber) — ikke en registreret bruger. Data stammer fra nyhedsbrev eller kostplan-generering.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {fields.map(([label, value]) => (
+          <div key={label as string}>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label as string}</p>
+            <p className="text-sm font-medium text-foreground">{String(value ?? '—')}</p>
+          </div>
+        ))}
+      </div>
+      {subscriber.tags && subscriber.tags.length > 0 && (
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Tags</p>
+          <div className="flex flex-wrap gap-2">
+            {subscriber.tags.map((tag) => (
+              <span key={tag} className="px-2 py-1 rounded-full text-xs font-medium bg-muted text-foreground">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ConsentTab({ consentLog, profile }: { consentLog: FullPersonData['consentLog']; profile: NonNullable<FullPersonData['profile']> }) {
   const { t } = useTranslation()
 
   const currentConsents = [
