@@ -24,6 +24,14 @@ import {
 
 /* ─── Helpers ─── */
 
+/** Translate a value that may be comma-separated (legacy data) */
+function translateOpt(t: (k: string) => string, raw: string): string {
+  return raw
+    .split(/,\s*/)
+    .map(v => { const key = `checkin.opt.${v.trim()}`; const tr = t(key); return tr === key ? v.trim() : tr })
+    .join(', ')
+}
+
 function weeksSince(startDate: string): number {
   const diff = Date.now() - new Date(startDate).getTime()
   return Math.floor(diff / (7 * 24 * 60 * 60 * 1000))
@@ -142,15 +150,15 @@ function HistoryCard({ entry, lang, t, prevWeight }: {
       {open && (
         <div className="px-4 pb-4 pt-1 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm border-t border-sage/15">
           {entry.energy != null && <Stat label={t('checkin.energy')} value={`${entry.energy}/10`} />}
-          {entry.hunger && <Stat label={t('checkin.hunger')} value={t(`checkin.opt.${entry.hunger}`)} />}
-          {entry.cravings && <Stat label={t('checkin.cravings')} value={t(`checkin.opt.${entry.cravings}`)} />}
+          {entry.hunger && <Stat label={t('checkin.hunger')} value={translateOpt(t, entry.hunger)} />}
+          {entry.cravings && <Stat label={t('checkin.cravings')} value={translateOpt(t, entry.cravings)} />}
           {entry.sleep_hours != null && <Stat label={t('checkin.sleepHours')} value={`${entry.sleep_hours}h`} />}
           {entry.sleep_quality != null && <Stat label={t('checkin.sleepQuality')} value={`${entry.sleep_quality}/10`} />}
-          {entry.digestion && <Stat label={t('checkin.digestion')} value={t(`checkin.opt.${entry.digestion}`)} />}
-          {entry.activity && <Stat label={t('checkin.activity')} value={t(`checkin.opt.${entry.activity}`)} />}
+          {entry.digestion && <Stat label={t('checkin.digestion')} value={translateOpt(t, entry.digestion)} />}
+          {entry.activity && <Stat label={t('checkin.activity')} value={translateOpt(t, entry.activity)} />}
           {entry.fasting_hours != null && <Stat label={t('checkin.fastingHours')} value={`${entry.fasting_hours}h`} />}
-          {entry.fasting_feeling && <Stat label={t('checkin.fastingFeeling')} value={t(`checkin.opt.${entry.fasting_feeling}`)} />}
-          {entry.stress_factors && <Stat label={t('checkin.stress')} value={entry.stress_factors} />}
+          {entry.fasting_feeling && <Stat label={t('checkin.fastingFeeling')} value={translateOpt(t, entry.fasting_feeling)} />}
+          {entry.stress_factors && <Stat label={t('checkin.stress')} value={translateOpt(t, entry.stress_factors)} />}
           {entry.weekly_win && (
             <div className="col-span-full">
               <span className="text-charcoal-foreground/50">{t('checkin.weeklyWin')}:</span>{' '}

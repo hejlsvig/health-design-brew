@@ -952,6 +952,7 @@
     },
     "opt": {
       "none": "None",
+      "little": "A little",
       "light": "Light",
       "moderate": "Moderate",
       "strong": "Strong",

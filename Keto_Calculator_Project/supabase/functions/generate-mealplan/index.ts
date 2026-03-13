@@ -394,7 +394,7 @@ async function uploadToSftp(
           webRoot = resolved
           break
         }
-      } catch { /* try next */ }
+      } catch (_e) { /* try next */ }
     }
 
     if (!webRoot) {
@@ -404,7 +404,7 @@ async function uploadToSftp(
           await sftp.list(p)
           webRoot = p
           break
-        } catch { /* try next */ }
+        } catch (_e) { /* try next */ }
       }
     }
 
@@ -412,7 +412,7 @@ async function uploadToSftp(
 
     // Ensure /mealplans/ directory exists
     const mealplanDir = `${webRoot}/mealplans`
-    try { await sftp.mkdir(mealplanDir, true) } catch { /* might exist */ }
+    try { await sftp.mkdir(mealplanDir, true) } catch (_e) { /* might exist */ }
 
     const remotePath = `${mealplanDir}/${filename}`
     await sftp.put(fileBuffer, remotePath)
@@ -802,7 +802,7 @@ Deno.serve(async (req: Request) => {
       try {
         const parsed = typeof excluded_ingredients === 'string' ? JSON.parse(excluded_ingredients) : excluded_ingredients
         if (Array.isArray(parsed) && parsed.length > 0) excludedList = parsed.join(', ')
-      } catch {
+      } catch (_e) {
         if (typeof excluded_ingredients === 'string' && excluded_ingredients.length > 0) excludedList = excluded_ingredients
       }
     }
@@ -1048,17 +1048,18 @@ ${pt.writeAll}${
 
     const requestBody: Record<string, unknown> = {
       model,
-      max_completion_tokens: maxTokens,
       messages: [
         { role: 'system', content: systemPrompt + excludedWarning },
         { role: 'user', content: userPrompt },
       ],
     }
-    // GPT-5.x models don't support temperature — only default (1) is allowed
+    // GPT-5.x models don't support max_completion_tokens or temperature
     if (!isGpt5) {
+      requestBody.max_completion_tokens = maxTokens
       requestBody.temperature = 0.7
     }
 
+    console.log(`[generate-mealplan] Request body keys: ${Object.keys(requestBody).join(', ')}`)
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
@@ -1066,10 +1067,14 @@ ${pt.writeAll}${
     })
 
     if (!openaiResponse.ok) {
-      const err = await openaiResponse.json().catch(() => ({}))
-      const msg = (err as any)?.error?.message || `OpenAI API fejl: ${openaiResponse.status}`
-      console.error('[generate-mealplan] OpenAI error:', msg)
-      return jsonResponse({ error: msg }, 502)
+      const errText = await openaiResponse.text().catch(() => '(no body)')
+      console.error(`[generate-mealplan] OpenAI error ${openaiResponse.status}: ${errText}`)
+      let msg = `OpenAI API fejl: ${openaiResponse.status}`
+      try {
+        const errJson = JSON.parse(errText)
+        if (errJson?.error?.message) msg = errJson.error.message
+      } catch (_e) { /* not JSON */ }
+      return jsonResponse({ error: `OpenAI error: ${openaiResponse.status} — ${msg}` }, 502)
     }
 
     const completionData = await openaiResponse.json()

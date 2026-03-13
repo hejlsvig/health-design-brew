@@ -944,6 +944,7 @@
     },
     "opt": {
       "none": "Ingen",
+      "little": "Lidt",
       "light": "Let",
       "moderate": "Moderat",
       "strong": "Stærk",

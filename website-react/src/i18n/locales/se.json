@@ -952,6 +952,7 @@
     },
     "opt": {
       "none": "Inga",
+      "little": "Lite",
       "light": "Lätt",
       "moderate": "Måttlig",
       "strong": "Stark",
