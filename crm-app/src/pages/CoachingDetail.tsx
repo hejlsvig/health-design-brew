@@ -71,7 +71,7 @@ export default function CoachingDetail() {
         personData.coaching?.id
           ? fetchCheckinsForCoachingClient(personData.coaching.id)
           : Promise.resolve([]),
-        fetchNotes({ userId: id }),
+        fetchNotes({ leadId: id }),
       ])
       setCheckins(ci)
       setNotes(userNotes)
@@ -264,7 +264,7 @@ export default function CoachingDetail() {
             userId={id!}
             adminId={user?.id}
             onUpdate={async () => {
-              const updated = await fetchNotes({ userId: id })
+              const updated = await fetchNotes({ leadId: id })
               setNotes(updated)
             }}
           />
@@ -746,7 +746,7 @@ function NotesTab({
     setSaving(true)
     try {
       await createNote({
-        user_id: userId,
+        lead_id: userId,
         created_by: adminId,
         content: newContent.trim(),
         category: newCategory,

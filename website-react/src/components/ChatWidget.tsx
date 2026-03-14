@@ -8,6 +8,48 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MessageCircle, X, Send, ImagePlus, Loader2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+/**
+ * Render chat message text with basic markdown support (bold)
+ * and strip emoji characters from assistant messages.
+ */
+function formatChatMessage(text: string, role: 'user' | 'assistant') {
+  let processed = text
+
+  // Strip emojis from assistant messages
+  if (role === 'assistant') {
+    // Remove emoji characters (Unicode ranges for common emojis)
+    processed = processed
+      .replace(/[\u{1F600}-\u{1F64F}]/gu, '')  // Emoticons
+      .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')  // Misc symbols & pictographs
+      .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')  // Transport & map symbols
+      .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')  // Flags
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')    // Misc symbols
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')    // Dingbats
+      .replace(/[\u{FE00}-\u{FE0F}]/gu, '')    // Variation selectors
+      .replace(/[\u{1F900}-\u{1F9FF}]/gu, '')  // Supplemental symbols
+      .replace(/[\u{1FA00}-\u{1FA6F}]/gu, '')  // Chess symbols
+      .replace(/[\u{1FA70}-\u{1FAFF}]/gu, '')  // Symbols extended-A
+      .replace(/[\u{200D}]/gu, '')              // Zero-width joiner
+      .replace(/[\u{20E3}]/gu, '')              // Combining enclosing keycap
+      .replace(/[\u{E0020}-\u{E007F}]/gu, '')  // Tags
+      .replace(/  +/g, ' ')                    // Collapse double spaces left by removed emojis
+      .trim()
+  }
+
+  // Split on **bold** markers and render
+  const parts = processed.split(/(\*\*[^*]+\*\*)/g)
+  return (
+    <p className="whitespace-pre-wrap">
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i}>{part.slice(2, -2)}</strong>
+        }
+        return <span key={i}>{part}</span>
+      })}
+    </p>
+  )
+}
 import {
   sendChatMessage,
   fileToDataUrl,
@@ -278,7 +320,7 @@ export default function ChatWidget() {
                     ))}
                   </div>
                 )}
-                <p className="whitespace-pre-wrap">{msg.text}</p>
+                {formatChatMessage(msg.text, msg.role)}
               </div>
             </div>
           ))}

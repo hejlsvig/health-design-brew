@@ -94,23 +94,48 @@ Report results as a summary at the end: total checks, passed, failed, with detai
 - [ ] Can progress through all steps
 - [ ] Unit toggle (metric/imperial) works
 - [ ] Final result shows calculated calories
-- [ ] Meal planner steps are accessible
+- [ ] Macro distribution (protein/fat/carbs) shown correctly
+- [ ] "Få din kostplan" CTA links to `/mealplan`
 
-#### 1.9 About (`/about`)
+#### 1.9 Meal Plan Generator (`/mealplan`)
+- [ ] Page loads with 4-step wizard UI
+- [ ] Step 1: Meals per day selection (1–6) works
+- [ ] Step 2: Ingredient preferences (include/exclude) renders
+- [ ] Step 3: Number of days (1–7) selection works
+- [ ] Step 4: Summary shows correct values + email input field
+- [ ] If logged in: email and name pre-filled from profile
+- [ ] "Generer kostplan" button triggers AI generation
+- [ ] Loading spinner shown during generation
+- [ ] Generated meal plan renders with proper formatting:
+  - [ ] Headings (h1/h2/h3) render correctly
+  - [ ] Bold text (**text**) renders as `<strong>`
+  - [ ] Ordered lists show 1, 2, 3 (NOT continuing from previous list)
+  - [ ] Unordered lists show bullet points
+  - [ ] "Næringsværdi" spelled correctly (NOT "Næringsvärdi")
+- [ ] Email confirmation shown after send
+- [ ] No login required (works for anonymous users)
+
+#### 1.10 About (`/about`)
 - [ ] Page loads with dynamic sections
 - [ ] Content blocks render
 
-#### 1.10 Privacy & Terms (`/privacy`, `/terms`)
+#### 1.11 Privacy & Terms (`/privacy`, `/terms`)
 - [ ] Pages load with content sections
 
-#### 1.11 Login (`/login`)
+#### 1.12 Login (`/login`)
 - [ ] Email input field renders
 - [ ] Magic link button is present
+- [ ] Password login tab/option is present (dual auth)
+- [ ] Switching between Magic Link and Password login works
 
-#### 1.12 Profile (`/profile`)
+#### 1.13 Profile (`/profile`)
 - [ ] Shows user info (if logged in)
 - [ ] Saved recipes section visible
 - [ ] Diet preferences shown
+- [ ] "Opret adgangskode" section visible (create password for magic link users)
+- [ ] GDPR section: "Eksporter mine data" button present and works (downloads JSON)
+- [ ] GDPR section: "Slet min konto" button present with confirmation dialog
+- [ ] Account deletion anonymizes profile and signs user out
 
 ---
 
@@ -181,11 +206,15 @@ Test with at least 2 languages:
 - [ ] Role filter works
 
 #### 4.7 Admin Settings (`/admin/settings`)
-- [ ] OpenAI API key field (masked)
-- [ ] AI model selector
-- [ ] Kie.ai API key field (masked)
-- [ ] FTP credentials section (host, username, password)
-- [ ] Save button works and shows confirmation
+- [ ] Tab navigation: AI & Indhold, Sociale Medier, Hosting & Email, SEO & Sikkerhed
+- [ ] AI tab: OpenAI API key (masked), model selector, Kie.ai key
+- [ ] AI tab → AI Prompts: Chat prompts (DA/EN/SE), article prompt, image prompt
+- [ ] AI tab → Kostplan AI: Separate mealplan OpenAI key, model, system prompt
+- [ ] AI tab → Kostplan Email (SMTP): Host, port, user, password, from email/name
+- [ ] Social tab: Profile links (Instagram, YouTube, TikTok, Facebook URLs)
+- [ ] Hosting tab: FTP host, username, password + SMTP settings
+- [ ] SEO tab: Site URL, site name, meta description, Google verification, GA ID, robots disallow
+- [ ] Save button works and shows confirmation toast
 
 #### 4.8 Admin About/Privacy/Terms (`/admin/about`, `/admin/privacy`, `/admin/terms`)
 - [ ] Section editors load
@@ -211,6 +240,22 @@ Test with at least 2 languages:
 - [ ] Category filters respond to clicks
 - [ ] Newsletter signup form in footer is present
 - [ ] Calorie calculator step navigation works
+- [ ] Meal plan wizard step navigation works (forward/back)
+
+#### 6.1 Chat Widget (Keto-Assistent)
+- [ ] Chat icon/button visible in bottom-right corner
+- [ ] Clicking opens chat overlay
+- [ ] Can type a message and get AI response
+- [ ] AI responses contain NO emojis or icons
+- [ ] Bold text (**word**) renders as actual bold (not raw asterisks)
+- [ ] Responses are in the current site language (DA/EN/SE)
+- [ ] Chat can be closed and reopened (conversation preserved)
+
+#### 6.2 AI Image Generator (Admin)
+- [ ] On admin article/recipe edit, AI image generator button visible when no image
+- [ ] Generating an image shows loading state
+- [ ] Generated image uploads to one.com via FTP
+- [ ] Image URL saved to article/recipe after upload
 
 ---
 

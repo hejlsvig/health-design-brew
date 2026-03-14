@@ -45,7 +45,8 @@ Report results as a summary at the end.
 - [ ] Stats shown on content cards (articles published/total, recipes published/total)
 - [ ] User stats shown (admins count, users count)
 - [ ] All card links navigate to correct pages
-- [ ] CRM & Leads card opens in new window (`/crm/admin.html`)
+- [ ] CRM & Leads card links to `/admin/crm`
+- [ ] CRM icon visible in admin navbar
 
 ---
 
@@ -67,9 +68,20 @@ Report results as a summary at the end.
 - [ ] Score can be updated
 - [ ] Activity log shows timeline of events
 - [ ] Add note form works (enter text, submit, note appears in log)
+- [ ] Notes can be pinned/unpinned
 - [ ] Coaching activation section visible
 - [ ] Follow-up date can be set
 - [ ] Back link returns to lead list
+
+### 2.2 Coaching Detail (from CRM app or lead detail)
+
+- [ ] Coaching client details load (profile + subscription info)
+- [ ] Check-in tab shows weekly check-ins list
+- [ ] Check-in entries show weight, notes, date
+- [ ] Email history tab shows sent emails for this client
+- [ ] Notes tab shows CRM notes with pin support
+- [ ] Meal plan generation available for coaching clients
+- [ ] Coach can send check-in reminder
 
 ---
 
@@ -119,10 +131,14 @@ Report results as a summary at the end.
 
 ### 5. Admin Settings (`/admin/settings`)
 
-- [ ] Tab navigation: AI & Generering, Sociale Medier, Hosting & Upload
-- [ ] AI tab: OpenAI API key field (masked), model selector, Kie.ai key, AI Prompts sub-tabs
+- [ ] Tab navigation: AI & Indhold, Sociale Medier, Hosting & Email, SEO & Sikkerhed
+- [ ] AI tab: OpenAI API key (masked), model selector (kun GPT 5.x), Kie.ai key
+- [ ] AI tab → AI Prompts: Chat system prompts (DA/EN/SE), article prompt, image generation prompt
+- [ ] AI tab → Kostplan AI: Separate mealplan OpenAI key + model (fallback til generel AI config)
+- [ ] AI tab → Kostplan Email (SMTP): Host, port, user, password, from email, from name
 - [ ] Social tab: Profile links (Instagram, YouTube, TikTok, Facebook URLs), Social Publisher quick link
-- [ ] Hosting tab: FTP host, username, password fields
+- [ ] Hosting tab: FTP host, username, password + generel SMTP settings
+- [ ] SEO tab: Site URL, site name, meta description, Google verification, GA measurement ID, robots disallow
 - [ ] Save button works and shows confirmation toast
 - [ ] Back link goes to `/admin`
 
@@ -157,16 +173,38 @@ Report results as a summary at the end.
 
 ---
 
-### 8. Console & Network Errors
+### 8. Meal Plan Generation (Admin/CRM context)
+
+- [ ] Admin can generate meal plans for coaching clients from CRM
+- [ ] Generated meal plan stored in `generated_meal_plans` table
+- [ ] PDF generated and uploaded via SFTP to one.com
+- [ ] Email sent to client via separate mealplan SMTP (`meal@shiftingsource.com`)
+- [ ] Generation history visible in admin/CRM interface
+
+---
+
+### 9. Email System
+
+- [ ] SMTP settings configurable in Admin → Settings → Hosting & Email
+- [ ] Mealplan-specific SMTP configurable in Admin → Settings → AI & Indhold → Kostplan Email
+- [ ] Email sends tracked (check `email_sends` table for logs)
+- [ ] No Resend API usage — all email via SMTP (one.com)
+
+---
+
+### 10. Console & Network Errors
 
 After visiting all admin pages, check:
 - [ ] No JavaScript errors on `/admin`
 - [ ] No JavaScript errors on `/admin/crm`
+- [ ] No JavaScript errors on `/admin/crm/:userId` (lead detail)
 - [ ] No JavaScript errors on `/admin/social-publisher`
 - [ ] No JavaScript errors on `/admin/settings`
 - [ ] No JavaScript errors on `/admin/blog`
 - [ ] No JavaScript errors on `/admin/recipes`
+- [ ] No JavaScript errors on `/mealplan` (meal plan wizard)
 - [ ] No failed network requests (401, 500 errors)
+- [ ] No CORS errors on Edge Function calls
 
 ---
 

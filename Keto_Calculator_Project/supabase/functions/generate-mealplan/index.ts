@@ -727,6 +727,23 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'daily_calories er påkrævet' }, 400)
     }
 
+    // 2b. Resolve the actual recipient profile (may differ from logged-in user)
+    // When admin generates a meal plan for a client, `user` is the admin,
+    // but we need the client's profile_id based on the email address.
+    let recipientProfileId: string | null = null
+    if (email) {
+      const { data: recipientProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle()
+      recipientProfileId = recipientProfile?.id || null
+    }
+    // Fallback: if no profile found by email, and user is logged in and their email matches, use user.id
+    if (!recipientProfileId && user && user.email?.toLowerCase() === email.toLowerCase()) {
+      recipientProfileId = user.id
+    }
+
     // 3. Fetch ALL settings we need in one query
     const settings = await getSettings(supabase, [
       'openai_api_key', 'mealplan_openai_api_key',
@@ -862,7 +879,7 @@ Deno.serve(async (req: Request) => {
 1. Første trin.
 2. Andet trin.
 3. Tredje trin.
-### Næringsvärdi
+### Næringsværdi
 - Kalorier: X kcal | Fedt: Xg | Protein: Xg | Kulhydrater: Xg
 
 ## Frokost: [Rettens navn]
@@ -1150,8 +1167,8 @@ ${pt.writeAll}${
       }
     }
 
-    // ── 7. Save to user profile (only if logged in) ──
-    if (user) {
+    // ── 7. Save to user profile (recipient, not the logged-in admin) ──
+    if (recipientProfileId) {
       try {
         await supabase
           .from('profiles')
@@ -1160,7 +1177,7 @@ ${pt.writeAll}${
             meal_plan_generated_at: new Date().toISOString(),
             ...(pdfUrl ? { meal_plan_pdf_url: pdfUrl } : {}),
           })
-          .eq('id', user.id)
+          .eq('id', recipientProfileId)
       } catch (saveErr) {
         console.warn('[generate-mealplan] Failed to save to profile:', saveErr)
       }
@@ -1202,10 +1219,10 @@ ${pt.writeAll}${
         // 8b. Upsert lead_status for ALL users (auth + subscriber)
         // Lead scoring: GDPR=10, newsletter=20, contact=30, meal_plan=15
         const leadScore = (gdpr_consent ? 10 : 0) + (newsletter_consent ? 20 : 0) + (contact_consent ? 30 : 0) + 15
-        if (user) {
+        if (recipientProfileId) {
           await supabase.from('lead_status').upsert(
             {
-              user_id: user.id,
+              user_id: recipientProfileId,
               subscriber_id: subscriberId,
               source: 'meal_plan',
               status: 'new',
@@ -1239,9 +1256,10 @@ ${pt.writeAll}${
         }
 
         // 8c. Log consent entries in consent_log
+        // Use recipientProfileId (the actual client), not user.id (which may be the admin)
         const consentEntries = [
           {
-            user_id: user?.id || subscriberId,
+            user_id: recipientProfileId || subscriberId,
             subscriber_id: subscriberId,
             consent_type: 'data_processing',
             granted: gdpr_consent,
@@ -1252,7 +1270,7 @@ ${pt.writeAll}${
 
         if (newsletter_consent) {
           consentEntries.push({
-            user_id: user?.id || subscriberId,
+            user_id: recipientProfileId || subscriberId,
             subscriber_id: subscriberId,
             consent_type: 'marketing_email',
             granted: true,
@@ -1263,7 +1281,7 @@ ${pt.writeAll}${
 
         if (contact_consent) {
           consentEntries.push({
-            user_id: user?.id || subscriberId,
+            user_id: recipientProfileId || subscriberId,
             subscriber_id: subscriberId,
             consent_type: 'coaching_contact',
             granted: true,
@@ -1282,7 +1300,7 @@ ${pt.writeAll}${
         // 8d. Save meal plan record to generated_meal_plans (ALL users)
         const tokensUsed = completionData.usage?.total_tokens || 0
         await supabase.from('generated_meal_plans').insert({
-          profile_id: user?.id || null,
+          profile_id: recipientProfileId || null,
           subscriber_id: subscriberId,
           email,
           name: name || null,
@@ -1312,7 +1330,7 @@ ${pt.writeAll}${
             se: `Din personliga ${num_days}-dagars kostplan`,
           }
           await supabase.from('email_sends').insert({
-            user_id: user?.id || subscriberId,
+            user_id: recipientProfileId || subscriberId,
             subscriber_id: subscriberId,
             email_address: email,
             subject: emailSubjects[language] || emailSubjects['da'],
@@ -1327,7 +1345,7 @@ ${pt.writeAll}${
 
         // 8f. Log CRM activity (ALL users, not just logged-in)
         await supabase.from('lead_activity').insert({
-          user_id: user?.id || subscriberId,
+          user_id: recipientProfileId || subscriberId,
           subscriber_id: subscriberId,
           activity_type: 'meal_plan_generated',
           activity_details: {

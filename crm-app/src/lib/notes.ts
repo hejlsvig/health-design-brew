@@ -4,11 +4,12 @@ export type NoteCategory = 'general' | 'coaching' | 'sales' | 'support' | 'inter
 
 export interface CrmNote {
   id: string
-  user_id: string | null
+  lead_id: string | null
   created_by: string
   title: string | null
   content: string
   category: NoteCategory
+  priority: string
   is_pinned: boolean
   created_at: string
   updated_at: string
@@ -17,7 +18,7 @@ export interface CrmNote {
 }
 
 export interface NoteFilters {
-  userId?: string
+  leadId?: string
   category?: NoteCategory
   search?: string
   pinnedOnly?: boolean
@@ -28,14 +29,14 @@ export async function fetchNotes(filters?: NoteFilters, limit = 100): Promise<Cr
     .from('crm_notes')
     .select(`
       *,
-      profile:profiles!crm_notes_user_id_fkey (name, email),
-      creator:crm_users!crm_notes_created_by_fkey (name, email)
+      profile:profiles!crm_notes_lead_id_fkey (name, email),
+      creator:profiles!crm_notes_created_by_fkey (name, email)
     `)
     .order('is_pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  if (filters?.userId) query = query.eq('user_id', filters.userId)
+  if (filters?.leadId) query = query.eq('lead_id', filters.leadId)
   if (filters?.category) query = query.eq('category', filters.category)
   if (filters?.pinnedOnly) query = query.eq('is_pinned', true)
 
@@ -58,7 +59,7 @@ export async function fetchNotes(filters?: NoteFilters, limit = 100): Promise<Cr
 }
 
 export async function createNote(note: {
-  user_id?: string
+  lead_id?: string
   created_by: string
   title?: string
   content: string
@@ -67,7 +68,7 @@ export async function createNote(note: {
   const { data, error } = await supabase
     .from('crm_notes')
     .insert({
-      user_id: note.user_id || null,
+      lead_id: note.lead_id || null,
       created_by: note.created_by,
       title: note.title || null,
       content: note.content,

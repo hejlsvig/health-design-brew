@@ -121,6 +121,7 @@ export async function fetchLeads(filters?: {
         created_at
       )
     `)
+    .not('user_id', 'is', null)   // Skip orphaned subscriber-only entries
     .order('created_at', { ascending: false })
 
   if (filters?.status) {
@@ -261,10 +262,10 @@ export async function fetchCrmStats(): Promise<CrmStats & { totalSubscribers: nu
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   const [totalRes, newRes, qualifiedRes, coachingRes, subsRes] = await Promise.all([
-    supabase.from('lead_status').select('id', { count: 'exact', head: true }),
-    supabase.from('lead_status').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
-    supabase.from('lead_status').select('id', { count: 'exact', head: true }).eq('status', 'qualified'),
-    supabase.from('lead_status').select('id', { count: 'exact', head: true }).eq('status', 'coaching_active'),
+    supabase.from('lead_status').select('id', { count: 'exact', head: true }).not('user_id', 'is', null),
+    supabase.from('lead_status').select('id', { count: 'exact', head: true }).not('user_id', 'is', null).gte('created_at', weekAgo),
+    supabase.from('lead_status').select('id', { count: 'exact', head: true }).not('user_id', 'is', null).eq('status', 'qualified'),
+    supabase.from('lead_status').select('id', { count: 'exact', head: true }).not('user_id', 'is', null).eq('status', 'coaching_active'),
     supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).eq('is_active', true),
   ])
 

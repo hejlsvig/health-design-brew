@@ -274,16 +274,37 @@ export default function MealPlan() {
 
   // Simple markdown-to-HTML converter for the meal plan display
   const renderMealPlanHTML = (markdown: string): string => {
-    return markdown
+    let html = markdown
+      // Headers (order matters: ### before ## before #)
       .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-charcoal mt-4 mb-1">$1</h3>')
       .replace(/^## (.+)$/gm, '<h2 class="text-xl font-serif font-bold text-charcoal mt-6 mb-2 border-b border-gray-200 pb-1">$1</h2>')
       .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-serif font-bold text-charcoal mt-6 mb-3">$1</h1>')
+      // Inline formatting
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-sm">$1</li>')
-      .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 list-decimal text-sm">$2</li>')
+      // List items (mark with class for grouping)
+      .replace(/^- (.+)$/gm, '<li class="ul-item ml-4 list-disc text-sm">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gm, '<li class="ol-item ml-4 list-decimal text-sm">$2</li>')
+      // Horizontal rules
       .replace(/^---$/gm, '<hr class="my-4 border-gray-200" />')
+
+    // Group consecutive <li class="ol-item"> into <ol> (restarts numbering)
+    html = html.replace(/((?:<li class="ol-item[^"]*">[^<]*<\/li>\n?)+)/g, (match) => {
+      const cleaned = match.replace(/ class="ol-item /g, ' class="')
+      return `<ol class="ml-4 list-decimal text-sm my-2">${cleaned}</ol>`
+    })
+
+    // Group consecutive <li class="ul-item"> into <ul>
+    html = html.replace(/((?:<li class="ul-item[^"]*">[^<]*<\/li>\n?)+)/g, (match) => {
+      const cleaned = match.replace(/ class="ul-item /g, ' class="')
+      return `<ul class="ml-4 list-disc text-sm my-2">${cleaned}</ul>`
+    })
+
+    // Paragraph breaks and remaining text
+    html = html
       .replace(/\n{2,}/g, '</p><p class="text-sm text-charcoal/80 mb-2">')
       .replace(/^(?!<[h|l|u|o|s|p|d])(.*\S.*)$/gm, '<p class="text-sm text-charcoal/80 mb-1">$1</p>')
+
+    return html
   }
 
   const toggleCategory = (category: string) => {

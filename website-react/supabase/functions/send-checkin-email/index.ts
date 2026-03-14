@@ -49,7 +49,7 @@ serve(async (req) => {
     // 2. Get coaching client + profile
     const { data: client, error: clientErr } = await supabase
       .from('coaching_clients')
-      .select('id, profile_id, check_in_frequency, profiles (id, name, email, language)')
+      .select('id, profile_id, check_in_frequency, access_token, profiles (id, name, email, language)')
       .eq('id', coaching_client_id)
       .single()
 
@@ -100,8 +100,15 @@ serve(async (req) => {
       )
     }
 
-    // 4. Build check-in link
-    const checkinUrl = `${siteUrl}/checkin`
+    // 4. Build check-in link (must include access_token so client can fill in without login)
+    const accessToken = (client as any).access_token
+    if (!accessToken) {
+      return new Response(
+        JSON.stringify({ error: 'Coaching client has no access_token. Re-activate coaching to generate one.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    const checkinUrl = `${siteUrl}/checkin?token=${accessToken}`
 
     // 5. Build email
     const subjects: Record<string, string> = {
